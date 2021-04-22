@@ -1,6 +1,10 @@
 # cfbs-modules
 
-Reusable modules for [cfbs (CFEngine Build System)](https://github.com/olehermanse/cfbs).
+This repository contains reusable modules for [cfbs (CFEngine Build System)](https://github.com/olehermanse/cfbs).
+
+The CFEngine Build System (cfbs) comes with **no warranty** and is **not supported**.
+This is a work in progress, everything will change.
+Use at your own risk!
 
 ## CFEngine Build System Repositories
 
