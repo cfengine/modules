@@ -1,0 +1,8 @@
+{
+  "classes": { "client_initiated_reporting_enabled": ["any"] },
+  "vars": {
+    "control_server_call_collect_interval": "1",
+    "mpf_access_rules_collect_calls_admit_ips": ["0.0.0.0/0"],
+    "control_hub_exclude_hosts": ["0.0.0.0/0"]
+  }
+}
