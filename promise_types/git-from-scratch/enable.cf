@@ -1,0 +1,6 @@
+promise agent git
+# @brief Define git promise type
+{
+  path => "$(sys.workdir)/modules/promises/git_from_scratch.py";
+  interpreter => "/usr/bin/python3";
+}
