@@ -1,0 +1,5 @@
+promise agent git
+{
+    path => "$(sys.workdir)/modules/promises/git.py";
+    interpreter => "/usr/bin/python3";
+}
