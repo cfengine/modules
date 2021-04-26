@@ -1,0 +1,6 @@
+promise agent site_up
+# @brief Define site_up promise type
+{
+  path => "$(sys.workdir)/modules/promises/site_up.py";
+  interpreter => "/usr/bin/python3";
+}
