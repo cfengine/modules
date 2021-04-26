@@ -1,5 +1,5 @@
 promise agent groups_experimental
 {
-    path => "$(this.promise_dirname)/../modules/promises/groups_experimental.py";
+    path => "$(sys.workdir)/modules/promises/groups_experimental.py";
     interpreter => "/usr/bin/python3";
 }
