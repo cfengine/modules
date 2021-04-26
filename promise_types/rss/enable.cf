@@ -1,0 +1,6 @@
+promise agent rss
+# @brief Define rss promise type
+{
+  path => "$(sys.workdir)/modules/promises/rss.py";
+  interpreter => "/usr/bin/python3";
+}
