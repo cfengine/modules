@@ -1,6 +1,6 @@
 promise agent backup
 # @brief Define backup promise type
 {
-  path => "$(sys.workdir)/modules/promises/backup.py";
-  interpreter => "/usr/bin/python3";
+  path => "$(sys.workdir)/modules/promises/backup.sh";
+  interpreter => "/usr/bin/bash";
 }
