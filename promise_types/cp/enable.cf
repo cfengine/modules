@@ -1,0 +1,6 @@
+promise agent cp
+# @brief Define cp promise type
+{
+  path => "$(sys.workdir)/modules/promises/cp.sh";
+  interpreter => "/usr/bin/bash";
+}
