@@ -1,0 +1,6 @@
+promise agent gpg
+# @brief Define gpg promise type
+{
+  path => "$(sys.workdir)/modules/promises/gpg.py";
+  interpreter => "/usr/bin/python3";
+}
