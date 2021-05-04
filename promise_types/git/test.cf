@@ -1,0 +1,87 @@
+body common control
+{
+  version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  files:
+    "$(this.promise_dirname)/starter-pack"
+      depth_search => aggressive,
+      file_select => all,
+      delete => init_delete;
+
+    "$(this.promise_dirname)/starter-pack/."
+      delete => init_delete;
+}
+
+body depth_search aggressive
+{
+  depth => "inf";
+  include_basedir => "true";
+  rmdeadlinks => "false";
+  traverse_links => "true";
+  xdev => "true";
+}
+
+body file_select all
+{
+  leaf_name => { ".*" };
+  file_result => "leaf_name";
+}
+
+body delete init_delete
+{
+  dirlinks => "delete";
+  rmdirs   => "true";
+}
+
+#######################################################
+
+promise agent git
+{
+    path        => "$(this.promise_dirname)/git.py";
+    interpreter => "/usr/bin/python3";
+}
+
+bundle agent test
+{
+  meta:
+    "description" -> { "CFE-3395" }
+      string => "Test the git promise module";
+
+  git:
+    "starter_pack_repo"
+      repo    => "https://github.com/cfengine/starter_pack",
+      dest    => "$(this.promise_dirname)/starter-pack",
+      version => "master";
+
+  classes:
+      "promise_repaired"
+        expression => canonify("starter_pack_repo_updated"),
+        scope => "namespace";
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "file_ok"
+        if => fileexists("$(this.promise_dirname)/starter-pack/.git");
+
+      "ok" expression => "file_ok.promise_repaired";
+
+  reports:
+    DEBUG.file_ok::
+      "file_ok";
+    DEBUG.promise_repaired::
+      "promise_repaired";
+
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
