@@ -14,8 +14,8 @@
 
 | Name | Type | Description| Mandatory | Default |
 | --- | --- | --- | --- | --- |
-| `dest` | `string` | Destination path | No | Promiser |
-| `repo` | `string` | Git repository URL | Yes | - |
+| `destination` | `string` | Destination path | No | Promiser |
+| `repository` | `string` | Git repository URL | Yes | - |
 | `bare` | `boolean` | If `true`, clones the repository as bare repository | - | - |
 | `clone` | `boolean` | If `true`, clones the repository if it doesn't exist at the destination path | - | - |
 | `depth` | `integer` | Create a shallow clone with a history truncated to the specified number or revisions. Set to 0 to perform a full clone. | - | `0` |
@@ -24,7 +24,7 @@
 | `recursive` | `boolean` | If `true`, use the `--recursive` git option | - | `yes` |
 | `reference` | `string` | If set, use the `--reference` git option with the given value | - | - |
 | `remote` | `string` | Name of the git remote | - | `origin` |
-| `ssh_opts` | `string` | Additional options for the `git` command, e.g. `-o StrictHostKeyChecking=no` | - | - |
+| `ssh_options` | `string` | Additional options for the `git` command, e.g. `-o StrictHostKeyChecking=no` | - | - |
 | `update` | `boolean` | If `true`, updates the repository if it already exists at the destination path | - | - |
 | `version` | `string` | The version of the repository to checkout. It can be a branch name, a tag name or a SHA-1 hash. | - | `HEAD` |
 
@@ -37,8 +37,8 @@ bundle agent main
 {
   git:
     "starter_pack_repo"
-      repo    => "https://github.com/cfengine/starter_pack",
-      dest    => "/northern.tech/cfengine/starter-pack",
+      repository => "https://github.com/cfengine/starter_pack",
+      destination => "/northern.tech/cfengine/starter-pack",
       version => "master";
 }
 ```
@@ -50,8 +50,8 @@ bundle agent main
 {
   git:
     "starter_pack_repo"
-      dest => "/northern.tech/cfengine/starter_pack",
-      repo => "https://github.com/cfengine/starter_pack",
+      destination => "/northern.tech/cfengine/starter_pack",
+      repository => "https://github.com/cfengine/starter_pack",
       bare => "true",
       clone => "true",
       depth => "1",
@@ -59,7 +59,7 @@ bundle agent main
       force => "true",
       recursive => "true",
       remote => "origin",
-      ssh_opts => "UserKnownHostsFile=/dev/null",
+      ssh_options => "UserKnownHostsFile=/dev/null",
       update => "true",
       version => "master";
 }
