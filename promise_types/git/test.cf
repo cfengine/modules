@@ -54,9 +54,9 @@ bundle agent test
 
   git:
     "starter_pack_repo"
-      repo    => "https://github.com/cfengine/starter_pack",
-      dest    => "$(this.promise_dirname)/starter-pack",
-      version => "master";
+      repository  => "https://github.com/cfengine/starter_pack",
+      destination => "$(this.promise_dirname)/starter-pack",
+      version     => "master";
 
   classes:
       "promise_repaired"
