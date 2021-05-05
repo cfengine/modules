@@ -143,6 +143,14 @@ class GitPromiseTypeModule(PromiseModule):
                         cwd=model.dest,
                         env=self._git_envvars(model),
                     )
+                    detached = False
+                    if output.decode("utf-8").strip() == "HEAD":
+                        detached = True
+                        output = subprocess.check_output(
+                            [model.executable, "rev-parse", "HEAD"],
+                            cwd=model.dest,
+                            env=self._git_envvars(model),
+                        )
                     if output.decode("utf-8").strip() != model.version:
                         output = subprocess.check_output(
                             [model.executable, "checkout", model.version],
@@ -151,23 +159,28 @@ class GitPromiseTypeModule(PromiseModule):
                         )
                         result = Result.REPAIRED
                     # check if merge with the remote branch is needed
-                    output = subprocess.check_output(
-                        [model.executable, "diff", f"..{model.remote}/{model.version}"],
-                        cwd=model.dest,
-                        env=self._git_envvars(model),
-                    )
-                    if output.decode("utf-8") != "":
+                    if not detached:
                         output = subprocess.check_output(
                             [
                                 model.executable,
-                                "merge",
-                                model.remote + "/" + model.version,
+                                "diff",
+                                f"..{model.remote}/{model.version}",
                             ],
                             cwd=model.dest,
                             env=self._git_envvars(model),
                         )
-                        classes.append(f"{safe_promiser}_updated")
-                        result = Result.REPAIRED
+                        if output.decode("utf-8") != "":
+                            output = subprocess.check_output(
+                                [
+                                    model.executable,
+                                    "merge",
+                                    model.remote + "/" + model.version,
+                                ],
+                                cwd=model.dest,
+                                env=self._git_envvars(model),
+                            )
+                            classes.append(f"{safe_promiser}_updated")
+                            result = Result.REPAIRED
                 except subprocess.CalledProcessError as e:
                     error = e.output.decode()
                     self.log_error(f"Failed fetch: {error}")
