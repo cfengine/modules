@@ -59,7 +59,9 @@ class GitPromiseTypeModule(PromiseModule):
         safe_promiser = promiser.replace(",", "_")
         attributes.setdefault("dest", promiser)
         model = GitPromiseTypeModel(**attributes)
+
         classes = []
+        result = Result.KEPT
 
         # if the repository doesn't exist
         if not os.path.exists(model.dest):
@@ -91,6 +93,7 @@ class GitPromiseTypeModule(PromiseModule):
                     env=self._git_envvars(model),
                 )
                 classes.append(f"{safe_promiser}_cloned")
+                result = Result.REPAIRED
             except subprocess.CalledProcessError as e:
                 error = e.output.decode()
                 self.log_error(f"Failed clone: {error}")
@@ -118,6 +121,7 @@ class GitPromiseTypeModule(PromiseModule):
                             env=self._git_envvars(model),
                         )
                         classes.append(f"{safe_promiser}_reset")
+                        result = Result.REPAIRED
                 except subprocess.CalledProcessError as e:
                     error = e.output.decode()
                     self.log_error(f"Failed reset: {error}")
@@ -145,24 +149,32 @@ class GitPromiseTypeModule(PromiseModule):
                             cwd=model.dest,
                             env=self._git_envvars(model),
                         )
-                    # merge with the remote branch
+                        result = Result.REPAIRED
+                    # check if merge with the remote branch is needed
                     output = subprocess.check_output(
-                        [
-                            model.executable,
-                            "merge",
-                            model.remote + "/" + model.version,
-                        ],
+                        [model.executable, "diff", f"..{model.remote}/{model.version}"],
                         cwd=model.dest,
                         env=self._git_envvars(model),
                     )
-                    classes.append(f"{safe_promiser}_updated")
+                    if output.decode("utf-8") != "":
+                        output = subprocess.check_output(
+                            [
+                                model.executable,
+                                "merge",
+                                model.remote + "/" + model.version,
+                            ],
+                            cwd=model.dest,
+                            env=self._git_envvars(model),
+                        )
+                        classes.append(f"{safe_promiser}_updated")
+                        result = Result.REPAIRED
                 except subprocess.CalledProcessError as e:
                     error = e.output.decode()
                     self.log_error(f"Failed fetch: {error}")
                     return (Result.NOT_KEPT, [f"{safe_promiser}_update_failed"])
 
         # everything okay
-        return (Result.KEPT, classes)
+        return (result, classes)
 
     def _git_envvars(self, model: GitPromiseTypeModel):
         env = os.environ.copy()
