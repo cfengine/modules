@@ -93,7 +93,7 @@ class GitPromiseTypeModule(PromiseModule):
                 classes.append(f"{safe_promiser}_cloned")
             except subprocess.CalledProcessError as e:
                 error = e.output.decode()
-                self.log_error(f"Failed clone: " + error)
+                self.log_error(f"Failed clone: {error}")
                 return (Result.NOT_KEPT, [f"{safe_promiser}_clone_failed"])
 
         else:
@@ -120,7 +120,7 @@ class GitPromiseTypeModule(PromiseModule):
                         classes.append(f"{safe_promiser}_reset")
                 except subprocess.CalledProcessError as e:
                     error = e.output.decode()
-                    self.log_error(f"Failed reset: " + error)
+                    self.log_error(f"Failed reset: {error}")
                     return (Result.NOT_KEPT, [f"{safe_promiser}_reset_failed"])
 
             # Update the repository
@@ -158,7 +158,7 @@ class GitPromiseTypeModule(PromiseModule):
                     classes.append(f"{safe_promiser}_updated")
                 except subprocess.CalledProcessError as e:
                     error = e.output.decode()
-                    self.log_error(f"Failed fetch: " + error)
+                    self.log_error(f"Failed fetch: {error}")
                     return (Result.NOT_KEPT, [f"{safe_promiser}_update_failed"])
 
         # everything okay
