@@ -6,7 +6,6 @@ from typing import Dict, Optional
 from cfengine import PromiseModule, ValidationError, Result
 from pydantic import (
     BaseModel,
-    Field,
     ValidationError as PydanticValidationError,
     validator,
 )
@@ -79,7 +78,7 @@ class GitPromiseTypeModule(PromiseModule):
                     clone_options += ["--reference", model.reference]
                 output = subprocess.check_output(
                     [
-                        self._git_command(model),
+                        model.executable,
                         "clone",
                         model.repo,
                         model.dest,
@@ -102,19 +101,19 @@ class GitPromiseTypeModule(PromiseModule):
             if model.force:
                 try:
                     output = subprocess.check_output(
-                        [self._git_command(model), "status", "--porcelain"],
+                        [model.executable, "status", "--porcelain"],
                         cwd=model.dest,
                         env=self._git_envvars(model),
                     )
                     if output.decode("utf-8").strip() != "":
                         self.log_info(f"Reset '{model.dest}' to HEAD")
                         output = subprocess.check_output(
-                            [self._git_command(model), "reset", "--hard", "HEAD"],
+                            [model.executable, "reset", "--hard", "HEAD"],
                             cwd=model.dest,
                             env=self._git_envvars(model),
                         )
                         output = subprocess.check_output(
-                            [self._git_command(model), "clean", "-f"],
+                            [model.executable, "clean", "-f"],
                             cwd=model.dest,
                             env=self._git_envvars(model),
                         )
@@ -130,26 +129,26 @@ class GitPromiseTypeModule(PromiseModule):
                     self.log_info(f"Updating '{model.repo}' in '{model.dest}'")
                     # fetch the remote
                     output = subprocess.check_output(
-                        [self._git_command(model), "fetch", model.remote],
+                        [model.executable, "fetch", model.remote],
                         cwd=model.dest,
                         env=self._git_envvars(model),
                     )
                     # checkout the branch, if different from the current one
                     output = subprocess.check_output(
-                        [self._git_command(model), "rev-parse", "--abbrev-ref", "HEAD"],
+                        [model.executable, "rev-parse", "--abbrev-ref", "HEAD"],
                         cwd=model.dest,
                         env=self._git_envvars(model),
                     )
                     if output.decode("utf-8").strip() != model.version:
                         output = subprocess.check_output(
-                            [self._git_command(model), "checkout", model.version],
+                            [model.executable, "checkout", model.version],
                             cwd=model.dest,
                             env=self._git_envvars(model),
                         )
                     # merge with the remote branch
                     output = subprocess.check_output(
                         [
-                            self._git_command(model),
+                            model.executable,
                             "merge",
                             model.remote + "/" + model.version,
                         ],
@@ -165,12 +164,9 @@ class GitPromiseTypeModule(PromiseModule):
         # everything okay
         return (Result.KEPT, classes)
 
-    def _git_command(self, model: GitPromiseTypeModel):
-        return model.executable or "git"
-
     def _git_envvars(self, model: GitPromiseTypeModel):
         env = os.environ.copy()
-        env["GIT_SSH_COMMAND"] = f"{model.executable or self._git_command()}"
+        env["GIT_SSH_COMMAND"] = f"{model.executable}"
         if model.ssh_opts:
             env["GIT_SSH_COMMAND"] += " " + model.ssh_opts
         return env
