@@ -1,0 +1,6 @@
+promise agent systemd
+# @brief Define systemd promise type
+{
+  path => "$(sys.workdir)/modules/promises/systemd.py";
+  interpreter => "/usr/bin/python3";
+}
