@@ -1,15 +1,27 @@
-# cfbs-modules
+# CFEngine modules
 
-This repository contains reusable modules for [cfbs (CFEngine Build System)](https://github.com/cfengine/cfbs).
+This repository contains reusable modules, made by the CFEngine team and officially supported.
 
-The CFEngine Build System (cfbs) comes with **no warranty** and is **not supported**.
-This is a work in progress, everything will change.
-Use at your own risk!
+## Promise types
 
-## CFEngine Build System Repositories
+Modules which allow you to add new promise types to CFEngine policy language, making it easier to manage these resources:
 
-* [cfbs](https://github.com/cfengine/cfbs) - Command line client
-* [cfbs-index](https://github.com/cfengine/cfbs-index) - Index of modules
-* [cfbs-modules](https://github.com/cfengine/cfbs-modules) - Some modules / examples of modules
-* [cfbs-web](https://github.com/cfengine/cfbs-web) - Website
-* [cfbs-example](https://github.com/cfengine/cfbs-example) - Example project using cfbs
+* [Git](./promise_types/git/)
+* [Groups (experimental)](./promise_types/groups-experimental)
+
+## Promise type libraries
+
+Most custom promise types depend on one of these libraries:
+
+* [Python library](./libraries/python/)
+* [Bash library](./libraries/bash/)
+
+## Examples
+
+These are not ready to use, but rather used for educational purposes, as examples in tutorials, documentation, and blog post:
+
+* [Backup custom promise type](./promise_types/backup/)
+* [Copy file custom promise type](./promise_types/cp/)
+* [Git promse type written from scratch](./promise_types/git-from-scratch/)
+* [GPG key custom promise type](./promise_types/gpg/)
+* [Site status custom promise type](./promise_types/site-up/)
