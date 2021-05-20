@@ -22,6 +22,7 @@ These are not ready to use, but rather used for educational purposes, as example
 
 * [Backup custom promise type](./promise_types/backup/)
 * [Copy file custom promise type](./promise_types/cp/)
-* [Git promse type written from scratch](./promise_types/git-from-scratch/)
+* [Git promise type written from scratch](./promise_types/git-from-scratch/)
+* [Git promise type written using library](./promise_types/git-using-lib/)
 * [GPG key custom promise type](./promise_types/gpg/)
 * [Site status custom promise type](./promise_types/site-up/)
