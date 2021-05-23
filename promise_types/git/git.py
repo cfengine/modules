@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from cfengine import PromiseModule, ValidationError, Result
 from pydantic import (
@@ -78,7 +78,8 @@ class GitPromiseTypeModule(PromiseModule):
                     clone_options += [f"--depth={str(model.depth)}"]
                 if model.reference:
                     clone_options += ["--reference", model.reference]
-                output = subprocess.check_output(
+                self._git(
+                    model,
                     [
                         model.executable,
                         "clone",
@@ -90,104 +91,125 @@ class GitPromiseTypeModule(PromiseModule):
                         model.version,
                     ]
                     + clone_options,
-                    env=self._git_envvars(model),
                 )
                 classes.append(f"{safe_promiser}_cloned")
                 result = Result.REPAIRED
             except subprocess.CalledProcessError as e:
-                error = e.output.decode()
-                self.log_error(f"Failed clone: {error}")
+                self.log_error(f"Failed clone: {e.output or e}")
+                e.stderr and self.log_error(e.stderr.strip())
                 return (Result.NOT_KEPT, [f"{safe_promiser}_clone_failed"])
 
         else:
             # discard local changes to the repository
             if model.force:
                 try:
-                    output = subprocess.check_output(
+                    output = self._git(
+                        model,
                         [model.executable, "status", "--porcelain"],
                         cwd=model.destination,
-                        env=self._git_envvars(model),
                     )
-                    if output.decode("utf-8").strip() != "":
+                    if output != "":
                         self.log_info(f"Reset '{model.destination}' to HEAD")
-                        output = subprocess.check_output(
+                        self._git(
+                            model,
                             [model.executable, "reset", "--hard", "HEAD"],
                             cwd=model.destination,
-                            env=self._git_envvars(model),
                         )
-                        output = subprocess.check_output(
+                        self._git(
+                            model,
                             [model.executable, "clean", "-f"],
                             cwd=model.destination,
-                            env=self._git_envvars(model),
                         )
                         classes.append(f"{safe_promiser}_reset")
                         result = Result.REPAIRED
                 except subprocess.CalledProcessError as e:
-                    error = e.output.decode()
-                    self.log_error(f"Failed reset: {error}")
+                    self.log_error(f"Failed reset: {e.output or e}")
+                    e.stderr and self.log_error(e.stderr.strip())
                     return (Result.NOT_KEPT, [f"{safe_promiser}_reset_failed"])
 
             # Update the repository
             if model.update:
                 try:
-                    self.log_info(f"Updating '{model.repository}' in '{model.destination}'")
+                    self.log_verbose(
+                        f"Fetch '{model.repository}' in '{model.destination}'"
+                    )
                     # fetch the remote
-                    output = subprocess.check_output(
+                    self._git(
+                        model,
                         [model.executable, "fetch", model.remote],
                         cwd=model.destination,
-                        env=self._git_envvars(model),
                     )
                     # checkout the branch, if different from the current one
-                    output = subprocess.check_output(
+                    output = self._git(
+                        model,
                         [model.executable, "rev-parse", "--abbrev-ref", "HEAD"],
                         cwd=model.destination,
-                        env=self._git_envvars(model),
                     )
                     detached = False
-                    if output.decode("utf-8").strip() == "HEAD":
+                    if output == "HEAD":
                         detached = True
-                        output = subprocess.check_output(
+                        output = self._git(
+                            model,
                             [model.executable, "rev-parse", "HEAD"],
                             cwd=model.destination,
-                            env=self._git_envvars(model),
                         )
-                    if output.decode("utf-8").strip() != model.version:
-                        output = subprocess.check_output(
+                    if output != model.version:
+                        self.log_info(
+                            f"Checkout '{model.repository}:{model.version}' in '{model.destination}'"
+                        )
+                        self._git(
+                            model,
                             [model.executable, "checkout", model.version],
                             cwd=model.destination,
-                            env=self._git_envvars(model),
                         )
                         result = Result.REPAIRED
                     # check if merge with the remote branch is needed
                     if not detached:
-                        output = subprocess.check_output(
+                        output = self._git(
+                            model,
                             [
                                 model.executable,
                                 "diff",
                                 f"..{model.remote}/{model.version}",
                             ],
                             cwd=model.destination,
-                            env=self._git_envvars(model),
                         )
-                        if output.decode("utf-8") != "":
-                            output = subprocess.check_output(
+                        if output != "":
+                            self.log_info(
+                                f"Merge '{model.remote}/{model.version}' in '{model.destination}'"
+                            )
+                            self._git(
+                                model,
                                 [
                                     model.executable,
                                     "merge",
                                     model.remote + "/" + model.version,
                                 ],
                                 cwd=model.destination,
-                                env=self._git_envvars(model),
                             )
                             result = Result.REPAIRED
                     classes.append(f"{safe_promiser}_updated")
                 except subprocess.CalledProcessError as e:
-                    error = e.output.decode()
-                    self.log_error(f"Failed fetch: {error}")
+                    self.log_error(f"Failed fetch: {e.output or e}")
+                    e.stderr and self.log_error(e.stderr.strip())
                     return (Result.NOT_KEPT, [f"{safe_promiser}_update_failed"])
 
         # everything okay
         return (result, classes)
+
+    def _git(
+        self, model: GitPromiseTypeModel, args: List[str], cwd: Optional[str] = None
+    ) -> str:
+        self.log_verbose(f"Run: {' '.join(args)}")
+        output = subprocess.check_output(
+            args,
+            env=self._git_envvars(model),
+            cwd=cwd,
+            stderr=subprocess.PIPE,
+            text=True,
+        ).strip()
+        output != "" and self.log_verbose(output)
+        return output
 
     def _git_envvars(self, model: GitPromiseTypeModel):
         env = os.environ.copy()
