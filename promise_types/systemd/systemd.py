@@ -145,7 +145,7 @@ class SystemdPromiseTypeModule(PromiseModule):
             except subprocess.CalledProcessError as e:
                 self.log_error(f"Failed to run systemctl: {e.output or e}")
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, [f"{safe_promiser}_daemon_reexec_failed"])
+                return (Result.NOT_KEPT, [f"{safe_promiser}_stop_failed"])
             self.log_info(f"Stopped the service {model.name}")
         # disable the service, in case it is enabled
         if service_status["ActiveState"] == "active":
@@ -154,7 +154,7 @@ class SystemdPromiseTypeModule(PromiseModule):
             except subprocess.CalledProcessError as e:
                 self.log_error(f"Failed to run systemctl: {e.output or e}")
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, [f"{safe_promiser}_daemon_reexec_failed"])
+                return (Result.NOT_KEPT, [f"{safe_promiser}_disable_failed"])
             self.log_info(f"Disabled the service {model.name}")
         # remove the service file
         path = os.path.join(SYSTEMD_LIB_PATH, f"{model.name}.service")
@@ -173,7 +173,7 @@ class SystemdPromiseTypeModule(PromiseModule):
             except subprocess.CalledProcessError as e:
                 self.log_error(f"Failed to run systemctl: {e.output or e}")
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, [f"{safe_promiser}_remove_failed"])
+                return (Result.NOT_KEPT, [f"{safe_promiser}_daemon_reload_failed"])
             self.log_info(f"Reloaded the list of services")
             classes.append(f"{safe_promiser}_absent")
         return (result, classes)
@@ -238,7 +238,7 @@ class SystemdPromiseTypeModule(PromiseModule):
             except subprocess.CalledProcessError as e:
                 self.log_error(f"Failed to run systemctl: {e.output or e}")
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, [f"{safe_promiser}_mask_failed"])
+                return (Result.NOT_KEPT, [f"{safe_promiser}_unmask_failed"])
             self.log_info(f"Unmasked the service {model.name}")
             classes.append(f"{safe_promiser}_unmasked")
         # enable the service
