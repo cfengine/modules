@@ -1,0 +1,74 @@
+body common control
+{
+  version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+
+}
+
+#######################################################
+
+promise agent systemd
+{
+    path        => "$(this.promise_dirname)/systemd.py";
+    interpreter => "/usr/bin/python3";
+}
+
+bundle agent test
+{
+  meta:
+    "description" -> { "CFE-3396" }
+      string => "Test the systemd promise module";
+
+  systemd:
+    "sample"
+      name => "sample",
+      masked => "false",
+      enabled => "true",
+      state => "restarted",
+      unit_description => "my sample service",
+      service_exec_start => "/usr/bin/sleep 86400",
+      service_type => "simple",
+      install_wanted_by => {"multi-user.target"};
+
+  classes:
+      "promise_repaired"
+        expression => canonify("sample_restarted"),
+        scope => "namespace";
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "file_ok"
+        if => fileexists("/lib/systemd/system/sample.service");
+
+      "ok" expression => "file_ok.promise_repaired";
+
+  reports:
+    DEBUG.file_ok::
+      "file_ok";
+    DEBUG.promise_repaired::
+      "promise_repaired";
+
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
+
+#######################################################
+
+bundle agent cleanup
+{
+  systemd:
+    "sample"
+      name => "sample",
+      state => "removed";
+}
