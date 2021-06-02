@@ -77,10 +77,8 @@ class SystemdPromiseTypeModule(PromiseModule):
         self.add_attribute("install_extra", list, default=[])
 
     def prepare_promiser_and_attributes(self, promiser, attributes):
-        promiser = promiser.replace(",", "_")
-        if type(attributes.get("environment")) == str:
-            attributes["environment"] = json.loads(attributes["environment"])
-        return (promiser, attributes)
+        safe_promiser = promiser.replace(",", "_")
+        return (safe_promiser, attributes)
 
     def evaluate_promise(
         self, safe_promiser: str, attributes: Dict
