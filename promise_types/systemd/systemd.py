@@ -6,11 +6,6 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 from cfengine import PromiseModule, ValidationError, Result
-from pydantic import (
-    BaseModel,
-    ValidationError as PydanticValidationError,
-    validator,
-)
 
 
 SYSTEMD_LIB_PATH = "/lib/systemd/system"
@@ -24,86 +19,73 @@ class SystemdPromiseTypeStates(Enum):
     ABSENT = "absent"
 
 
-class SystemdPromiseTypeModel(BaseModel):
-    daemon_reexec: bool = False
-    daemon_reload: bool = False
-    enabled: bool = True
-    masked: bool = False
-    name: str
-    replace: bool = True
-    state: str
-    unit_description: Optional[str]
-    unit_requires: List[str] = []
-    unit_wants: List[str] = []
-    unit_after: List[str] = []
-    unit_before: List[str] = []
-    unit_extra: List[str] = []
-    service_type: Optional[str]
-    service_pid_file: Optional[str]
-    service_user: Optional[str]
-    service_group: Optional[str]
-    service_nice: Optional[int]
-    service_oom_score_adjust: Optional[int]
-    service_exec_start: List[str] = []
-    service_exec_start_pre: List[str] = []
-    service_exec_start_post: List[str] = []
-    service_exec_stop: List[str] = []
-    service_exec_stop_post: List[str] = []
-    service_exec_reload: List[str] = []
-    service_restart: Optional[str]
-    service_restart_sec: Optional[str]
-    service_timeout_sec: Optional[str]
-    service_environment: List[str] = []
-    service_environment_file: Optional[str]
-    service_working_directory: Optional[str]
-    service_standard_input: Optional[str]
-    service_standard_output: Optional[str]
-    service_standard_error: Optional[str]
-    service_tty_path: Optional[str]
-    service_extra: List[str] = []
-    install_wanted_by: List[str] = []
-    install_required_by: List[str] = []
-    install_extra: List[str] = []
-
-    @validator("state")
-    def state_must_be_valid(cls, v):
-        if v not in (
-            SystemdPromiseTypeStates.RELOADED.value,
-            SystemdPromiseTypeStates.RESTARTED.value,
-            SystemdPromiseTypeStates.STARTED.value,
-            SystemdPromiseTypeStates.STOPPED.value,
-            SystemdPromiseTypeStates.ABSENT.value,
-        ):
-            raise ValueError("invalid value")
-        return v
-
-
 class SystemdPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(SystemdPromiseTypeModule, self).__init__(
-            "systemd_promise_module", "0.1.0", **kwargs
+            "systemd_promise_module", "0.1.1", **kwargs
         )
 
-    def validate_promise(self, promiser: str, attributes: Dict):
-        attributes.setdefault("name", promiser)
+        def state_must_be_valid(v):
+            if v not in (
+                SystemdPromiseTypeStates.RELOADED.value,
+                SystemdPromiseTypeStates.RESTARTED.value,
+                SystemdPromiseTypeStates.STARTED.value,
+                SystemdPromiseTypeStates.STOPPED.value,
+                SystemdPromiseTypeStates.ABSENT.value,
+            ):
+                raise ValueError("invalid value")
+            return v
+
+        self.add_attribute("daemon_reexec", bool, default=False)
+        self.add_attribute("daemon_reload", bool, default=False)
+        self.add_attribute("enabled", bool, default=True)
+        self.add_attribute("masked", bool, default=False)
+        self.add_attribute("name", str, required=True, default_to_promiser=True)
+        self.add_attribute("replace", bool, default=True)
+        self.add_attribute("state", str, required=True, validator=state_must_be_valid)
+        self.add_attribute("unit_description", str)
+        self.add_attribute("unit_requires", list, default=[])
+        self.add_attribute("unit_wants", list, default=[])
+        self.add_attribute("unit_after", list, default=[])
+        self.add_attribute("unit_before", list, default=[])
+        self.add_attribute("unit_extra", list, default=[])
+        self.add_attribute("service_type", str)
+        self.add_attribute("service_pid_file", str)
+        self.add_attribute("service_user", str)
+        self.add_attribute("service_group", str)
+        self.add_attribute("service_nice", int)
+        self.add_attribute("service_oom_score_adjust", int)
+        self.add_attribute("service_exec_start", list, default=[])
+        self.add_attribute("service_exec_start_pre", list, default=[])
+        self.add_attribute("service_exec_start_post", list, default=[])
+        self.add_attribute("service_exec_stop", list, default=[])
+        self.add_attribute("service_exec_stop_post", list, default=[])
+        self.add_attribute("service_exec_reload", list, default=[])
+        self.add_attribute("service_restart", str)
+        self.add_attribute("service_restart_sec", str)
+        self.add_attribute("service_timeout_sec", str)
+        self.add_attribute("service_environment", list, default=[])
+        self.add_attribute("service_environment_file", str)
+        self.add_attribute("service_working_directory", str)
+        self.add_attribute("service_standard_input", str)
+        self.add_attribute("service_standard_output", str)
+        self.add_attribute("service_standard_error", str)
+        self.add_attribute("service_tty_path", str)
+        self.add_attribute("service_extra", list, default=[])
+        self.add_attribute("install_wanted_by", list, default=[])
+        self.add_attribute("install_required_by", list, default=[])
+        self.add_attribute("install_extra", list, default=[])
+
+    def prepare_promiser_and_attributes(self, promiser, attributes):
+        promiser = promiser.replace(",", "_")
         if type(attributes.get("environment")) == str:
             attributes["environment"] = json.loads(attributes["environment"])
-        try:
-            SystemdPromiseTypeModel(**attributes)
-        except PydanticValidationError as e:
-            errors = [
-                ".".join(map(str, err["loc"])) + ": " + err["msg"] for err in e.errors()
-            ]
-            raise ValidationError(", ".join(errors))
+        return (promiser, attributes)
 
     def evaluate_promise(
-        self, promiser: str, attributes: Dict
+        self, safe_promiser: str, attributes: Dict
     ) -> Tuple[str, List[str]]:
-        safe_promiser = promiser.replace(",", "_")
-        attributes.setdefault("name", promiser)
-        if type(attributes.get("environment")) == str:
-            attributes["environment"] = json.loads(attributes["environment"])
-        model = SystemdPromiseTypeModel(**attributes)
+        model = self.create_attribute_object(safe_promiser, attributes)
         # get the status of the service
         try:
             output = self._exec_command(
@@ -131,7 +113,7 @@ class SystemdPromiseTypeModule(PromiseModule):
             return self._service_present(model, safe_promiser, service_status)
 
     def _service_absent(
-        self, model: SystemdPromiseTypeModel, safe_promiser: str, service_status: dict
+        self, model: object, safe_promiser: str, service_status: dict
     ) -> Tuple[str, List[str]]:
         classes = []
         result = Result.KEPT
@@ -179,7 +161,7 @@ class SystemdPromiseTypeModule(PromiseModule):
         return (result, classes)
 
     def _service_present(
-        self, model: SystemdPromiseTypeModel, safe_promiser: str, service_status: dict
+        self, model: object, safe_promiser: str, service_status: dict
     ) -> Tuple[str, List[str]]:
         classes = []
         result = Result.KEPT
@@ -326,7 +308,7 @@ class SystemdPromiseTypeModule(PromiseModule):
         output != "" and self.log_verbose(output)
         return output
 
-    def _render_service_template(self, model: SystemdPromiseTypeModel) -> str:
+    def _render_service_template(self, model: object) -> str:
         blocks = {
             "unit": [],
             "service": [],
