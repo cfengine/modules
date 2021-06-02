@@ -31,7 +31,7 @@ bundle agent test
       enabled => "true",
       state => "restarted",
       unit_description => "my sample service",
-      service_exec_start => "/usr/bin/sleep 86400",
+      service_exec_start => {"/usr/bin/sleep 86400"},
       service_type => "simple",
       install_wanted_by => {"multi-user.target"};
 
