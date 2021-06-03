@@ -4,61 +4,39 @@ import subprocess
 from typing import Dict, List, Optional
 
 from cfengine import PromiseModule, ValidationError, Result
-from pydantic import (
-    BaseModel,
-    ValidationError as PydanticValidationError,
-    validator,
-)
-
-
-class GitPromiseTypeModel(BaseModel):
-    destination: str
-    repository: str
-    bare: bool = False
-    clone: bool = True
-    depth: int = 0
-    executable: str = "git"
-    force: bool = False
-    recursive: bool = True
-    reference: Optional[str]
-    remote: str = "origin"
-    ssh_options: Optional[str]
-    update: bool = True
-    version: str = "HEAD"
-
-    @validator("destination")
-    def destination_must_be_absolute(cls, v):
-        if not os.path.isabs(v):
-            raise ValueError("must be an absolute path")
-        return v
-
-    @validator("depth")
-    def depth_must_be_positive(cls, v):
-        if not v >= 0:
-            raise ValueError("must be a positive number")
-        return v
-
 
 class GitPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(GitPromiseTypeModule, self).__init__(
-            "git_promise_module", "0.1.0", **kwargs
+            "git_promise_module", "0.1.1", **kwargs
         )
 
-    def validate_promise(self, promiser: str, attributes: Dict):
-        attributes.setdefault("destination", promiser)
-        try:
-            GitPromiseTypeModel(**attributes)
-        except PydanticValidationError as e:
-            errors = [
-                ".".join(map(str, err["loc"])) + ": " + err["msg"] for err in e.errors()
-            ]
-            raise ValidationError(", ".join(errors))
+        def destination_must_be_absolute(v):
+            if not os.path.isabs(v):
+                raise ValidationError(f"must be an absolute path, not '{v}'")
+
+        def depth_must_be_zero_or_more(v):
+            if v < 0:
+                raise ValidationError(f"must be 0 or more, not '{v}'")
+
+        self.add_attribute("destination", str, default_to_promiser=True, validator=destination_must_be_absolute)
+        self.add_attribute("repository", str, required=True)
+        self.add_attribute("bare", bool, default=False)
+        self.add_attribute("clone", bool, default=True)
+        self.add_attribute("depth", int, default=0, validator=depth_must_be_zero_or_more)
+        self.add_attribute("executable", str, default="git")
+        self.add_attribute("force", bool, default=False)
+        self.add_attribute("recursive", bool, default=True)
+        self.add_attribute("reference", str)
+        self.add_attribute("remote", str, default="origin")
+        self.add_attribute("ssh_options", str)
+        self.add_attribute("update", bool, default=True)
+        self.add_attribute("version", str, default="HEAD")
 
     def evaluate_promise(self, promiser: str, attributes: Dict):
         safe_promiser = promiser.replace(",", "_")
         attributes.setdefault("destination", promiser)
-        model = GitPromiseTypeModel(**attributes)
+        model = self.create_attribute_object(promiser, attributes)
 
         classes = []
         result = Result.KEPT
@@ -198,7 +176,7 @@ class GitPromiseTypeModule(PromiseModule):
         return (result, classes)
 
     def _git(
-        self, model: GitPromiseTypeModel, args: List[str], cwd: Optional[str] = None
+        self, model: object, args: List[str], cwd: Optional[str] = None
     ) -> str:
         self.log_verbose(f"Run: {' '.join(args)}")
         output = subprocess.check_output(
@@ -211,7 +189,7 @@ class GitPromiseTypeModule(PromiseModule):
         output != "" and self.log_verbose(output)
         return output
 
-    def _git_envvars(self, model: GitPromiseTypeModel):
+    def _git_envvars(self, model: object):
         env = os.environ.copy()
         env["GIT_SSH_COMMAND"] = f"{model.executable}"
         if model.ssh_options:
