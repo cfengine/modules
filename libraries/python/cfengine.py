@@ -154,8 +154,7 @@ class PromiseModule:
                     replacements[name] = False
 
         # Don't edit dict while iterating over it, after instead:
-        for k, v in replacements.items():
-            attributes[k] = v
+        attributes.update(replacements)
 
         return (promiser, attributes)
 
