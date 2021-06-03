@@ -1,6 +1,7 @@
 import sys
 import json
 import traceback
+from copy import copy
 from collections import OrderedDict
 
 _LOG_LEVELS = {level: idx for idx, level in enumerate(("critical", "error", "warning", "notice", "info", "verbose", "debug"))}
@@ -135,6 +136,29 @@ class PromiseModule:
             request = _get_request(self._in, self._record_file)
             self._handle_request(request)
 
+    def _convert_types(self, promiser, attributes):
+        # Will only convert types if module has typing information:
+        if not self._has_validation_attributes:
+            return promiser, attributes
+
+        replacements = {}
+        for name, value in attributes.items():
+            if type(value) is not str:
+                # If something is not string, assume it is correct type
+                continue
+            # Only known conversion needed: "true"/"false" -> True/False
+            if self._validator_attributes[name]["typing"] is bool:
+                if value == "true":
+                    replacements[name] = True
+                elif value == "false":
+                    replacements[name] = False
+
+        # Don't edit dict while iterating over it, after instead:
+        attributes.update(replacements)
+
+        return (promiser, attributes)
+
+
     def _handle_request(self, request):
         if not request:
             sys.exit("Error: Empty/invalid request or EOF reached")
@@ -149,6 +173,8 @@ class PromiseModule:
         if operation in ["validate_promise", "evaluate_promise"]:
             promiser = request["promiser"]
             attributes = request.get("attributes", {})
+            promiser, attributes = self._convert_types(promiser, attributes)
+            promiser, attributes = self.prepare_promiser_and_attributes(promiser, attributes)
             self._response["promiser"] = promiser
             self._response["attributes"] = attributes
 
@@ -213,7 +239,7 @@ class PromiseModule:
             expected = _cfengine_type(self._validator_attributes[name]["typing"])
             found = _cfengine_type(type(value))
             if found != expected:
-                raise ValidationError(f"Wrong type for attribute '{name}', requires '{expected}', not '{found}'")
+                raise ValidationError(f"Wrong type for attribute '{name}', requires '{expected}', not '{value}'({found})")
             if self._validator_attributes[name]["validator"]:
                 # Can raise ValidationError:
                 self._validator_attributes[name]["validator"](value)
@@ -230,7 +256,7 @@ class PromiseModule:
             if value.get("default_to_promiser", False):
                 attribute_dict.setdefault(name, promiser)
             elif value.get("default", None) is not None:
-                attribute_dict.setdefault(name, value["default"])
+                attribute_dict.setdefault(name, copy(value["default"]))
             else:
                 attribute_dict.setdefault(name, None)
 
@@ -337,6 +363,10 @@ class PromiseModule:
 
     def protocol_init(self, version):
         return Result.SUCCESS
+
+    def prepare_promiser_and_attributes(self, promiser, attributes):
+        '''Override if you want to modify promiser or attributes before validate or evaluate'''
+        return (promiser, attributes)
 
     def validate_attributes(self, promiser, attributes):
         '''Override this if you want to prevent automatic validation'''
