@@ -1,6 +1,7 @@
 import sys
 import json
 import traceback
+from copy import copy
 from collections import OrderedDict
 
 _LOG_LEVELS = {level: idx for idx, level in enumerate(("critical", "error", "warning", "notice", "info", "verbose", "debug"))}
@@ -256,7 +257,7 @@ class PromiseModule:
             if value.get("default_to_promiser", False):
                 attribute_dict.setdefault(name, promiser)
             elif value.get("default", None) is not None:
-                attribute_dict.setdefault(name, value["default"])
+                attribute_dict.setdefault(name, copy(value["default"]))
             else:
                 attribute_dict.setdefault(name, None)
 
