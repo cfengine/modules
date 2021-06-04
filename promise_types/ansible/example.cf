@@ -1,0 +1,15 @@
+promise agent ansible
+# @brief Define ansible promise type
+{
+  path => "$(sys.workdir)/modules/promises/ansible_promise.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent main
+{
+  ansible:
+    "my_playbook"
+      playbook  => "/tmp/playbook.yaml",
+      inventory => "/tmp/inventory.yaml",
+      tags      => {"helloworld"};
+}

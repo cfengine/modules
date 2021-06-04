@@ -69,7 +69,7 @@ bundle agent main
 
 This software was created by the team at [Northern.tech AS](https://northern.tech), with many contributions from the community. Thanks everyone!
 
-[CFengine](https://cfengine.com) is sponsored by [Northern.tech AS](https://northern.tech)
+[CFEngine](https://cfengine.com) is sponsored by [Northern.tech AS](https://northern.tech)
 
 ## Contribute
 

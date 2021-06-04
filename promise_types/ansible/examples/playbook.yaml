@@ -1,0 +1,10 @@
+---
+- name: "sample playbook"
+  hosts: localhost
+  tags:
+  - helloworld
+  tasks:
+  - name: Create a file called '/tmp/hello-world.txt' with the content 'hello world'.
+    copy:
+      content: "{{ msg }}"
+      dest: /tmp/hello-world.txt
