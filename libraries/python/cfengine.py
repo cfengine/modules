@@ -149,12 +149,18 @@ class PromiseModule:
             if name not in self._validator_attributes:
                 # Unknown attribute, this will cause a validation error later
                 continue
-            # Only known conversion needed: "true"/"false" -> True/False
+            # "true"/"false" -> True/False
             if self._validator_attributes[name]["typing"] is bool:
                 if value == "true":
                     replacements[name] = True
                 elif value == "false":
                     replacements[name] = False
+            # "int" -> int()
+            elif self._validator_attributes[name]["typing"] is int:
+                try:
+                    replacements[name] = int(value)
+                except ValueError:
+                    pass
 
         # Don't edit dict while iterating over it, after instead:
         attributes.update(replacements)
@@ -289,6 +295,7 @@ class PromiseModule:
                 self._result = Result.VALID
             else:
                 # Bad, validate method shouldn't return anything else
+                self.log_critical(f"Bug in promise module {self.name} - validate_promise() should not return anything")
                 self._result = Result.ERROR
         except ValidationError as e:
             message = str(e)
