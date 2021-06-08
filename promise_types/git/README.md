@@ -16,17 +16,17 @@
 | --- | --- | --- | --- | --- |
 | `destination` | `string` | Destination path | No | Promiser |
 | `repository` | `string` | Git repository URL | Yes | - |
-| `bare` | `boolean` | If `true`, clones the repository as bare repository | - | - |
-| `clone` | `boolean` | If `true`, clones the repository if it doesn't exist at the destination path | - | - |
-| `depth` | `integer` | Create a shallow clone with a history truncated to the specified number or revisions. Set to 0 to perform a full clone. | - | `0` |
-| `executable` | `string` | Path to the `git` executable | - | `git` |
-| `force` | `boolean` | If `true`, discard any local changes to the repository before updating it | - | - |
-| `recursive` | `boolean` | If `true`, use the `--recursive` git option | - | `yes` |
-| `reference` | `string` | If set, use the `--reference` git option with the given value | - | - |
-| `remote` | `string` | Name of the git remote | - | `origin` |
-| `ssh_options` | `string` | Additional options for the `git` command, e.g. `-o StrictHostKeyChecking=no` | - | - |
-| `update` | `boolean` | If `true`, updates the repository if it already exists at the destination path | - | - |
-| `version` | `string` | The version of the repository to checkout. It can be a branch name, a tag name or a SHA-1 hash. | - | `HEAD` |
+| `bare` | `boolean` | If `true`, clones the repository as bare repository | No | - |
+| `clone` | `boolean` | If `true`, clones the repository if it doesn't exist at the destination path | No | - |
+| `depth` | `integer` | Create a shallow clone with a history truncated to the specified number or revisions. Set to 0 to perform a full clone. | No | `0` |
+| `executable` | `string` | Path to the `git` executable | No | `git` |
+| `force` | `boolean` | If `true`, discard any local changes to the repository before updating it | No | - |
+| `recursive` | `boolean` | If `true`, use the `--recursive` git option | No | `yes` |
+| `reference` | `string` | If set, use the `--reference` git option with the given value | No | - |
+| `remote` | `string` | Name of the git remote | No | `origin` |
+| `ssh_options` | `string` | Additional options for the `git` command, e.g. `-o StrictHostKeyChecking=no` | No | - |
+| `update` | `boolean` | If `true`, updates the repository if it already exists at the destination path | No | - |
+| `version` | `string` | The version of the repository to checkout. It can be a branch name, a tag name or a SHA-1 hash. | No | `HEAD` |
 
 ## Examples
 
