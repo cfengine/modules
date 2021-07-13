@@ -1,0 +1,68 @@
+body file control
+# Import the standard library
+{
+  inputs => { "$(sys.libdir)/stdlib.cf"};
+}
+
+bundle agent python3_install
+{
+  commands:
+    "apt-get update -y"
+      contain => in_shell_and_silent;
+    "DEBIAN_FRONTEND=noninteractive apt-get install -yq software-properties-common"
+      contain => in_shell_and_silent;
+    "echo '' | add-apt-repository ppa:deadsnakes/ppa"
+      contain => in_shell_and_silent;
+
+    "DEBIAN_FRONTEND=noninteractive apt-get install -yq python3.8"
+      handle => "installed_python_3_8",
+      contain => in_shell_and_silent;
+
+    "DEBIAN_FRONTEND=noninteractive apt-get install -yq python3-pip"
+      contain => in_shell_and_silent;
+    "python3 -m pip install --upgrade pip"
+      contain => in_shell_and_silent;
+
+  files:
+    "/usr/bin/python3"
+      move_obstructions => "true",
+      if => fileexists("/usr/bin/python3.8"),
+      link_from => ln_s("/usr/bin/python3.8");
+
+  reports:
+    "Installed python 3!";
+}
+
+bundle agent manage_python3
+{
+  classes:
+    "python3_installed"
+      if => returnszero("which python3 >/dev/null", "useshell");
+    "python3_not_installed"
+      if => not(returnszero("which python3 >/dev/null", "useshell"));
+    python3_installed::
+      "python3_wrong_version"
+        if => not(regcmp("Python 3\.8\..*", execresult("python3 --version", "useshell")));
+
+  methods:
+    python3_not_installed::
+      "python3_install"
+        depends_on => { "printed_python3_not_installed" };
+    python3_wrong_version::
+      "python3_install"
+        depends_on => { "printed_python3_wrong_version" };
+
+  reports:
+    python3_not_installed::
+      "python3 is not installed"
+        handle => "printed_python3_not_installed";
+    python3_wrong_version::
+      "The installed python3 is the wrong version"
+        handle => "printed_python3_wrong_version";
+}
+
+bundle agent __main__
+{
+  methods:
+    "manage_python3";
+}
