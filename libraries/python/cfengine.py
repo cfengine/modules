@@ -3,6 +3,7 @@ import json
 import traceback
 from copy import copy
 from collections import OrderedDict
+from dataclasses import make_dataclass
 
 _LOG_LEVELS = {level: idx for idx, level in enumerate(("critical", "error", "warning", "notice", "info", "verbose", "debug"))}
 
@@ -56,9 +57,9 @@ def _cfengine_type(typing):
 
 
 class AttributeObject(object):
-    def __init__(self, d):
-        for key, value in d.items():
-            setattr(self, key, value)
+    def __new__(self, d):
+        cls = make_dataclass('AttributeObject', d.keys())
+        return cls(**d)
 
 
 class ValidationError(Exception):
