@@ -29,6 +29,7 @@ class GitPromiseTypeModule(PromiseModule):
         self.add_attribute("recursive", bool, default=True)
         self.add_attribute("reference", str)
         self.add_attribute("remote", str, default="origin")
+        self.add_attribute("ssh_executable", str, default="ssh")
         self.add_attribute("ssh_options", str)
         self.add_attribute("update", bool, default=True)
         self.add_attribute("version", str, default="HEAD")
@@ -191,7 +192,7 @@ class GitPromiseTypeModule(PromiseModule):
 
     def _git_envvars(self, model: object):
         env = os.environ.copy()
-        env["GIT_SSH_COMMAND"] = f"{model.executable}"
+        env["GIT_SSH_COMMAND"] = model.ssh_executable
         if model.ssh_options:
             env["GIT_SSH_COMMAND"] += " " + model.ssh_options
         return env
