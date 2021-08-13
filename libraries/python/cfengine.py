@@ -4,7 +4,13 @@ import traceback
 from copy import copy
 from collections import OrderedDict
 
-_LOG_LEVELS = {level: idx for idx, level in enumerate(("critical", "error", "warning", "notice", "info", "verbose", "debug"))}
+_LOG_LEVELS = {
+    level: idx
+    for idx, level in enumerate(
+        ("critical", "error", "warning", "notice", "info", "verbose", "debug")
+    )
+}
+
 
 def _skip_until_empty_line(file):
     while True:
@@ -90,7 +96,9 @@ class Result:
 
 
 class PromiseModule:
-    def __init__(self, name = "default_module_name", version = "0.0.1", record_file_path=None):
+    def __init__(
+        self, name="default_module_name", version="0.0.1", record_file_path=None
+    ):
         self.name = name
         self.version = version
         # Note: The class doesn't expose any way to set protocol version
@@ -116,13 +124,15 @@ class PromiseModule:
         protocol_version = header[2]
         # flags = header[3:] -- unused for now
 
-        assert len(name) > 0              # cf-agent
-        assert version.startswith("3.")   # 3.18.0
-        assert protocol_version[0] == "v" # v1
+        assert len(name) > 0  # cf-agent
+        assert version.startswith("3.")  # 3.18.0
+        assert protocol_version[0] == "v"  # v1
 
         _skip_until_empty_line(self._in)
 
-        header_reply = f"{self.name} {self.version} v1 json_based\n\n"
+        header_reply = "{name} {version} v1 json_based\n\n".format(
+            name=self.name, version=self.version
+        )
         self._out.write(header_reply)
         self._out.flush()
 
@@ -167,7 +177,6 @@ class PromiseModule:
 
         return (promiser, attributes)
 
-
     def _handle_request(self, request):
         if not request:
             sys.exit("Error: Empty/invalid request or EOF reached")
@@ -177,13 +186,22 @@ class PromiseModule:
         self._response["operation"] = operation
 
         # Agent will never request log level critical
-        assert self._log_level in ["error", "warning", "notice", "info", "verbose", "debug"]
+        assert self._log_level in [
+            "error",
+            "warning",
+            "notice",
+            "info",
+            "verbose",
+            "debug",
+        ]
 
         if operation in ["validate_promise", "evaluate_promise"]:
             promiser = request["promiser"]
             attributes = request.get("attributes", {})
             promiser, attributes = self._convert_types(promiser, attributes)
-            promiser, attributes = self.prepare_promiser_and_attributes(promiser, attributes)
+            promiser, attributes = self.prepare_promiser_and_attributes(
+                promiser, attributes
+            )
             self._response["promiser"] = promiser
             self._response["attributes"] = attributes
 
@@ -197,7 +215,9 @@ class PromiseModule:
             self._handle_terminate()
         else:
             self._log_level = None
-            raise ProtocolError(f"Unknown operation: '{operation}'")
+            raise ProtocolError(
+                "Unknown operation: '{operation}'".format(operation=operation)
+            )
 
         self._log_level = None
 
@@ -217,7 +237,15 @@ class PromiseModule:
         logs.append({"level": "debug", "message": trace})
         self._response["log"] = logs
 
-    def add_attribute(self, name, typing, default=None, required=False, default_to_promiser=False, validator=None):
+    def add_attribute(
+        self,
+        name,
+        typing,
+        default=None,
+        required=False,
+        default_to_promiser=False,
+        validator=None,
+    ):
         attribute = OrderedDict()
         attribute["name"] = name
         attribute["typing"] = typing
@@ -236,19 +264,25 @@ class PromiseModule:
         # Check for missing required attributes:
         for name, attribute in self._validator_attributes.items():
             if attribute["required"] and name not in attributes:
-                raise ValidationError(f"Missing required attribute '{name}'")
+                raise ValidationError(
+                    "Missing required attribute '{name}'".format(name=name)
+                )
 
         # Check for unknown attributes:
         for name in attributes:
             if name not in self._validator_attributes:
-                raise ValidationError(f"Unknown attribute '{name}'")
+                raise ValidationError("Unknown attribute '{name}'".format(name=name))
 
         # Check typings and run custom validator callbacks:
         for name, value in attributes.items():
             expected = _cfengine_type(self._validator_attributes[name]["typing"])
             found = _cfengine_type(type(value))
             if found != expected:
-                raise ValidationError(f"Wrong type for attribute '{name}', requires '{expected}', not '{value}'({found})")
+                raise ValidationError(
+                    "Wrong type for attribute '{name}', requires '{expected}', not '{value}'({found})".format(
+                        name=name, expected=expected, value=value, found=found
+                    )
+                )
             if self._validator_attributes[name]["validator"]:
                 # Can raise ValidationError:
                 self._validator_attributes[name]["validator"](value)
@@ -272,14 +306,13 @@ class PromiseModule:
         # Finally, convert to an object:
         return AttributeObject(attribute_dict)
 
-
     def _validate_attributes(self, promiser, attributes):
         if not self._has_validation_attributes:
             # Can only validate attributes if module
             # provided typings for attributes
             return
         self.create_attribute_object(promiser, attributes)
-        return # Only interested in exceptions, return None
+        return  # Only interested in exceptions, return None
 
     def _handle_init(self):
         self._result = self.protocol_init(None)
@@ -295,21 +328,34 @@ class PromiseModule:
                 self._result = Result.VALID
             else:
                 # Bad, validate method shouldn't return anything else
-                self.log_critical(f"Bug in promise module {self.name} - validate_promise() should not return anything")
+                self.log_critical(
+                    "Bug in promise module {name} - validate_promise() should not return anything".format(
+                        name=self.name
+                    )
+                )
                 self._result = Result.ERROR
         except ValidationError as e:
             message = str(e)
             if "promise_type" in request:
-                message += f" for {request['promise_type']} promise with promiser '{promiser}'"
+                message += " for {request_promise_type} promise with promiser '{promiser}'".format(
+                    request_promise_type=request["promise_type"], promiser=promiser
+                )
             else:
-                message += f" for promise with promiser '{promiser}'"
+                message += " for promise with promiser '{promiser}'".format(
+                    promiser=promiser
+                )
             if "filename" in request and "line_number" in request:
-                message += f" ({request['filename']}:{request['line_number']})"
+                message += " ({request_filename}:{request_line_number})".format(
+                    request_filename=request["filename"],
+                    request_line_number=request["line_number"],
+                )
 
             self.log_error(message)
             self._result = Result.INVALID
         except Exception as e:
-            self.log_critical(f"{type(e).__name__}: {e}")
+            self.log_critical(
+                "{error_type}: {error}".format(error_type=type(e).__name__, error=e)
+            )
             self._add_traceback_to_response()
             self._result = Result.ERROR
         self._add_result()
@@ -328,7 +374,9 @@ class PromiseModule:
                 self._result = results[0]
                 self._result_classes = results[1]
         except Exception as e:
-            self.log_critical(f"{type(e).__name__}: {e}")
+            self.log_critical(
+                "{error_type}: {error}".format(error_type=type(e).__name__, error=e)
+            )
             self._add_traceback_to_response()
             self._result = Result.ERROR
         self._add_result()
@@ -349,11 +397,13 @@ class PromiseModule:
         # for example an exception:
         message = str(message).replace("\n", r"\n")
         assert "\n" not in message
-        self._out.write(f"log_{level}={message}\n")
+        self._out.write("log_{level}={message}\n".format(level=level, message=message))
         self._out.flush()
 
         if self._record_file is not None:
-            self._record_file.write(f"log_{level}={message}\n")
+            self._record_file.write(
+                "log_{level}={message}\n".format(level=level, message=message)
+            )
 
     def log_critical(self, message):
         self._log("critical", message)
@@ -377,7 +427,7 @@ class PromiseModule:
         self._log("debug", message)
 
     def _log_traceback(self):
-        trace = traceback.format_exc().split('\n')
+        trace = traceback.format_exc().split("\n")
         for line in trace:
             self.log_debug(line)
 
@@ -387,15 +437,15 @@ class PromiseModule:
         return Result.SUCCESS
 
     def prepare_promiser_and_attributes(self, promiser, attributes):
-        '''Override if you want to modify promiser or attributes before validate or evaluate'''
+        """Override if you want to modify promiser or attributes before validate or evaluate"""
         return (promiser, attributes)
 
     def validate_attributes(self, promiser, attributes):
-        '''Override this if you want to prevent automatic validation'''
+        """Override this if you want to prevent automatic validation"""
         return self._validate_attributes(promiser, attributes)
 
     def validate_promise(self, promiser, attributes):
-        '''Must override this or use validation through self.add_attribute()'''
+        """Must override this or use validation through self.add_attribute()"""
         if not self._has_validation_attributes:
             raise NotImplementedError("Promise module must implement validate_promise")
 
