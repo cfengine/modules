@@ -78,7 +78,7 @@ class AnsiblePromiseTypeModule(PromiseModule):
 
         def must_be_absolute(v):
             if not os.path.isabs(v):
-                raise ValidationError(f"Must be an absolute path, not '{v}'")
+                raise ValidationError("Must be an absolute path, not '{v}'".format(v=v))
 
         self.add_attribute(
             "playbook", str, default_to_promiser=True, validator=must_be_absolute
@@ -155,7 +155,7 @@ class AnsiblePromiseTypeModule(PromiseModule):
 
         exit_code = pbex.run()
         if exit_code != 0:
-            classes.append(f"{safe_promiser}_failed")
+            classes.append("{safe_promiser}_failed".format(safe_promiser=safe_promiser))
             result = Result.NOT_KEPT
         elif callback.changed:
             result = Result.REPAIRED
