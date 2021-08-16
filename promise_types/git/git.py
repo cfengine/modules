@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 
 from cfengine import PromiseModule, ValidationError, Result
 
+
 class GitPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(GitPromiseTypeModule, self).__init__(
@@ -19,11 +20,18 @@ class GitPromiseTypeModule(PromiseModule):
             if v < 0:
                 raise ValidationError("must be 0 or more, not '{v}'".format(v=v))
 
-        self.add_attribute("destination", str, default_to_promiser=True, validator=destination_must_be_absolute)
+        self.add_attribute(
+            "destination",
+            str,
+            default_to_promiser=True,
+            validator=destination_must_be_absolute,
+        )
         self.add_attribute("repository", str, required=True)
         self.add_attribute("bare", bool, default=False)
         self.add_attribute("clone", bool, default=True)
-        self.add_attribute("depth", int, default=0, validator=depth_must_be_zero_or_more)
+        self.add_attribute(
+            "depth", int, default=0, validator=depth_must_be_zero_or_more
+        )
         self.add_attribute("executable", str, default="git")
         self.add_attribute("force", bool, default=False)
         self.add_attribute("recursive", bool, default=True)
@@ -45,11 +53,17 @@ class GitPromiseTypeModule(PromiseModule):
         # if the repository doesn't exist
         if not os.path.exists(model.destination):
             if not model.clone:
-                return (Result.NOT_KEPT, ["{safe_promiser}_not_found".format(safe_promiser=safe_promiser)])
+                return (
+                    Result.NOT_KEPT,
+                    ["{safe_promiser}_not_found".format(safe_promiser=safe_promiser)],
+                )
             try:
                 self.log_info(
-                    "Cloning '{repository}:{version}' to '{destination}'"
-                    .format(repository=model.repository, version=model.version, destination=model.destination)
+                    "Cloning '{repository}:{version}' to '{destination}'".format(
+                        repository=model.repository,
+                        version=model.version,
+                        destination=model.destination,
+                    )
                 )
                 clone_options = []
                 if model.bare:
@@ -72,12 +86,21 @@ class GitPromiseTypeModule(PromiseModule):
                     ]
                     + clone_options,
                 )
-                classes.append("{safe_promiser}_cloned".format(safe_promiser=safe_promiser))
+                classes.append(
+                    "{safe_promiser}_cloned".format(safe_promiser=safe_promiser)
+                )
                 result = Result.REPAIRED
             except subprocess.CalledProcessError as e:
                 self.log_error("Failed clone: {error}".format(error=e.output or e))
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_clone_failed".format(safe_promiser=safe_promiser)])
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_clone_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
 
         else:
             # discard local changes to the repository
@@ -89,7 +112,11 @@ class GitPromiseTypeModule(PromiseModule):
                         cwd=model.destination,
                     )
                     if output != "":
-                        self.log_info("Reset '{destination}' to HEAD".format(destination=model.destination))
+                        self.log_info(
+                            "Reset '{destination}' to HEAD".format(
+                                destination=model.destination
+                            )
+                        )
                         self._git(
                             model,
                             [model.executable, "reset", "--hard", "HEAD"],
@@ -100,19 +127,29 @@ class GitPromiseTypeModule(PromiseModule):
                             [model.executable, "clean", "-f"],
                             cwd=model.destination,
                         )
-                        classes.append("{safe_promiser}_reset".format(safe_promiser=safe_promiser))
+                        classes.append(
+                            "{safe_promiser}_reset".format(safe_promiser=safe_promiser)
+                        )
                         result = Result.REPAIRED
                 except subprocess.CalledProcessError as e:
                     self.log_error("Failed reset: {error}".format(error=e.output or e))
                     e.stderr and self.log_error(e.stderr.strip())
-                    return (Result.NOT_KEPT, ["{safe_promiser}_reset_failed".format(safe_promiser=safe_promiser)])
+                    return (
+                        Result.NOT_KEPT,
+                        [
+                            "{safe_promiser}_reset_failed".format(
+                                safe_promiser=safe_promiser
+                            )
+                        ],
+                    )
 
             # Update the repository
             if model.update:
                 try:
                     self.log_verbose(
-                        "Fetch '{repository}' in '{destination}'"
-                        .format(repository=model.repository, destination=model.destination)
+                        "Fetch '{repository}' in '{destination}'".format(
+                            repository=model.repository, destination=model.destination
+                        )
                     )
                     # fetch the remote
                     self._git(
@@ -136,8 +173,11 @@ class GitPromiseTypeModule(PromiseModule):
                         )
                     if output != model.version:
                         self.log_info(
-                            "Checkout '{repository}:{version}' in '{destination}'"
-                            .format(repository=model.repository, version=model.version, destination=model.destination)
+                            "Checkout '{repository}:{version}' in '{destination}'".format(
+                                repository=model.repository,
+                                version=model.version,
+                                destination=model.destination,
+                            )
                         )
                         self._git(
                             model,
@@ -152,14 +192,19 @@ class GitPromiseTypeModule(PromiseModule):
                             [
                                 model.executable,
                                 "diff",
-                                "..{remote}/{version}".format(remote=model.remote, version=model.version),
+                                "..{remote}/{version}".format(
+                                    remote=model.remote, version=model.version
+                                ),
                             ],
                             cwd=model.destination,
                         )
                         if output != "":
                             self.log_info(
-                                "Merge '{remote}/{version}' in '{destination}'"
-                                .format(remote=model.remote, version=model.version, destination=model.destination)
+                                "Merge '{remote}/{version}' in '{destination}'".format(
+                                    remote=model.remote,
+                                    version=model.version,
+                                    destination=model.destination,
+                                )
                             )
                             self._git(
                                 model,
@@ -171,25 +216,36 @@ class GitPromiseTypeModule(PromiseModule):
                                 cwd=model.destination,
                             )
                             result = Result.REPAIRED
-                    classes.append("{safe_promiser}_updated".format(safe_promiser=safe_promiser))
+                    classes.append(
+                        "{safe_promiser}_updated".format(safe_promiser=safe_promiser)
+                    )
                 except subprocess.CalledProcessError as e:
                     self.log_error("Failed fetch: {error}".format(error=e.output or e))
                     e.stderr and self.log_error(e.stderr.strip())
-                    return (Result.NOT_KEPT, ["{safe_promiser}_update_failed".format(safe_promiser=safe_promiser)])
+                    return (
+                        Result.NOT_KEPT,
+                        [
+                            "{safe_promiser}_update_failed".format(
+                                safe_promiser=safe_promiser
+                            )
+                        ],
+                    )
 
         # everything okay
         return (result, classes)
 
-    def _git(
-        self, model: object, args: List[str], cwd: Optional[str] = None
-    ) -> str:
-        self.log_verbose("Run: {cmd}".format(cmd=' '.join(args)))
-        output = subprocess.check_output(
-            args,
-            env=self._git_envvars(model),
-            cwd=cwd,
-            stderr=subprocess.PIPE,
-        ).strip().decode("utf-8")
+    def _git(self, model: object, args: List[str], cwd: Optional[str] = None) -> str:
+        self.log_verbose("Run: {cmd}".format(cmd=" ".join(args)))
+        output = (
+            subprocess.check_output(
+                args,
+                env=self._git_envvars(model),
+                cwd=cwd,
+                stderr=subprocess.PIPE,
+            )
+            .strip()
+            .decode("utf-8")
+        )
         output != "" and self.log_verbose(output)
         return output
 
