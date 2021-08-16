@@ -135,7 +135,8 @@ class AnsiblePromiseTypeModule(PromiseModule):
 
         loader = DataLoader()
         inventory = InventoryManager(
-            loader=loader, sources=(model.inventory,) if model.inventory else (),
+            loader=loader,
+            sources=(model.inventory,) if model.inventory else (),
         )
 
         variable_manager = VariableManager(
