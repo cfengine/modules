@@ -13,11 +13,11 @@ class GitPromiseTypeModule(PromiseModule):
 
         def destination_must_be_absolute(v):
             if not os.path.isabs(v):
-                raise ValidationError(f"must be an absolute path, not '{v}'")
+                raise ValidationError("must be an absolute path, not '{v}'".format(v=v))
 
         def depth_must_be_zero_or_more(v):
             if v < 0:
-                raise ValidationError(f"must be 0 or more, not '{v}'")
+                raise ValidationError("must be 0 or more, not '{v}'".format(v=v))
 
         self.add_attribute("destination", str, default_to_promiser=True, validator=destination_must_be_absolute)
         self.add_attribute("repository", str, required=True)
@@ -45,16 +45,17 @@ class GitPromiseTypeModule(PromiseModule):
         # if the repository doesn't exist
         if not os.path.exists(model.destination):
             if not model.clone:
-                return (Result.NOT_KEPT, [f"{safe_promiser}_not_found"])
+                return (Result.NOT_KEPT, ["{safe_promiser}_not_found".format(safe_promiser=safe_promiser)])
             try:
                 self.log_info(
-                    f"Cloning '{model.repository}:{model.version}' to '{model.destination}'"
+                    "Cloning '{repository}:{version}' to '{destination}'"
+                    .format(repository=model.repository, version=model.version, destination=model.destination)
                 )
                 clone_options = []
                 if model.bare:
                     clone_options += ["--bare"]
                 if model.depth:
-                    clone_options += [f"--depth={str(model.depth)}"]
+                    clone_options += ["--depth={depth}".format(depth=model.depth)]
                 if model.reference:
                     clone_options += ["--reference", model.reference]
                 self._git(
@@ -71,12 +72,12 @@ class GitPromiseTypeModule(PromiseModule):
                     ]
                     + clone_options,
                 )
-                classes.append(f"{safe_promiser}_cloned")
+                classes.append("{safe_promiser}_cloned".format(safe_promiser=safe_promiser))
                 result = Result.REPAIRED
             except subprocess.CalledProcessError as e:
-                self.log_error(f"Failed clone: {e.output or e}")
+                self.log_error("Failed clone: {error}".format(error=e.output or e))
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, [f"{safe_promiser}_clone_failed"])
+                return (Result.NOT_KEPT, ["{safe_promiser}_clone_failed".format(safe_promiser=safe_promiser)])
 
         else:
             # discard local changes to the repository
@@ -88,7 +89,7 @@ class GitPromiseTypeModule(PromiseModule):
                         cwd=model.destination,
                     )
                     if output != "":
-                        self.log_info(f"Reset '{model.destination}' to HEAD")
+                        self.log_info("Reset '{destination}' to HEAD".format(destination=model.destination))
                         self._git(
                             model,
                             [model.executable, "reset", "--hard", "HEAD"],
@@ -99,18 +100,19 @@ class GitPromiseTypeModule(PromiseModule):
                             [model.executable, "clean", "-f"],
                             cwd=model.destination,
                         )
-                        classes.append(f"{safe_promiser}_reset")
+                        classes.append("{safe_promiser}_reset".format(safe_promiser=safe_promiser))
                         result = Result.REPAIRED
                 except subprocess.CalledProcessError as e:
-                    self.log_error(f"Failed reset: {e.output or e}")
+                    self.log_error("Failed reset: {error}".format(error=e.output or e))
                     e.stderr and self.log_error(e.stderr.strip())
-                    return (Result.NOT_KEPT, [f"{safe_promiser}_reset_failed"])
+                    return (Result.NOT_KEPT, ["{safe_promiser}_reset_failed".format(safe_promiser=safe_promiser)])
 
             # Update the repository
             if model.update:
                 try:
                     self.log_verbose(
-                        f"Fetch '{model.repository}' in '{model.destination}'"
+                        "Fetch '{repository}' in '{destination}'"
+                        .format(repository=model.repository, destination=model.destination)
                     )
                     # fetch the remote
                     self._git(
@@ -121,7 +123,7 @@ class GitPromiseTypeModule(PromiseModule):
                     # checkout the branch, if different from the current one
                     output = self._git(
                         model,
-                        [model.executable, "rev-parse", "--abbrev-ref", "HEAD"],
+                        [model.executable, "rev-parse", "--abbrev-re", "HEAD".format()],
                         cwd=model.destination,
                     )
                     detached = False
@@ -134,7 +136,8 @@ class GitPromiseTypeModule(PromiseModule):
                         )
                     if output != model.version:
                         self.log_info(
-                            f"Checkout '{model.repository}:{model.version}' in '{model.destination}'"
+                            "Checkout '{repository}:{version}' in '{destination}'"
+                            .format(repository=model.repository, version=model.version, destination=model.destination)
                         )
                         self._git(
                             model,
@@ -149,13 +152,14 @@ class GitPromiseTypeModule(PromiseModule):
                             [
                                 model.executable,
                                 "diff",
-                                f"..{model.remote}/{model.version}",
+                                "..{remote}/{version}".format(remote=model.remote, version=model.version),
                             ],
                             cwd=model.destination,
                         )
                         if output != "":
                             self.log_info(
-                                f"Merge '{model.remote}/{model.version}' in '{model.destination}'"
+                                "Merge '{remote}/{version}' in '{destination}'"
+                                .format(remote=model.remote, version=model.version, destination=model.destination)
                             )
                             self._git(
                                 model,
@@ -167,11 +171,11 @@ class GitPromiseTypeModule(PromiseModule):
                                 cwd=model.destination,
                             )
                             result = Result.REPAIRED
-                    classes.append(f"{safe_promiser}_updated")
+                    classes.append("{safe_promiser}_updated".format(safe_promiser=safe_promiser))
                 except subprocess.CalledProcessError as e:
-                    self.log_error(f"Failed fetch: {e.output or e}")
+                    self.log_error("Failed fetch: {error}".format(error=e.output or e))
                     e.stderr and self.log_error(e.stderr.strip())
-                    return (Result.NOT_KEPT, [f"{safe_promiser}_update_failed"])
+                    return (Result.NOT_KEPT, ["{safe_promiser}_update_failed".format(safe_promiser=safe_promiser)])
 
         # everything okay
         return (result, classes)
@@ -179,14 +183,13 @@ class GitPromiseTypeModule(PromiseModule):
     def _git(
         self, model: object, args: List[str], cwd: Optional[str] = None
     ) -> str:
-        self.log_verbose(f"Run: {' '.join(args)}")
+        self.log_verbose("Run: {cmd}".format(cmd=' '.join(args)))
         output = subprocess.check_output(
             args,
             env=self._git_envvars(model),
             cwd=cwd,
             stderr=subprocess.PIPE,
-            text=True,
-        ).strip()
+        ).strip().decode("utf-8")
         output != "" and self.log_verbose(output)
         return output
 
