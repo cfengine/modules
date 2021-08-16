@@ -101,9 +101,14 @@ class SystemdPromiseTypeModule(PromiseModule):
             )
             service_status = dict(k.split("=", 1) for k in output.strip().splitlines())
         except subprocess.CalledProcessError as e:
-            self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+            self.log_error(
+                "Failed to run systemctl: {error}".format(error=e.output or e)
+            )
             e.stderr and self.log_error(e.stderr.strip())
-            return (Result.NOT_KEPT, ["{safe_promiser}_show_failed".format(safe_promiser=safe_promiser)])
+            return (
+                Result.NOT_KEPT,
+                ["{safe_promiser}_show_failed".format(safe_promiser=safe_promiser)],
+            )
         # apply the changes
         if model.state == SystemdPromiseTypeStates.ABSENT.value:
             return self._service_absent(model, safe_promiser, service_status)
@@ -123,37 +128,77 @@ class SystemdPromiseTypeModule(PromiseModule):
             try:
                 self._exec_command(["systemctl", "stop", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_stop_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Stopped the service {model_name}".format(model_name=model.name))
+                return (
+                    Result.NOT_KEPT,
+                    ["{safe_promiser}_stop_failed".format(safe_promiser=safe_promiser)],
+                )
+            self.log_info(
+                "Stopped the service {model_name}".format(model_name=model.name)
+            )
         # disable the service, in case it is enabled
         if service_status["ActiveState"] == "active":
             try:
                 self._exec_command(["systemctl", "disable", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_disable_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Disabled the service {model_name}".format(model_name=model.name))
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_disable_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
+            self.log_info(
+                "Disabled the service {model_name}".format(model_name=model.name)
+            )
         # remove the service file
-        path = os.path.join(SYSTEMD_LIB_PATH, "{model_name}.service".format(model_name=model.name))
+        path = os.path.join(
+            SYSTEMD_LIB_PATH, "{model_name}.service".format(model_name=model.name)
+        )
         if os.path.exists(path):
             try:
                 os.unlink(path)
                 result = Result.REPAIRED
             except OSError as e:
-                self.log_error("Failed to remove the service file: {error}".format(error=e))
-                return (Result.NOT_KEPT, ["{safe_promiser}_remove_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Removed the service {model_name}".format(model_name=model.name))
+                self.log_error(
+                    "Failed to remove the service file: {error}".format(error=e)
+                )
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_remove_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
+            self.log_info(
+                "Removed the service {model_name}".format(model_name=model.name)
+            )
         # reload systemctl, if needed
         if result == Result.REPAIRED:
             try:
                 self._exec_command(["systemctl", "daemon-reload"])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_daemon_reload_failed".format(safe_promiser=safe_promiser)])
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_daemon_reload_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
             self.log_info("Reloaded the list of services")
             classes.append("{safe_promiser}_absent".format(safe_promiser=safe_promiser))
         return (result, classes)
@@ -167,7 +212,9 @@ class SystemdPromiseTypeModule(PromiseModule):
         service_template = self._render_service_template(model)
         # create the service file if it doesn't exist, or replace it if the content
         # doesn't match our template and replace is true
-        service_path = os.path.join(SYSTEMD_LIB_PATH, "{model_name}.service".format(model_name=model.name))
+        service_path = os.path.join(
+            SYSTEMD_LIB_PATH, "{model_name}.service".format(model_name=model.name)
+        )
         try:
             if (
                 not os.path.exists(service_path)
@@ -176,51 +223,102 @@ class SystemdPromiseTypeModule(PromiseModule):
             ):
                 open(service_path, "w").write(service_template)
                 result = Result.REPAIRED
-                self.log_info("Installed the service {model_name}".format(model_name=model.name))
-                classes.append("{safe_promiser}_installed".format(safe_promiser=safe_promiser))
+                self.log_info(
+                    "Installed the service {model_name}".format(model_name=model.name)
+                )
+                classes.append(
+                    "{safe_promiser}_installed".format(safe_promiser=safe_promiser)
+                )
         except OSError as e:
-            self.log_error("Failed to install the service file: {error}".format(error=e))
-            return (Result.NOT_KEPT, ["{safe_promiser}_install_failed".format(safe_promiser=safe_promiser)])
+            self.log_error(
+                "Failed to install the service file: {error}".format(error=e)
+            )
+            return (
+                Result.NOT_KEPT,
+                ["{safe_promiser}_install_failed".format(safe_promiser=safe_promiser)],
+            )
         # run systemctl daemon-reexec
         if model.daemon_reexec:
             try:
                 self._exec_command(["systemctl", "daemon-reexec"])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_daemon_reexec_failed".format(safe_promiser=safe_promiser)])
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_daemon_reexec_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
             self.log_info("Executed systemctl daemon-reexec")
-            classes.append("{safe_promiser}_daemon_reexec".format(safe_promiser=safe_promiser))
+            classes.append(
+                "{safe_promiser}_daemon_reexec".format(safe_promiser=safe_promiser)
+            )
         # run systemctl daemon-reload
         elif result == Result.REPAIRED or model.daemon_reload:
             try:
                 self._exec_command(["systemctl", "daemon-reload"])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_daemon_reload_failed".format(safe_promiser=safe_promiser)])
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_daemon_reload_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
             self.log_info("Executed systemctl daemon-reload")
-            classes.append("{safe_promiser}_daemon_reload".format(safe_promiser=safe_promiser))
+            classes.append(
+                "{safe_promiser}_daemon_reload".format(safe_promiser=safe_promiser)
+            )
         # mask the service
         if model.masked and service_status["UnitFileState"] != "masked":
             try:
                 self._exec_command(["systemctl", "mask", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_mask_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Masked the service {model_name}".format(model_name=model.name))
+                return (
+                    Result.NOT_KEPT,
+                    ["{safe_promiser}_mask_failed".format(safe_promiser=safe_promiser)],
+                )
+            self.log_info(
+                "Masked the service {model_name}".format(model_name=model.name)
+            )
             classes.append("{safe_promiser}_masked".format(safe_promiser=safe_promiser))
         # unmask the service
         elif not model.masked and service_status["UnitFileState"] == "masked":
             try:
                 self._exec_command(["systemctl", "unmask", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_unmask_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Unmasked the service {model_name}".format(model_name=model.name))
-            classes.append("{safe_promiser}_unmasked".format(safe_promiser=safe_promiser))
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_unmask_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
+            self.log_info(
+                "Unmasked the service {model_name}".format(model_name=model.name)
+            )
+            classes.append(
+                "{safe_promiser}_unmasked".format(safe_promiser=safe_promiser)
+            )
         # enable the service
         if (
             model.enabled
@@ -230,11 +328,24 @@ class SystemdPromiseTypeModule(PromiseModule):
             try:
                 self._exec_command(["systemctl", "enable", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_enable_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Enabled the service {model_name}".format(model_name=model.name))
-            classes.append("{safe_promiser}_enabled".format(safe_promiser=safe_promiser))
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_enable_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
+            self.log_info(
+                "Enabled the service {model_name}".format(model_name=model.name)
+            )
+            classes.append(
+                "{safe_promiser}_enabled".format(safe_promiser=safe_promiser)
+            )
         # disable the service
         elif (
             not model.enabled
@@ -244,11 +355,24 @@ class SystemdPromiseTypeModule(PromiseModule):
             try:
                 self._exec_command(["systemctl", "disable", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_disable_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Disabled the service {model_name}".format(model_name=model.name))
-            classes.append("{safe_promiser}_disabled".format(safe_promiser=safe_promiser))
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_disable_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
+            self.log_info(
+                "Disabled the service {model_name}".format(model_name=model.name)
+            )
+            classes.append(
+                "{safe_promiser}_disabled".format(safe_promiser=safe_promiser)
+            )
         # start the service, if not running
         if model.state == SystemdPromiseTypeStates.STARTED.value and not (
             service_status["ActiveState"] == "active"
@@ -257,11 +381,24 @@ class SystemdPromiseTypeModule(PromiseModule):
             try:
                 self._exec_command(["systemctl", "start", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_start_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Started the service {model_name}".format(model_name=model.name))
-            classes.append("{safe_promiser}_started".format(safe_promiser=safe_promiser))
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_start_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
+            self.log_info(
+                "Started the service {model_name}".format(model_name=model.name)
+            )
+            classes.append(
+                "{safe_promiser}_started".format(safe_promiser=safe_promiser)
+            )
         # stop the service, if running
         elif (
             model.state == SystemdPromiseTypeStates.STOPPED.value
@@ -271,38 +408,75 @@ class SystemdPromiseTypeModule(PromiseModule):
             try:
                 self._exec_command(["systemctl", "stop", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_stop_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Stopped the service {model_name}".format(model_name=model.name))
-            classes.append("{safe_promiser}_stopped".format(safe_promiser=safe_promiser))
+                return (
+                    Result.NOT_KEPT,
+                    ["{safe_promiser}_stop_failed".format(safe_promiser=safe_promiser)],
+                )
+            self.log_info(
+                "Stopped the service {model_name}".format(model_name=model.name)
+            )
+            classes.append(
+                "{safe_promiser}_stopped".format(safe_promiser=safe_promiser)
+            )
         # reload the service
         elif model.state == SystemdPromiseTypeStates.RELOADED.value:
             try:
                 self._exec_command(["systemctl", "reload", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_reload_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Reloaded the service {model_name}".format(model_name=model.name))
-            classes.append("{safe_promiser}_reloaded".format(safe_promiser=safe_promiser))
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_reload_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
+            self.log_info(
+                "Reloaded the service {model_name}".format(model_name=model.name)
+            )
+            classes.append(
+                "{safe_promiser}_reloaded".format(safe_promiser=safe_promiser)
+            )
         # restart the service
         elif model.state == SystemdPromiseTypeStates.RESTARTED.value:
             try:
                 self._exec_command(["systemctl", "restart", model.name])
             except subprocess.CalledProcessError as e:
-                self.log_error("Failed to run systemctl: {error}".format(error=e.output or e))
+                self.log_error(
+                    "Failed to run systemctl: {error}".format(error=e.output or e)
+                )
                 e.stderr and self.log_error(e.stderr.strip())
-                return (Result.NOT_KEPT, ["{safe_promiser}_restart_failed".format(safe_promiser=safe_promiser)])
-            self.log_info("Restarted the service {model_name}".format(model_name=model.name))
-            classes.append("{safe_promiser}_restarted".format(safe_promiser=safe_promiser))
+                return (
+                    Result.NOT_KEPT,
+                    [
+                        "{safe_promiser}_restart_failed".format(
+                            safe_promiser=safe_promiser
+                        )
+                    ],
+                )
+            self.log_info(
+                "Restarted the service {model_name}".format(model_name=model.name)
+            )
+            classes.append(
+                "{safe_promiser}_restarted".format(safe_promiser=safe_promiser)
+            )
         return (result, classes)
 
     def _exec_command(self, args: List[str], cwd: Optional[str] = None) -> str:
-        self.log_verbose("Run: {cmd}".format(cmd=' '.join(args)))
-        output = subprocess.check_output(
-            args, cwd=cwd, stderr=subprocess.PIPE
-        ).strip().decode("utf-8")
+        self.log_verbose("Run: {cmd}".format(cmd=" ".join(args)))
+        output = (
+            subprocess.check_output(args, cwd=cwd, stderr=subprocess.PIPE)
+            .strip()
+            .decode("utf-8")
+        )
         output != "" and self.log_verbose(output)
         return output
 
