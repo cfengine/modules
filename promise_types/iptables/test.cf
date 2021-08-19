@@ -1,0 +1,143 @@
+promise agent iptables
+{
+    path => "$(sys.workdir)/modules/promises/iptables.py";
+    interpreter => "/usr/bin/python3.5";
+}
+
+body common control
+# If all bundles are run successfully the final state of iptables should be:
+#
+# >>> iptables -L
+# Chain INPUT (policy DROP)
+# target     prot opt source               destination
+# ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:cfengine
+#
+# Chain FORWARD (policy ACCEPT)
+# target     prot opt source               destination
+#
+# Chain OUTPUT (policy ACCEPT)
+# target     prot opt source               destination
+{
+    bundlesequence => {
+        cfengine_website_accepted,
+        telnet_dropped,
+        accept_cfengine_website_rule_deleted,
+        ssh_port_accepted,
+        aggressive_policy,
+        input_chain_flushed,
+        all_chains_flushed,
+        total_cfengine_control,
+    };
+}
+
+bundle agent cfengine_website_accepted
+{
+  iptables:
+      "accept_cfengine_com"
+        command => "append",
+        chain => "INPUT",
+        source => "34.107.174.45",
+        target => "ACCEPT";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent telnet_dropped
+{
+  iptables:
+      "drop_telnet"
+        command => "append",
+        chain => "INPUT",
+        protocol => "tcp",
+        destination_port => "23",
+        target => "DROP";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent accept_cfengine_website_rule_deleted
+{
+  iptables:
+     "delete_accept_cfengine_com"
+       command => "delete",
+       chain => "INPUT",
+       source => "34.107.174.45",
+       target => "ACCEPT";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent ssh_port_accepted
+{
+  iptables:
+      "accept_ssh"
+        command => "insert",
+        chain => "INPUT",
+        rulenum => "1",
+        protocol => "tcp",
+        destination_port => "22",
+        target => "ACCEPT";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent aggressive_policy
+{
+  iptables:
+      "aggressive_policy"
+        command => "policy",
+        chain => "INPUT",
+        target => "DROP";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent input_chain_flushed
+{
+  iptables:
+      "flush_INPUT"
+        command => "flush",
+        chain => "INPUT";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent all_chains_flushed
+{
+  iptables:
+      "flush_all"
+        command => "flush",
+        chain => "ALL";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent total_cfengine_control
+{
+  iptables:
+      "flush_all"
+        command => "flush",
+        chain => "ALL";
+
+      "aggressive_policy"
+        command => "policy",
+        chain => "INPUT",
+        target => "DROP";
+
+      "accept_cfengine"
+        command => "append",
+        chain => "INPUT",
+        protocol => "tcp",
+        destination_port => "5308",
+        target => "ACCEPT";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
