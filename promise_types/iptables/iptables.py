@@ -2,6 +2,7 @@ from cfengine import PromiseModule, ValidationError, Result, AttributeObject
 from typing import Callable, List, Dict, Tuple
 from collections import namedtuple
 from copy import deepcopy
+from itertools import takewhile
 import subprocess
 
 Command = namedtuple("Command", "flag denied_attrs")
@@ -32,31 +33,32 @@ class Model:
         return rule_spec
 
     @property
+    def rule(self) -> List[str]:
+        rule = [self._commands[self.command].flag]
+
+        if self.command != "flush" or self.chain != "ALL":
+            rule.append(self.chain)
+
+        if self.command == "policy":
+            rule.append(self.target)
+        else:
+            rule.extend(self.rule_spec)
+
+        return rule
+
+    @property
     def args(self) -> List[str]:
         args = [self.executable]
         args.extend(["-t", self.table])
-        args.append(self._commands[self.command].flag)
-
-        if self.command != "flush" or self.chain != "ALL":
-            args.append(self.chain)
-
-        if self.command == "policy":
-            args.append(self.target)
-        else:
-            args.extend(self.rule_spec)
-
+        args.extend(self.rule)
         return args
-
-    @property
-    def needs_check(self):
-        return self.command in {"append", "insert"}
 
     @property
     def log_str(self) -> str:
         if self.command in {"append", "insert", "delete"}:
-            return "{cmd}-ing rule '{spec}' at chain '{chain}' of table '{table}' {rulenum}".format(
+            return "{cmd}-ing rule '{rule}' at chain '{chain}' of table '{table}' {rulenum}".format(
                 cmd=self.command.capitalize(),
-                spec=" ".join(self.rule_spec),
+                rule=" ".join(self.rule),
                 chain=self.chain,
                 table=self.table,
                 rulenum="at position '{}'".format(self.rulenum)
@@ -156,7 +158,7 @@ class IptablesPromiseTypeModule(PromiseModule):
                 raise ValidationError("Value must be greater or equal to 0")
 
         def must_be_ip_address(v):
-            # if re.match(..., v):
+            # if not re.match(..., v):
             #    raise ValidationError("...")
             return
 
@@ -182,7 +184,9 @@ class IptablesPromiseTypeModule(PromiseModule):
     def validate_promise(self, promiser: str, attributes: dict):
         command = attributes["command"]
 
-        present_denied_attrs = self.COMMANDS[command].denied_attrs.intersection(attributes)
+        present_denied_attrs = self.COMMANDS[command].denied_attrs.intersection(
+            attributes
+        )
         if present_denied_attrs:
             raise ValidationError(
                 "Attributes {} are invalid for command '{}'".format(
@@ -222,7 +226,7 @@ class IptablesPromiseTypeModule(PromiseModule):
 
         self.log_info(model.log_str)
 
-        if model.needs_check:
+        if model.command in {"append", "insert", "delete"}:
             self.log_verbose(
                 "Checking for rule specification '{}' in chain '{}' of table '{}'".format(
                     " ".join(model.rule_spec), model.chain, model.table
@@ -246,6 +250,34 @@ class IptablesPromiseTypeModule(PromiseModule):
                 ]
             except subprocess.CalledProcessError as e:
                 pass
+
+        else:
+            rules = self._iptables_list_rules(model)
+            policy_rules = tuple(takewhile(lambda s: s.startswith("-P"), rules))
+            chain_rules = rules[len(policy_rules) :]
+
+            if model.command == "policy":
+                # Always one item for 'policy' command
+                policy_target = policy_rules[0].split()[-1]
+                if policy_target == model.target:
+                    self.log_verbose(
+                        "Promise to set '{}' chain's policy to '{}' already kept".format(
+                            model.chain, model.target
+                        )
+                    )
+
+                    return Result.KEPT, [
+                        "{}_{}_successful".format(safe_promiser, model.command)
+                    ]
+
+            elif model.command == "flush" and len(chain_rules) == 0:
+                self.log_verbose(
+                    "Promise to flush '{}' chain(s) already kept".format(model.chain)
+                )
+
+                return Result.KEPT, [
+                    "{}_{}_successful".format(safe_promiser, model.command)
+                ]
 
         try:
             self._iptables(model)
@@ -282,7 +314,14 @@ class IptablesPromiseTypeModule(PromiseModule):
 
     def _iptables_check(self, model: Model):
         check_model = Model.make_check_command_model(model)
-        return self._run(check_model.args)
+        self._run(check_model.args)  # interested in the potential exception
+
+    def _iptables_list_rules(self, model: Model) -> List[str]:
+        """The list always starts with a sequence of policy rules followed by a sequence of chain rules"""
+        args = [model.executable, "-S"]
+        if model.chain != "ALL":
+            args.append(model.chain)
+        return self._run(args).stdout.decode("utf-8").strip().split("\n")
 
     def _iptables(self, model: Model):
         return self._run(model.args)
