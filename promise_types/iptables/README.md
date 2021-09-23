@@ -10,28 +10,31 @@
 
 ## Attributes
 
-| Name        | Type  | Description                                                                                     | Mandatory | Default    |
-|:------------|-------|-------------------------------------------------------------------------------------------------|-----------|------------|
-| `command`   | `str` | Which command should be run. Depending on the choice different attributes are accepted          | Yes       | -          |
-| `table`     | `str` | Table to operate on                                                                             | No        | `"filter"` |
-| `chain`     | `str` | Chain to operate on. `"ALL"` can be used in commands like flush, to flush all chains of a table | Yes       | -          |
-| `rulenum`   | `int` | Index to put the new rule with `1` meaning it will be inserted at the top                       | No        | `1`        |
-| `protocol`  | `str` | Protocol to be used                                                                             | No        | -          |
-| `dest_port` | `int` | Tcp/udp network port                                                                            | No        | -          |
-| `source_ip` | `str` | Source IP of incoming traffic                                                                   | No        | -          |
-| `target`    | `str` | Target for packet if the rule matches                                                           | No        | -          |
+| Name               | Type   | Description                                                                                     | Mandatory | Default      |
+|:-------------------|--------|-------------------------------------------------------------------------------------------------|-----------|--------------|
+| `command`          | `str`  | Which command should be run. Depending on the choice different attributes are accepted          | Yes       | -            |
+| `table`            | `str`  | Table to operate on                                                                             | No        | `"filter"`   |
+| `chain`            | `str`  | Chain to operate on. `"ALL"` can be used in commands like flush, to flush all chains of a table | No        | -            |
+| `protocol`         | `str`  | Protocol to be used                                                                             | No        | -            |
+| `destination_port` | `int`  | Tcp/udp network port                                                                            | No        | -            |
+| `source`           | `str`  | Source IP of incoming traffic                                                                   | No        | -            |
+| `priority`         | `int`  | Number signifing priority for rule                                                              | No        | `0`          |
+| `target`           | `str`  | Target for packet if the rule matches                                                           | No        | -            |
+| `rules`            | `data` | Data of rules provided to command `exclusive` to keep while removing all others                 | No        | -            |
+| `executable`       | `str`  | Path to `iptables` executable                                                                   | No        | `"iptables"` |
 
 ## Command Validation
 
-| *Command\Valid Attribute* | **table** | **chain** | **rulenum** | **protocol** | **dest_port** | **source_ip** | **target** |
-|---------------------------|-----------|-----------|-------------|--------------|---------------|---------------|------------|
-| **append**                | Yes       | Yes       | No          | Yes          | Yes           | Yes           | Yes        |
-| **insert**                | Yes       | Yes       | Yes         | Yes          | Yes           | Yes           | Yes        |
-| **delete**                | Yes       | Yes       | No          | Yes          | Yes           | Yes           | Yes        |
-| **flush**                 | Yes       | Yes       | No          | No           | No            | No            | No         |
-| **policy**                | Yes       | Yes       | No          | No           | No            | No            | Yes        |
+| *Command\Valid Attribute* | **table** | **chain** | **protocol** | **destination_port** | **source** | **priority** | **target** | **rules** | **executable** |
+| ------------------------- | --------- | --------- | ------------ | -------------------- | ---------- | ------------ | ---------- | --------- | -------------- |
+| **append**                | Yes       | Yes       | Yes          | Yes                  | Yes        | No           | Yes        | No        | Yes            |
+| **insert**                | Yes       | Yes       | Yes          | Yes                  | Yes        | Yes          | Yes        | No        | Yes            |
+| **delete**                | Yes       | Yes       | Yes          | Yes                  | Yes        | No           | Yes        | No        | Yes            |
+| **flush**                 | Yes       | Yes       | No           | No                   | No         | No           | No         | No        | Yes            |
+| **policy**                | Yes       | Yes       | No           | No                   | No         | No           | Yes        | No        | Yes            |
+| **exclusive**             | Yes       | Yes       | No           | No                   | No         | No           | No         | Yes       | Yes            |
 
-Its important to note that some attribute have their own validation requirements. For example `dest_port` should expect `protocol` to be present.
+Its important to note that some attributes have their own validation requirements. For example `destination_port` should expect `protocol` to be present.
 
 ## Examples
 
@@ -44,7 +47,7 @@ bundle agent main
       "accept_cfengine_com"
         command => "append",
         chain => "INPUT",
-        source_ip => "34.107.174.45",
+        source => "34.107.174.45",
         target => "ACCEPT";
 }
 ```
@@ -59,8 +62,24 @@ bundle agent main
         command => "append",
         chain => "INPUT",
         protocol => "tcp",
-        dest_port => 23,
+        destination_port => 23,
         target => "DROP";
+}
+```
+
+### Insert a rule to accept ssh port with high priority
+
+```cfengine3
+bundle agent main
+{
+  iptables:
+      "accept_ssh"
+        command => "insert",
+        chain => "INPUT",
+        protocol => "tcp",
+        destination_port => 22,
+        priority => 1,
+        target => "ACCEPT";
 }
 ```
 
@@ -73,23 +92,7 @@ bundle agent main
       "delete_accept_cfengine_com"
         command => "delete",
         chain => "INPUT",
-        source_ip => "34.107.174.45",
-        target => "ACCEPT";
-}
-```
-
-###  Insert a rule to accept ssh port as the first rule
-
-```cfengine3
-bundle agent main
-{
-  iptables:
-      "accept_ssh"
-        command => "insert",
-        chain => "INPUT",
-        rulenum => 1,
-        protocol => "tcp",
-        dest_port => 22,
+        source => "34.107.174.45",
         target => "ACCEPT";
 }
 ```
@@ -108,6 +111,8 @@ bundle agent main
 ```
 
 ### Flush a specific filter chain
+
+Flushing chains should be done primarily when the chains are _expected_ to stay flushed.
 
 ``` cfengine3
 bundle agent main
@@ -131,56 +136,88 @@ bundle agent main
 }
 ```
 
-### Accept traffic from CFEngine port, drop everything else
+### Ensure only specific rules are present
 
-``` cfengine3
+```cfengine3
+bundle common allow_cfengine_and_ssh
+{
+  vars:
+    "rules" data => '{
+      "accept_cfengine": {
+        "table": "filter",
+        "chain": "INPUT",
+        "protocol": "tcp",
+        "destination_port": 5308,
+        "priority": 1,
+        "target": "ACCEPT"
+      },
+      "accept_ssh": {
+        "table": "filter",
+        "chain": "INPUT",
+        "protocol": "tcp",
+        "destination_port": 22,
+        "priority": 1,
+        "target": "ACCEPT"
+      },
+    }';
+}
+
 bundle agent main
 {
   iptables:
-      "flush_all"
-        command => "flush",
-        chain => "ALL";
+      "clean_non_cfengine_rules"
+        command => "exclusive",
+        rules => @{allow_cfengine_and_ssh.rules};
+}
+```
+
+### Total CFEngine control
+
+```cfengine3
+bundle common AllowIncomingCFEngine
+{
+  vars:
+      "rules" data => '{
+        "rule1": {
+          "table": "filter",
+          "chain": "INPUT",
+          "protocol": "tcp",
+          "destination_port": 5308,
+          "priority": 1,
+          "target": "ACCEPT"
+        }
+      }';
+}
+
+bundle agent main
+{
+  vars:
+      "rules" data => @{AllowIncomingCFEngine.rules};
+
+  iptables:
+      "clean_non_cfengine_rules"
+        command => "exclusive",
+        rules => @{rules};
 
       "aggressive_policy"
         command => "policy",
         chain => "INPUT",
         target => "DROP";
 
-      "accept_cfengine"
-        command => "append",
-        chain => "INPUT",
-        protocol => "tcp",
-        dest_port => 5308,
-        target => "ACCEPT";
+      "accept_cfengine_rule1"
+        command => "insert",
+        table => ${rules[rule1][table]},
+        chain => ${rules[rule1][chain]},
+        protocol => ${rules[rule1][protocol]},
+        destination_port => ${rules[rule1][destination_port]},
+        priority => ${rules[rule1][priority]},
+        target => ${rules[rule1][target]};
 }
 ```
+
 ## Notes
 
-For appending, inserting and deleting commands the [`iptables --check`](https://manpages.ubuntu.com/manpages/precise/en/man8/iptables.8.html#options) command will run first to ensure that the promise is not kept before executing further commands.  
-For example:
-
-``` cfengine3
-bundle agent main
-{
-  iptables:
-      "accept_cfengine"
-        command => "append",
-        chain => "INPUT",
-        protocol => "tcp",
-        dest_port => 5308,
-        target => "ACCEPT",
-}
-```
-
-The above promises to append the rule `-p tcp --dport 5308 -j ACCEPT` in the chain `INPUT` of the tables `filter`. The promise as a whole can be translated into two commands:
-
-``` shell
-iptables -t filter --check INPUT -p tcp --dort 5308 -j ACCEPT  # Check state of promise
-if [[ $? != 0 ]]  # Rule not found: promise not kept (yet)
-then
-    iptables -t filter --append INPUT -p tcp --dport 5308 -j ACCEPT
-fi
-```
+All rules added by the iptables custom promise will have a comment  signifing its priority. The `-m comment --comment` match will be used  with iptables. The comment follows the pattern `CF3:priority:X` where `X` is a number. That comment will be used as key for any  sorting/manipulating of the rules in a chain when evaluating the append/insert promises. Keeping a promise means that the rule was already inserted at the proper chain region according to its priority. Repairing a promise means changing the iptables rules, for example by inserting, removing, or moving a rule in the chain. If multiple rules have the same priority they the will be inserted one after the other making a block of same priority rules.
 
 ## Authors
 
