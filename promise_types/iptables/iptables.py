@@ -6,12 +6,61 @@ as they are in `man iptables`
 from cfengine import PromiseModule, ValidationError, Result, AttributeObject
 from typing import Callable, List, Dict, Tuple
 from collections import namedtuple
-from itertools import takewhile, dropwhile
+from itertools import takewhile, dropwhile, groupby
+from operator import attrgetter
+from copy import copy
+from collections import OrderedDict
+from enum import Enum
+import sys
+import ipaddress
+import re
 import subprocess
+
+
+def iptables_enumerate(iterable):
+    return enumerate(iterable, start=1)
 
 
 def is_policy_rule(rule: str):
     return rule.startswith("-P")
+
+
+def rule_spec_in_rules(rule_spec: List[str], rules: Tuple[str]) -> bool:
+    rule_spec_str = " ".join(rule_spec)
+    return any(rule_spec_str in rule for rule in rules)
+
+
+def rule_spec_in_rule(rule_spec: List[str], rule: str):
+    return " ".join(rule_spec) in rule
+
+
+RULE_PRIORITY_STR = "CF3:priority:"
+
+
+def rule_priority(rule: str) -> str:
+    """Regex group matches CF3:priority: followed by an integer, potentially enclosed in double quotes"""
+    match = re.search(
+        r'-m comment --comment "?{}(-?\d+)"?'.format(RULE_PRIORITY_STR), rule
+    )
+    return match.group(1) if match else ""
+
+
+def rule_spec_priority(rule_spec: List[str]):
+    return rule_priority(" ".join(rule_spec))
+
+
+def process_source(source: str) -> str:
+    """Iptables presents the ips masked therefore any source should be postprocessed to what
+    iptables presents in order to be able to match it during evaluation.
+    Examples:
+    1.2.3.4 -> 1.2.3.4/32
+    1.2.3.4/24 -> 1.2.3.0/24
+    """
+    ip_int = ipaddress.ip_interface(source)
+    mask = int(ip_int.netmask)
+    ip = int(ip_int.ip)
+    new_ip_address = ipaddress.ip_address(ip & mask)
+    return "{}/{}".format(new_ip_address, bin(mask).count("1"))
 
 
 class IptablesError(Exception):
@@ -21,21 +70,122 @@ class IptablesError(Exception):
 Command = namedtuple("Command", "flag denied_attrs")
 
 
+class IndexRulePair(namedtuple("IndexRulePair", "index rule")):
+    def rule_contains_rule_spec(self, rule_spec: List[str]):
+        return rule_spec_in_rule(rule_spec, self.rule)
+
+
+class RuleBlocks(OrderedDict):
+    """Map priorities to tuples of IndexRulePairs.
+    Tracking the index of the rule individualy is necessary in order to know
+    where to insert later. All this is necessary because iptables doesnt have index lookup...
+
+    The indexes of the IndexRulePairs are always in ascending order.
+    Example:
+    For packet rules:
+    -A INPUT -s 1.2.3.4/32 -m comment --comment "CF3:priority:5" -j ACCEPT
+    -A INPUT -p tcp -m tcp --dport 22 -m comment --comment "CF3:priority:6" -j ACCEPT
+    -A INPUT -p tcp -m tcp --dport 23 -m comment --comment "CF3:priority:6" -j DROP
+    -A INPUT -s 5.6.7.8/32 -m comment --comment "CF3:priority:-1" -j DROP
+
+    RuleBlocks -> {
+        "5": ( IndexRulePair(index=1, rule="-s 1.2.3.4/32 -m comment --comment "CF3:priority:5" -j ACCEPT"), ),
+        "6": (
+               IndexRulePair(index=2, rule="-p tcp -m tcp --dport 22 -m comment --comment "CF3:priority:6" -j ACCEPT"),
+               IndexRulePair(index=3, rule="-p tcp -m tcp --dport 23 -m comment --comment "CF3:priority:6" -j DROP")
+             ),
+        "-1": ( IndexRulePair(index=4, rule="-s 5.6.7.8/32 -m comment --comment "CF3:priority:-1" -j DROP"), )
+    }
+
+    Any rules added externally to the chain that do not conform to the "CF3:priority:XX" (where XX is -1 or >=1)
+    are filtered out and may cause fragmentation.
+    """
+
+    def __init__(self, rules: List[str]):
+        super().__init__()
+        data = (
+            (priority, tuple(IndexRulePair(index, rule) for index, rule in grouping))
+            for priority, grouping in groupby(
+                iptables_enumerate(rules),
+                key=lambda pair: rule_priority(pair[1]),
+            )
+        )
+
+        def validate_data_pair(pair: Tuple[str, Tuple[IndexRulePair, ...]]) -> bool:
+            priority = pair[0]
+            if priority == "":
+                return False
+            priority = int(priority)
+            return priority == -1 or priority >= 1
+
+        data = filter(validate_data_pair, data)  # Ignore non cfe added rules
+
+        for priority, pairs in data:
+            self.setdefault(priority, []).extend(pairs)
+
+    def index_of_rule_spec_in_priority_block(self, priority: str, rule_spec: List[str]):
+        """Find index of rule containing `rule_spec` or return the index after the last one."""
+        if len(self) == 0:
+            return 1
+
+        for pair in self[priority]:
+            if pair.rule_contains_rule_spec(rule_spec):
+                return pair.index
+        else:
+            return pair.index + 1
+
+    def index_of_first_rule_with_priority_ge(self, required_priority: str) -> int:
+        """May return the index of a present rule or the index of where a rule would be, meaning
+        after the last rule
+        """
+        if len(self) == 0:
+            return 1
+
+        items = map(
+            lambda kv: (int(kv[0]) if kv[0] != "-1" else sys.maxsize, kv[1]),
+            self.items(),
+        )
+
+        required_priority = int(required_priority)
+
+        for priority, pairs in items:
+            if priority == required_priority:
+                return pairs[-1].index + 1
+            elif priority > required_priority:
+                return pairs[0].index
+        else:
+            return pairs[-1].index + 1
+
+    def rule_spec_is_in_priority_block(
+        self, priority: str, rule_spec: List[str]
+    ) -> bool:
+        return any(pair.rule_contains_rule_spec(rule_spec) for pair in self[priority])
+
+    def __repr__(self):
+        return "RuleBlocks{{{}}}".format(
+            ", ".join("{!r}: {!r}".format(k, v) for k, v in self.items())
+        )
+
+
 class Parameter:
     """Class that holds the format string for an iptables parameter.
     The constructor format string assumes:
       * That one value will be used for all format brackets and the brackets are empty.
     Examples:
-    Parameter("source", "-s {}").cmdline_args("1.2.3.4") -> ["-s", "1.2.3.4"]
-    Parameter("protocol", "-p {} -m {}").cmdline_args("tcp") -> ["-p", "tcp", "-m", "tcp"]
+    Parameter("-s {}").cmdline_args("1.2.3.4") -> ["-s", "1.2.3.4"]
+    Parameter("-p {} -m {}").cmdline_args("tcp") -> ["-p", "tcp", "-m", "tcp"]
     """
 
-    def __init__(self, attr_name: str, fmt: str):
-        self.attr_name = attr_name
+    def __init__(self, fmt: str):
         self._fmt = fmt.replace("{}", "{0}")
 
     def cmdline_args(self, value: str) -> List[str]:
         return self._fmt.format(value).split()
+
+
+class CheckResult(Enum):
+    IN = "in table"
+    NOT_IN = "not in table"
 
 
 class Model:
@@ -44,9 +194,9 @@ class Model:
         attr_obj: AttributeObject,
         *,
         commands: Dict[str, Command],
-        parameters: Tuple[Parameter, ...]
+        parameters: OrderedDict
     ):
-        self.attributes = attr_obj
+        self.attributes = self._postprocess_attributes(attr_obj)
         self._commands = commands
         self._parameters = parameters
 
@@ -75,8 +225,8 @@ class Model:
         model.rule_spec -> ['-p', 'tcp', '-m', 'tcp', '--dport', '22', '-j', 'ACCEPT']
         """
         rule_spec = []
-        for param in self._parameters:
-            value = getattr(self.attributes, param.attr_name, None)
+        for attr_name, param in self._parameters.items():
+            value = getattr(self.attributes, attr_name, None)
             if value:
                 rule_spec.extend(param.cmdline_args(value))
         return rule_spec
@@ -118,7 +268,11 @@ class Model:
     @property
     def log_str(self) -> str:
         command = self.attributes.command
-        if command == "delete":
+        if command == "append":
+            return "Appending rule '{rule}' on table '{table}'".format(
+                rule=" ".join(self.rule), table=self.attributes.table
+            )
+        elif command == "delete":
             return "Deleting rule '{rule}' from table '{table}'".format(
                 rule=" ".join(self.rule),
                 table=self.attributes.table,
@@ -136,6 +290,19 @@ class Model:
 
         return "Command '{}' has no log string".format(command)
 
+    def _postprocess_attributes(self, attr_obj: AttributeObject) -> AttributeObject:
+        attributes = copy(attr_obj)
+
+        # All appended rules have priority -1
+        if not getattr(attributes, "priority", None) and attributes.command == "append":
+            attributes.priority = -1
+
+        # Process source string to what iptables presents when listing rules
+        if getattr(attributes, "source", None):
+            attributes.source = process_source(attributes.source)
+
+        return attributes
+
     def __repr__(self):
         return "Model({})".format(
             ", ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items())
@@ -147,6 +314,7 @@ class IptablesPromiseTypeModule(PromiseModule):
     # set of promise attributes it does *not* accept. The latter is used during `validate_promise` to
     # catch any unwanted attributes.
     COMMANDS = {
+        "append": Command("-A", {"priority", "rules"}),
         "delete": Command(
             "-D",
             {
@@ -162,15 +330,31 @@ class IptablesPromiseTypeModule(PromiseModule):
         ),
     }
 
-    # The `PARAMETERS` tuple contains the sequence of parameters the model goes through when creating
+    # The `PARAMETERS` OrderedDict contains the sequence of parameters the model goes through when creating
     # its rule specification. The order of parameters in the sequence *matters*.
     # "protocol" must precede "destination_port" and "target" must be last.
-    PARAMETERS = (
-        Parameter("source", "-s {}"),
-        Parameter("protocol", "-p {} -m {}"),
-        Parameter("destination_port", "--dport {}"),
-        Parameter("priority", "-m comment --comment {}"),
-        Parameter("target", "-j {}"),
+    PARAMETERS = OrderedDict(
+        (
+            ("source", Parameter("-s {}")),
+            ("protocol", Parameter("-p {} -m {}")),
+            ("destination_port", Parameter("--dport {}")),
+            # Rule specs (and rules) will be created by surrounding the priority string with quotes just like
+            # they would have been typed on the terminal.
+            # > iptables -A INPUT -m comment --comment "CF3:priority:-1" -j ACCEPT
+            # > iptables -S INPUT
+            # -P INPUT ACCEPT
+            # -A INPUT -m comment --comment "CF3:priority:-1" -j ACCEPT
+            #
+            # However this is a problem for subprocess because it will surround them with double quotes again leading to:
+            # -A INPUT -m comment --comment "\"CF3:priority:-1\"" -j ACCEPT.
+            # Just as convention its chosen to not spread validation around but keep a simple sanitising function
+            # at the very end of appending/inserting rules
+            (
+                "priority",
+                Parameter('-m comment --comment "{}{{}}"'.format(RULE_PRIORITY_STR)),
+            ),
+            ("target", Parameter("-j {}")),
+        )
     )
 
     # Below are sets of accepted values for the promise. They are used as arguments of the `must_be_one_of`
@@ -203,7 +387,7 @@ class IptablesPromiseTypeModule(PromiseModule):
                 if v not in items:
                     raise ValidationError(
                         "Attribute value '{}' is not valid. Available values are: {}".format(
-                            v, items
+                            v, sorted(items)
                         )
                     )
 
@@ -234,7 +418,7 @@ class IptablesPromiseTypeModule(PromiseModule):
         self.add_attribute("destination_port", int, validator=must_be_non_negative)
         self.add_attribute("source", str)
         self.add_attribute("target", str, validator=must_be_one_of(self.TARGETS))
-        self.add_attribute("priority", int, default=0)
+        self.add_attribute("priority", int)
         self.add_attribute("rules", dict)
         self.add_attribute("executable", str, default="iptables")
 
@@ -249,7 +433,7 @@ class IptablesPromiseTypeModule(PromiseModule):
                 )
             )
 
-        if command == "delete":
+        if command in {"delete", "append"}:
             if attributes.get("destination_port") and not attributes.get("protocol"):
                 raise ValidationError(
                     "Attribute 'destination_port' needs 'protocol' present"
@@ -282,7 +466,12 @@ class IptablesPromiseTypeModule(PromiseModule):
         classes = []
 
         try:
-            if command == "delete":
+            if command == "append":
+                result = self.evaluate_command_append(
+                    attrs.executable, attrs.table, attrs.chain, model.rule_spec
+                )
+
+            elif command == "delete":
                 result = self.evaluate_command_delete(
                     attrs.executable, attrs.table, attrs.chain, model.rule_spec
                 )
@@ -304,19 +493,53 @@ class IptablesPromiseTypeModule(PromiseModule):
             self.log_error(e)
             result = Result.NOT_KEPT
 
-        if result == Result.NOT_KEPT:
-            classes.append("{}_{}_failed".format(safe_promiser, command))
-        elif result in {Result.KEPT, Result.REPAIRED}:
-            result == Result.REPAIRED and self.log_info(model.log_str)
+        finally:
+            if result == Result.NOT_KEPT:
+                classes.append("{}_{}_failed".format(safe_promiser, command))
+            elif result in {Result.KEPT, Result.REPAIRED}:
+                result == Result.REPAIRED and self.log_info(model.log_str)
 
-            classes.append("{}_{}_successful".format(safe_promiser, command))
-        else:
-            classes.append("{}_{}_unknown".format(safe_promiser, command))
+                classes.append("{}_{}_successful".format(safe_promiser, command))
+            else:
+                classes.append("{}_{}_unknown".format(safe_promiser, command))
 
-        return result, classes
+            return result, classes
+
+    # --------------------------------
+    #      Evaluation Functions
+    # --------------------------------
+
+    def evaluate_command_append(self, executable, table, chain, rule_spec: List[str]):
+        """
+        CAUTION: UNSTABLE
+        -----------------
+
+        Randomly the '-C' command fails to see the rule in the table. Cause unknown.
+        Debugging shows that the command that ``self._run`` runs is correct syntactically.
+        """
+        check_result = self._iptables_check_append(executable, table, chain, rule_spec)
+        if check_result == CheckResult.IN:
+            self.log_verbose(
+                "Promise to append rule '-A {} {}' to table '{}' already kept".format(
+                    chain, " ".join(rule_spec), table
+                )
+            )
+
+            return Result.KEPT
+
+        self._iptables_append(
+            executable,
+            table,
+            chain,
+            rule_spec,
+        )
+        return Result.REPAIRED
 
     def evaluate_command_delete(self, executable, table, chain, rule_spec: List[str]):
-        if not self._iptables_check(executable, table, chain, rule_spec):
+        if (
+            self._iptables_check(executable, table, chain, rule_spec)
+            == CheckResult.NOT_IN
+        ):
             self.log_verbose(
                 "Promise to delete rule '-A {} {}' from table '{}' already kept".format(
                     chain, rule_spec, table
@@ -359,8 +582,12 @@ class IptablesPromiseTypeModule(PromiseModule):
         self._iptables_flush(executable, table, chain)
         return Result.REPAIRED
 
+    # ----------------------------------------
+    #      Primary iptables interface
+    # ----------------------------------------
+
     def _run(self, args: List[str]) -> List[str]:
-        self.log_verbose("Running command: '{}'".format(args))
+        self.log_verbose("Running command: '{}'".format(" ".join(args)))
 
         try:
             return (
@@ -376,6 +603,36 @@ class IptablesPromiseTypeModule(PromiseModule):
             )
         except subprocess.CalledProcessError as e:
             raise IptablesError(e) from e
+
+    def _sanitize_rule_spec_for_addition_command(
+        self, rule_spec: List[str]
+    ) -> List[str]:
+        """Sanitize rule spec by removing the double quotes surrounding the priority comment.
+        Subprocess puts extra double qoutes on the arguments by default.
+        See "priority" parameter in IptablesPromiseTypeModule.PARAMETERS doc above.
+        """
+
+        assert rule_priority(
+            " ".join(rule_spec)
+        ), "Every rule appended/inserted must have a priority"
+
+        rule_spec = copy(rule_spec)
+        priority_i = rule_spec.index("--comment") + 1
+        rule_spec[priority_i] = rule_spec[priority_i].replace('"', "")
+
+        return rule_spec
+
+    def _iptables_append(
+        self,
+        executable,
+        table,
+        chain,
+        rule_spec: List[str],
+    ):
+        assert chain != "ALL"
+        rule_spec = self._sanitize_rule_spec_for_addition_command(rule_spec)
+
+        self._run([executable, "-t", table, "-A", chain] + rule_spec)
 
     def _iptables_delete(self, executable, table, chain, rule_spec: List[str]):
         assert chain != "ALL"
@@ -393,12 +650,42 @@ class IptablesPromiseTypeModule(PromiseModule):
             args.append(chain)
         self._run(args)
 
-    def _iptables_check(self, executable, table, chain, rule_spec: List[str]) -> bool:
+    # -------------------------------
+    #       Iptables utilities
+    # -------------------------------
+
+    def _iptables_check(
+        self, executable, table, chain, rule_spec: List[str], check_priority=False
+    ) -> CheckResult:
         try:
             self._run([executable, "-t", table, "-C", chain] + rule_spec)
-            return True
+            return CheckResult.IN
         except IptablesError as e:
-            return False
+            return CheckResult.NOT_IN
+
+    def _iptables_check_append(
+        self, executable, table, chain, rule_spec: List[str]
+    ) -> CheckResult:
+        """Check if rule_spec is in the proper rule block (with priority "-1") in the chain.
+        Appended rules should be found together at the end of the chain in a sequence.
+        """
+
+        required_priority = rule_spec_priority(rule_spec)
+        assert required_priority == "-1", "'append' only accepts priority '-1'"
+
+        rules = self._iptables_packet_rules_of(executable, table, chain)
+        result = CheckResult.NOT_IN
+        rule_blocks = RuleBlocks(rules)
+        required_block = rule_blocks.get(required_priority)
+
+        if required_block:
+            rule_spec_in_block = rule_blocks.rule_spec_is_in_priority_block(
+                required_priority, rule_spec
+            )
+
+            result = CheckResult.IN if rule_spec_in_block else CheckResult.NOT_IN
+
+        return result
 
     def _iptables_all_rules_of(self, executable, table, chain) -> List[str]:
         """The list always starts with a sequence of policy rules followed by a sequence of chain rules.
@@ -416,6 +703,10 @@ class IptablesPromiseTypeModule(PromiseModule):
     def _iptables_packet_rules_of(self, executable, table, chain) -> Tuple[str, ...]:
         rules = self._iptables_all_rules_of(executable, table, chain)
         return tuple(dropwhile(is_policy_rule, rules))
+
+    # --------------------------
+    #      Misc Utilities
+    # --------------------------
 
     def _collect_denied_attributes_of_command(self, command, attributes: dict) -> set:
         return self.COMMANDS[command].denied_attrs.intersection(attributes)

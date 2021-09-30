@@ -7,20 +7,50 @@ promise agent iptables
 body common control
 {
     bundlesequence => {
+       cfengine_com_accepted,
+       telnet_dropped,
+       cfengine_com_deleted,
        aggressive_policy,
        input_flushed,
        all_flushed,
-       cfengine_website_rule_deleted,
     };
 }
 
-bundle agent cfengine_website_rule_deleted
+bundle agent cfengine_com_accepted
 {
   iptables:
-      "delete_accept_cfengine"
+      "accept_cfengine_com"
+        command => "append",
+        chain => "INPUT",
+        source => "34.107.174.45",
+        target => "ACCEPT";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent telnet_dropped
+{
+  iptables:
+      "accept_cfengine_com"
+        command => "append",
+        chain => "INPUT",
+        protocol => "tcp",
+        destination_port => "23",
+        target => "DROP";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent cfengine_com_deleted
+{
+  iptables:
+      "delete_accept_cfengine_com"
         command => "delete",
         chain => "INPUT",
         source => "34.107.174.45",
+        priority => "-1",
         target => "ACCEPT";
 
   reports:
