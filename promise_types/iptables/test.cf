@@ -1,0 +1,23 @@
+promise agent iptables
+{
+    path => "$(sys.workdir)/modules/promises/iptables.py";
+    interpreter => "/usr/bin/python3";
+}
+
+body common control
+{
+    bundlesequence => {
+       aggressive_policy,
+    };
+}
+bundle agent aggressive_policy
+{
+  iptables:
+      "aggressive_policy"
+        command => "policy",
+        chain => "INPUT",
+        target => "DROP";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
