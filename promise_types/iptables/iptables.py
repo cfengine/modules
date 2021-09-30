@@ -103,8 +103,7 @@ class RuleBlocks(OrderedDict):
         data = (
             (priority, tuple(IndexRulePair(index, rule) for index, rule in grouping))
             for priority, grouping in groupby(
-                iptables_enumerate(rules),
-                key=lambda pair: rule_priority(pair[1]),
+                iptables_enumerate(rules), key=lambda pair: rule_priority(pair[1])
             )
         )
 
@@ -266,6 +265,18 @@ class Model:
         return rule
 
     @property
+    def exclusive_rule_specs(self) -> List[List[str]]:
+        rule_specs = []
+        for spec in self.attributes.rules["rule_specs"].values():
+            rule_spec = []
+            for attr_name, param in self._parameters.items():
+                value = spec.get(attr_name)
+                if value:
+                    rule_spec.extend(param.cmdline_args(value))
+            rule_specs.append(rule_spec)
+        return rule_specs
+
+    @property
     def log_str(self) -> str:
         command = self.attributes.command
         if command == "append":
@@ -293,7 +304,12 @@ class Model:
             return "Flushing '{}' chain(s) in table '{}'".format(
                 self.attributes.chain, self.attributes.table
             )
-
+        if command == "exclusive":
+            return "Ensuring only rules with rule_specs {rule_specs} are present in '{chain}' of table '{table}'".format(
+                rule_specs=self.attributes.rules["rule_specs"],
+                chain=self.attributes.chain,
+                table=self.attributes.table,
+            )
         return "Command '{}' has no log string".format(command)
 
     def _postprocess_attributes(self, attr_obj: AttributeObject) -> AttributeObject:
@@ -308,8 +324,14 @@ class Model:
                 # If priority is not specified for insert rules are put at the top block
                 attributes.priority = 1
 
-        # Process source string to what iptables presents when listing rules
-        if getattr(attributes, "source", None):
+        # Process source strings to what iptables presents when listing rules
+        if attributes.command == "exclusive":
+            attributes.rules.setdefault("rule_specs", {})
+            for specs in attributes.rules["rule_specs"].values():
+                source = specs.get("source")
+                if source:
+                    specs["source"] = process_source(source)
+        elif getattr(attributes, "source", None):
             attributes.source = process_source(attributes.source)
 
         return attributes
@@ -343,7 +365,18 @@ class IptablesPromiseTypeModule(PromiseModule):
         ),
         "flush": Command(
             "-F",
-            {"protocol", "destination_port", "source", "priority", "rules", "target"},
+            {
+                "protocol",
+                "destination_port",
+                "source",
+                "priority",
+                "rules",
+                "target",
+            },
+        ),
+        "exclusive": Command(
+            None,
+            {"protocol", "destination_port", "source", "priority", "target"},
         ),
     }
 
@@ -399,6 +432,8 @@ class IptablesPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super().__init__("iptables_promise_module", "0.1.1", **kwargs)
 
+        # Validators
+        #
         def must_be_one_of(items) -> Callable:
             def validator(v):
                 if v not in items:
@@ -422,6 +457,49 @@ class IptablesPromiseTypeModule(PromiseModule):
             if v != -1 and v < 1:
                 raise ValidationError("Value must be '-1' or greater than 0")
 
+        def keys_must_only_be_table_chain_rule_specs(v: dict):
+            # TODO: If we want to be pedantic/safe we should do the same same
+            # type validation done on the promise in general.
+
+            # 'table' and 'chain' arent used by 'exclusive' but allowing them in the dictionary
+            # can help the user keep relevant data close together. See test.cf
+            denied_keys = set(v).difference({"table", "chain", "rule_specs"})
+            if denied_keys:
+                raise ValidationError(
+                    "Dictionary for attribute 'rules' contains denied keys {}".format(
+                        denied_keys
+                    )
+                )
+
+            denied_params_per_rule = {}
+            if "rule_specs" not in v:
+                raise ValidationError(
+                    "At least key 'rule_specs' must be present in 'rules' attribute data"
+                )
+
+            rule_specs = v["rule_specs"]
+            if not isinstance(rule_specs, dict):
+                raise ValidationError("Value of 'rule_specs' must be a dictionary")
+            if not rule_specs:
+                self.log_warning(
+                    "Empty 'rule_specs' will flush the entire chain, consider using the 'flush' command instead"
+                )
+
+            for rule_name, rule_specs in rule_specs.items():
+                denied_params = set(rule_specs).difference(self.PARAMETERS)
+                if denied_params:
+                    denied_params_per_rule[rule_name] = denied_params
+
+            if denied_params_per_rule:
+                raise ValidationError(
+                    "Invalid parameters for rule_specs in rules: {}".format(
+                        denied_params_per_rule
+                    )
+                )
+
+        #
+        # ------------------------------------
+
         self.add_attribute(
             "command",
             str,
@@ -440,7 +518,9 @@ class IptablesPromiseTypeModule(PromiseModule):
         self.add_attribute("source", str)
         self.add_attribute("target", str, validator=must_be_one_of(self.TARGETS))
         self.add_attribute("priority", int, validator=must_be_minus_one_or_positive)
-        self.add_attribute("rules", dict)
+        self.add_attribute(
+            "rules", dict, validator=keys_must_only_be_table_chain_rule_specs
+        )
         self.add_attribute("executable", str, default="iptables")
 
     def validate_promise(self, promiser: str, attributes: dict):
@@ -486,6 +566,7 @@ class IptablesPromiseTypeModule(PromiseModule):
             commands=self.COMMANDS,
             parameters=self.PARAMETERS,
         )
+
         attrs = model.attributes
         command = model.attributes.command
 
@@ -518,6 +599,14 @@ class IptablesPromiseTypeModule(PromiseModule):
                     attrs.executable, attrs.table, attrs.chain
                 )
 
+            elif command == "exclusive":
+                result = self.evaluate_command_exclusive(
+                    attrs.executable,
+                    attrs.table,
+                    attrs.chain,
+                    model.exclusive_rule_specs,
+                )
+
             else:
                 raise NotImplementedError(
                     "Command '{}' not implemented".format(command)
@@ -528,7 +617,7 @@ class IptablesPromiseTypeModule(PromiseModule):
             result = Result.NOT_KEPT
 
         except Exception as e:
-            self.log_error("Unexpected '{}' occured: '{}'".format(type(e).__name__, e))
+            self.log_error("Unexpected '{}' occured: {}".format(type(e).__name__, e))
             result = Result.NOT_KEPT
 
         finally:
@@ -547,7 +636,9 @@ class IptablesPromiseTypeModule(PromiseModule):
     #      Evaluation Functions
     # --------------------------------
 
-    def evaluate_command_insert(self, executable, table, chain, rule_spec: List[str]):
+    def evaluate_command_insert(
+        self, executable, table, chain, rule_spec: List[str]
+    ) -> Result:
         check_result, index = self._iptables_check_insert(
             executable, table, chain, rule_spec
         )
@@ -569,7 +660,9 @@ class IptablesPromiseTypeModule(PromiseModule):
         )
         return Result.REPAIRED
 
-    def evaluate_command_append(self, executable, table, chain, rule_spec: List[str]):
+    def evaluate_command_append(
+        self, executable, table, chain, rule_spec: List[str]
+    ) -> Result:
         """
         CAUTION: UNSTABLE
         -----------------
@@ -596,7 +689,9 @@ class IptablesPromiseTypeModule(PromiseModule):
         )
         return Result.REPAIRED
 
-    def evaluate_command_delete(self, executable, table, chain, rule_spec: List[str]):
+    def evaluate_command_delete(
+        self, executable, table, chain, rule_spec: List[str]
+    ) -> Result:
         if (
             self._iptables_check(executable, table, chain, rule_spec)
             == CheckResult.NOT_IN
@@ -609,7 +704,7 @@ class IptablesPromiseTypeModule(PromiseModule):
 
             return Result.KEPT
 
-        self._iptables_delete(executable, table, chain, rule_spec)
+        self._iptables_delete_rule_spec(executable, table, chain, rule_spec)
         return Result.REPAIRED
 
     def evaluate_command_policy(self, executable, table, chain, target) -> Result:
@@ -629,7 +724,7 @@ class IptablesPromiseTypeModule(PromiseModule):
         self._iptables_policy(executable, table, chain, target)
         return Result.REPAIRED
 
-    def evaluate_command_flush(self, executable, table, chain):
+    def evaluate_command_flush(self, executable, table, chain) -> Result:
         packet_rules = self._iptables_packet_rules_of(executable, table, chain)
         if len(packet_rules) == 0:
             self.log_verbose(
@@ -641,6 +736,25 @@ class IptablesPromiseTypeModule(PromiseModule):
             return Result.KEPT
 
         self._iptables_flush(executable, table, chain)
+        return Result.REPAIRED
+
+    def evaluate_command_exclusive(
+        self, executable, table, chain, exclusive_rule_specs: List[List[str]]
+    ) -> Result:
+        denied_rule_indexes = self._iptables_check_exclusive(
+            executable, table, chain, exclusive_rule_specs
+        )
+        if not denied_rule_indexes:
+            self.log_verbose(
+                "Promise to ensure rule exclusivity in chain '{}' of table '{}'".format(
+                    chain, table
+                )
+            )
+
+            return Result.KEPT
+
+        for index in reversed(denied_rule_indexes):  # Reverse to keep indexes valid
+            self._iptables_delete_index(executable, table, chain, index)
         return Result.REPAIRED
 
     # ----------------------------------------
@@ -701,10 +815,17 @@ class IptablesPromiseTypeModule(PromiseModule):
 
         self._run([executable, "-t", table, "-I", chain, index] + rule_spec)
 
-    def _iptables_delete(self, executable, table, chain, rule_spec: List[str]):
+    def _iptables_delete_rule_spec(
+        self, executable, table, chain, rule_spec: List[str]
+    ):
         assert chain != "ALL", "'delete' does not accept 'ALL' as chain"
 
         self._run([executable, "-t", table, "-D", chain] + rule_spec)
+
+    def _iptables_delete_index(self, executable, table, chain, index: str):
+        assert chain != "ALL", "'delete' does not accept 'ALL' as chain"
+
+        self._run([executable, "-t", table, "-D", chain, index])
 
     def _iptables_policy(self, executable, table, chain, target):
         assert chain != "ALL", "'policy' does not accept 'ALL' as chain"
@@ -793,6 +914,22 @@ class IptablesPromiseTypeModule(PromiseModule):
             )
 
         return result, str(return_index)
+
+    def _iptables_check_exclusive(
+        self, executable, table, chain, rule_specs: List[List[str]]
+    ) -> Tuple[str, ...]:
+        """Return a tuple of indexes of rules that must be deleted (no spec from rule_specs argument can be found in any of them)"""
+        rules_with_indexes = iptables_enumerate(
+            self._iptables_packet_rules_of(executable, table, chain)
+        )
+        denied_rules_with_indexes = filter(
+            lambda pair: not any(
+                rule_spec_in_rule(rule_spec, pair[1]) for rule_spec in rule_specs
+            ),
+            rules_with_indexes,
+        )
+        denied_indexes = map(lambda pair: str(pair[0]), denied_rules_with_indexes)
+        return tuple(denied_indexes)
 
     def _iptables_all_rules_of(self, executable, table, chain) -> List[str]:
         """The list always starts with a sequence of policy rules followed by a sequence of chain rules.

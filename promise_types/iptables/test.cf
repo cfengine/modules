@@ -14,6 +14,7 @@ body common control
        aggressive_policy,
        input_flushed,
        all_flushed,
+       rule_exclusivity,
     };
 }
 
@@ -102,6 +103,40 @@ bundle agent all_flushed
       "all_flushed"
         command => "flush",
         chain => "ALL";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle common allow_cfengine_and_ssh
+{
+  vars:
+    "rules" data => '{
+        "table": "filter",
+        "chain": "INPUT",
+        "rule_specs": {
+          "accept_cfengine": {
+            "source": "34.107.174.45",
+            "priority": -1,
+            "target": "ACCEPT"
+          },
+          "accept_ssh": {
+            "protocol": "tcp",
+            "destination_port": 22,
+            "priority": 4,
+            "target": "ACCEPT"
+          },
+        }
+    }';
+}
+
+bundle agent rule_exclusivity
+{
+  iptables:
+      "clean_non_cfengine_rules"
+        command => "exclusive",
+        chain => "${allow_cfengine_and_ssh.rules[chain]}",
+        rules => @{allow_cfengine_and_ssh.rules};
 
   reports:
       "--- ${this.bundle} ---";

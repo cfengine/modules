@@ -138,27 +138,28 @@ bundle agent main
 
 ### Ensure only specific rules are present
 
+To maintain a consistent state in a chain without involving flush, a dictionary of rules can be provided to command `exclusive`. It should be noted that some level of coordination is required for the rules per dictionary. As seen below, a simple practice is to put rules of the same `table` _and_ `chain` together.
+
 ```cfengine3
 bundle common allow_cfengine_and_ssh
 {
   vars:
-    "rules" data => '{
-      "accept_cfengine": {
+      "rules" data => '{
         "table": "filter",
         "chain": "INPUT",
-        "protocol": "tcp",
-        "destination_port": 5308,
-        "priority": 1,
-        "target": "ACCEPT"
-      },
-      "accept_ssh": {
-        "table": "filter",
-        "chain": "INPUT",
-        "protocol": "tcp",
-        "destination_port": 22,
-        "priority": 1,
-        "target": "ACCEPT"
-      },
+        "rule_specs": {
+          "accept_cfengine": {
+            "source": "34.107.174.45",
+            "priority": -1,
+            "target": "ACCEPT"
+          },
+          "accept_ssh": {
+            "protocol": "tcp",
+            "destination_port": 22,
+            "priority": 4,
+            "target": "ACCEPT"
+          },
+        }
     }';
 }
 
@@ -167,6 +168,7 @@ bundle agent main
   iptables:
       "clean_non_cfengine_rules"
         command => "exclusive",
+        chain => "${allow_cfengine_and_ssh.rules[table]}",
         rules => @{allow_cfengine_and_ssh.rules};
 }
 ```
@@ -178,13 +180,21 @@ bundle common allow_incoming_cfengine
 {
   vars:
       "rules" data => '{
-        "rule1": {
-          "table": "filter",
-          "chain": "INPUT",
-          "protocol": "tcp",
-          "destination_port": 5308,
-          "priority": 1,
-          "target": "ACCEPT"
+        "table": "filter",
+        "chain": "INPUT",
+        "rule_specs": {
+          "accept_cfe_port": {
+            "protocol": "tcp",
+            "destination_port": 5308,
+            "priority": 1,
+            "target": "ACCEPT"
+          },
+          "accept_ssh": {
+            "protocol": "tcp",
+            "destination_port": 22,
+            "priority": 4,
+            "target": "ACCEPT"
+          },
         }
       }';
 }
@@ -193,10 +203,13 @@ bundle agent main
 {
   vars:
       "rules" data => @{allow_incoming_cfengine.rules};
+      "accept_cfe_port" data => @{rules[rule_specs][accept_cfe_port]};
+      "accept_ssh" data => @{rules[rule_specs][accept_ssh]};
 
   iptables:
       "clean_non_cfengine_rules"
         command => "exclusive",
+        chain => "${rules[chain]}",
         rules => @{rules};
 
       "aggressive_policy"
@@ -204,20 +217,32 @@ bundle agent main
         chain => "INPUT",
         target => "DROP";
 
-      "accept_cfengine_rule1"
+      "accept_cfengine_port"
         command => "insert",
-        table => ${rules[rule1][table]},
-        chain => ${rules[rule1][chain]},
-        protocol => ${rules[rule1][protocol]},
-        destination_port => ${rules[rule1][destination_port]},
-        priority => ${rules[rule1][priority]},
-        target => ${rules[rule1][target]};
+        table => "${rules[table]}",
+        chain => "${rules[chain]}",
+        protocol => "${accept_cfe_port[protocol]}",
+        destination_port => "${accept_cfe_port[destination_port]}",
+        priority => "${accept_cfe_port[priority]}",
+        target => "${accept_cfe_port[target]}";
+
+      "accept_ssh"
+        command => "insert",
+        table => "${rules[table]}",
+        chain => "${rules[chain]}",
+        protocol => "${accept_ssh[protocol]}",
+        destination_port => "${accept_ssh[destination_port]}",
+        priority => "${accept_ssh[priority]}",
+        target => "${accept_ssh[target]}";
+
+  reports:
+      "--- ${this.bundle} ---";
 }
 ```
 
 ## Notes
 
-All rules added by the iptables custom promise will have a comment  signifing its priority. The `-m comment --comment` match will be used  with iptables. The comment follows the pattern `CF3:priority:X` where `X` is a number. That comment will be used as key for any  sorting/manipulating of the rules in a chain when evaluating the append/insert promises. Keeping a promise means that the rule was already inserted at the proper chain region according to its priority. Repairing a promise means changing the iptables rules, for example by inserting, removing, or moving a rule in the chain. If multiple rules have the same priority they the will be inserted one after the other making a block of same priority rules.
+All rules added by the iptables custom promise will have a comment signifing its priority. The `-m comment --comment` match will be used with iptables. The comment follows the pattern `CF3:priority:X` where `X` is `-1` or `>=1`. That comment will be used as key for any sorting/manipulating of the rules in a chain when evaluating the append/insert promises. Keeping a promise means that the rule was already inserted at the proper chain region according to its priority. Repairing a promise means changing the iptables rules, for example by inserting, removing, or moving a rule in the chain. If multiple rules have the same priority they the will be inserted one after the other making a block of same priority rules. Pedantically it should be noted that if two rules differ only in their priority they are _not_ the same rule.
 
 ## Authors
 
