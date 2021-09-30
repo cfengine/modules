@@ -60,8 +60,8 @@ class GroupsExperimentalPromiseTypeModule(PromiseModule):
 
         # check attribute members if present
         if "members" in attributes:
-            # remove escape chars followed by parsing json
-            members = json.loads(json.loads('"' + attributes["members"] + '"'))
+            # parse json
+            members = json.loads(attributes["members"])
             attributes["members"] = members
             
             # check attribute only not used with attributes include or exclude
@@ -98,9 +98,7 @@ class GroupsExperimentalPromiseTypeModule(PromiseModule):
 
         # parse json in attribute members
         if "members" in attributes:
-            # remove escape chars followed by parsing json
-            members = json.loads(json.loads('"' + attributes["members"] + '"'))
-            attributes["members"] = members
+            attributes["members"] = json.loads(attributes["members"])
 
         # set policy to present by default, if not specified
         if "policy" not in attributes:
