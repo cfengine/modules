@@ -22,17 +22,20 @@ Command = namedtuple("Command", "flag denied_attrs")
 
 
 class Parameter:
-    """Class pairing the iptables promise (parameter) attribute with its corresponding
-    iptables command line parameter arguments
-
-    source => ["-s"]
-    protocol => ["-p"]
-    priority => ["-m", "comment", "--comment"]
+    """Class that holds the format string for an iptables parameter.
+    The constructor format string assumes:
+      * That one value will be used for all format brackets and the brackets are empty.
+    Examples:
+    Parameter("source", "-s {}").cmdline_args("1.2.3.4") -> ["-s", "1.2.3.4"]
+    Parameter("protocol", "-p {} -m {}").cmdline_args("tcp") -> ["-p", "tcp", "-m", "tcp"]
     """
 
-    def __init__(self, attr_name: str, cmdline_parameter_args: str):
+    def __init__(self, attr_name: str, fmt: str):
         self.attr_name = attr_name
-        self.cmdline_args = cmdline_parameter_args.split()
+        self._fmt = fmt.replace("{}", "{0}")
+
+    def cmdline_args(self, value: str) -> List[str]:
+        return self._fmt.format(value).split()
 
 
 class Model:
@@ -48,8 +51,78 @@ class Model:
         self._parameters = parameters
 
     @property
+    def rule_spec(self) -> List[str]:
+        """A rule spec is the sequence of "parameters" after the chain argument
+        Examples for a couple of promises:
+
+        iptables:
+            "delete_accept_cfengine"
+              command => "delete",
+              chain => "INPUT",
+              source => "34.107.174.45",
+              target => "ACCEPT";
+
+        model.rule_spec -> ['-s', '34.107.174.45', '-j', 'ACCEPT']
+
+        iptables:
+            "delete_accept_cfengine"
+              command => "append",
+              chain => "INPUT",
+              protocol => "tcp",
+              destination_port => "22"
+              target => "ACCEPT";
+
+        model.rule_spec -> ['-p', 'tcp', '-m', 'tcp', '--dport', '22', '-j', 'ACCEPT']
+        """
+        rule_spec = []
+        for param in self._parameters:
+            value = getattr(self.attributes, param.attr_name, None)
+            if value:
+                rule_spec.extend(param.cmdline_args(value))
+        return rule_spec
+
+    @property
+    def rule(self) -> List[str]:
+        """A rule starts from the command flag.
+        Examples for a couple of promises:
+
+        iptables:
+            "delete_accept_cfengine"
+              command => "delete",
+              chain => "INPUT",
+              source => "34.107.174.45",
+              target => "ACCEPT";
+
+        model.rule -> ['-D', 'INPUT', -s', '34.107.174.45', '-j', 'ACCEPT']
+
+        iptables:
+            "delete_accept_cfengine"
+              command => "append",
+              chain => "INPUT",
+              protocol => "tcp",
+              destination_port => "22"
+              target => "ACCEPT";
+
+        model.rule -> ['-A', 'INPUT', '-p', 'tcp', '-m', 'tcp', '--dport', '22', '-j', 'ACCEPT']
+        """
+        command = self.attributes.command
+        rule = [self._commands[command].flag]
+        if command != "flush" or self.attributes.chain != "ALL":
+            rule.append(self.attributes.chain)
+        if command == "policy":
+            rule.append(self.attributes.target)
+        else:
+            rule.extend(self.rule_spec)
+        return rule
+
+    @property
     def log_str(self) -> str:
         command = self.attributes.command
+        if command == "delete":
+            return "Deleting rule '{rule}' from table '{table}'".format(
+                rule=" ".join(self.rule),
+                table=self.attributes.table,
+            )
         if command == "policy":
             return "Setting policy of chain '{chain}' in table '{table}' to '{target}'".format(
                 chain=self.attributes.chain,
@@ -74,6 +147,12 @@ class IptablesPromiseTypeModule(PromiseModule):
     # set of promise attributes it does *not* accept. The latter is used during `validate_promise` to
     # catch any unwanted attributes.
     COMMANDS = {
+        "delete": Command(
+            "-D",
+            {
+                "rules",
+            },
+        ),
         "policy": Command(
             "-P", {"protocol", "destination_port", "source", "priority", "rules"}
         ),
@@ -87,11 +166,11 @@ class IptablesPromiseTypeModule(PromiseModule):
     # its rule specification. The order of parameters in the sequence *matters*.
     # "protocol" must precede "destination_port" and "target" must be last.
     PARAMETERS = (
-        Parameter("source", "-s"),
-        Parameter("protocol", "-p"),
-        Parameter("destination_port", "--dport"),
-        Parameter("priority", "-m comment --comment"),
-        Parameter("target", "-j"),
+        Parameter("source", "-s {}"),
+        Parameter("protocol", "-p {} -m {}"),
+        Parameter("destination_port", "--dport {}"),
+        Parameter("priority", "-m comment --comment {}"),
+        Parameter("target", "-j {}"),
     )
 
     # Below are sets of accepted values for the promise. They are used as arguments of the `must_be_one_of`
@@ -170,6 +249,12 @@ class IptablesPromiseTypeModule(PromiseModule):
                 )
             )
 
+        if command == "delete":
+            if attributes.get("destination_port") and not attributes.get("protocol"):
+                raise ValidationError(
+                    "Attribute 'destination_port' needs 'protocol' present"
+                )
+
         if command == "policy":
             target = attributes.get("target")
             if not target:
@@ -197,7 +282,12 @@ class IptablesPromiseTypeModule(PromiseModule):
         classes = []
 
         try:
-            if command == "policy":
+            if command == "delete":
+                result = self.evaluate_command_delete(
+                    attrs.executable, attrs.table, attrs.chain, model.rule_spec
+                )
+
+            elif command == "policy":
                 result = self.evaluate_command_policy(
                     attrs.executable, attrs.table, attrs.chain, attrs.target
                 )
@@ -224,6 +314,19 @@ class IptablesPromiseTypeModule(PromiseModule):
             classes.append("{}_{}_unknown".format(safe_promiser, command))
 
         return result, classes
+
+    def evaluate_command_delete(self, executable, table, chain, rule_spec: List[str]):
+        if not self._iptables_check(executable, table, chain, rule_spec):
+            self.log_verbose(
+                "Promise to delete rule '-A {} {}' from table '{}' already kept".format(
+                    chain, rule_spec, table
+                )
+            )
+
+            return Result.KEPT
+
+        self._iptables_delete(executable, table, chain, rule_spec)
+        return Result.REPAIRED
 
     def evaluate_command_policy(self, executable, table, chain, target) -> Result:
         policy_rules = self._iptables_policy_rules_of(executable, table, chain)
@@ -274,6 +377,11 @@ class IptablesPromiseTypeModule(PromiseModule):
         except subprocess.CalledProcessError as e:
             raise IptablesError(e) from e
 
+    def _iptables_delete(self, executable, table, chain, rule_spec: List[str]):
+        assert chain != "ALL"
+
+        self._run([executable, "-t", table, "-D", chain] + rule_spec)
+
     def _iptables_policy(self, executable, table, chain, target):
         assert chain != "ALL"
 
@@ -281,16 +389,23 @@ class IptablesPromiseTypeModule(PromiseModule):
 
     def _iptables_flush(self, executable, table, chain):
         args = [executable, "-t", table, "-F"]
-        if chain != 'ALL':
+        if chain != "ALL":
             args.append(chain)
         self._run(args)
+
+    def _iptables_check(self, executable, table, chain, rule_spec: List[str]) -> bool:
+        try:
+            self._run([executable, "-t", table, "-C", chain] + rule_spec)
+            return True
+        except IptablesError as e:
+            return False
 
     def _iptables_all_rules_of(self, executable, table, chain) -> List[str]:
         """The list always starts with a sequence of policy rules followed by a sequence of chain rules.
         If chain is specified then only _one_ policy rule will be on top.
         """
         args = [executable, "-t", table, "-S"]
-        if chain != 'ALL':
+        if chain != "ALL":
             args.append(chain)
         return self._run(args)
 

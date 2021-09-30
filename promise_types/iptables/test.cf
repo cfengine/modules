@@ -10,7 +10,21 @@ body common control
        aggressive_policy,
        input_flushed,
        all_flushed,
+       cfengine_website_rule_deleted,
     };
+}
+
+bundle agent cfengine_website_rule_deleted
+{
+  iptables:
+      "delete_accept_cfengine"
+        command => "delete",
+        chain => "INPUT",
+        source => "34.107.174.45",
+        target => "ACCEPT";
+
+  reports:
+      "--- ${this.bundle} ---";
 }
 
 bundle agent aggressive_policy
