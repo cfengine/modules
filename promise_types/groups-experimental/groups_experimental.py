@@ -283,7 +283,7 @@ class Group:
         if (gid):
             command += ["--gid", gid]
         process = Popen(command, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        _, stderr = process.communicate()
 
         if process.returncode != 0:
             # we'll only use the first line of stderr output, 
@@ -297,7 +297,7 @@ class Group:
     def delete(self):
         command = ["groupdel", self.name]
         process = Popen(command, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        _, stderr = process.communicate()
 
         if process.returncode != 0:
             # we'll only use the first line of stderr output, 
@@ -311,7 +311,7 @@ class Group:
     def add_member(self, user):
         command = ["gpasswd", "--add", user, self.name]
         process = Popen(command, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        _, stderr = process.communicate()
 
         if process.returncode != 0:
             # we'll only use the first line of stderr output, 
@@ -323,7 +323,7 @@ class Group:
     def remove_member(self, user):
         command = ["gpasswd", "--delete", user, self.name]
         process = Popen(command, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        _, stderr = process.communicate()
 
         if process.returncode != 0:
             # we'll only use the first line of stderr output, 
@@ -335,7 +335,7 @@ class Group:
     def set_members(self, users):
         command = ["gpasswd", "--members", ",".join(users), self.name]
         process = Popen(command, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        _, stderr = process.communicate()
 
         if process.returncode != 0:
             # we'll only use the first line of stderr output, 
