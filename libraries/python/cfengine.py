@@ -259,7 +259,7 @@ class PromiseModule:
     def _has_validation_attributes(self):
         return bool(self._validator_attributes)
 
-    def create_attribute_object(self, promiser, attributes):
+    def create_attribute_dict(self, promiser, attributes):
 
         # Check for missing required attributes:
         for name, attribute in self._validator_attributes.items():
@@ -287,7 +287,6 @@ class PromiseModule:
                 # Can raise ValidationError:
                 self._validator_attributes[name]["validator"](value)
 
-        # Construct as dict first:
         attribute_dict = OrderedDict()
 
         # Copy attributes specified by user policy:
@@ -303,7 +302,10 @@ class PromiseModule:
             else:
                 attribute_dict.setdefault(name, None)
 
-        # Finally, convert to an object:
+        return attribute_dict
+
+    def create_attribute_object(self, promiser, attributes):
+        attribute_dict = self.create_attribute_dict(promiser, attributes)
         return AttributeObject(attribute_dict)
 
     def _validate_attributes(self, promiser, attributes):
