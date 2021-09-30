@@ -9,6 +9,7 @@ body common control
     bundlesequence => {
        cfengine_com_accepted,
        telnet_dropped,
+       accept_ssh_high_priority,
        cfengine_com_deleted,
        aggressive_policy,
        input_flushed,
@@ -38,6 +39,21 @@ bundle agent telnet_dropped
         protocol => "tcp",
         destination_port => "23",
         target => "DROP";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent accept_ssh_high_priority
+{
+  iptables:
+      "accept_ssh"
+        command => "insert",
+        chain => "INPUT",
+        protocol => "tcp",
+        destination_port => "1",
+        priority => "4",
+        target => "ACCEPT";
 
   reports:
       "--- ${this.bundle} ---";

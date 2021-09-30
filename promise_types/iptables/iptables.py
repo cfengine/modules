@@ -25,7 +25,7 @@ def is_policy_rule(rule: str):
     return rule.startswith("-P")
 
 
-def rule_spec_in_rules(rule_spec: List[str], rules: Tuple[str]) -> bool:
+def rule_spec_in_rules(rule_spec: List[str], rules: Tuple[str, ...]) -> bool:
     rule_spec_str = " ".join(rule_spec)
     return any(rule_spec_str in rule for rule in rules)
 
@@ -65,9 +65,6 @@ def process_source(source: str) -> str:
 
 class IptablesError(Exception):
     pass
-
-
-Command = namedtuple("Command", "flag denied_attrs")
 
 
 class IndexRulePair(namedtuple("IndexRulePair", "index rule")):
@@ -188,6 +185,9 @@ class CheckResult(Enum):
     NOT_IN = "not in table"
 
 
+Command = namedtuple("Command", "flag denied_attrs")
+
+
 class Model:
     def __init__(
         self,
@@ -272,7 +272,13 @@ class Model:
             return "Appending rule '{rule}' on table '{table}'".format(
                 rule=" ".join(self.rule), table=self.attributes.table
             )
-        elif command == "delete":
+        if command == "insert":
+            return "Inserting rule '{rule}' on table '{table}' with priority '{priority}'".format(
+                rule=" ".join(self.rule),
+                table=self.attributes.table,
+                priority=self.attributes.priority,
+            )
+        if command == "delete":
             return "Deleting rule '{rule}' from table '{table}'".format(
                 rule=" ".join(self.rule),
                 table=self.attributes.table,
@@ -293,9 +299,14 @@ class Model:
     def _postprocess_attributes(self, attr_obj: AttributeObject) -> AttributeObject:
         attributes = copy(attr_obj)
 
-        # All appended rules have priority -1
-        if not getattr(attributes, "priority", None) and attributes.command == "append":
-            attributes.priority = -1
+        priority = getattr(attributes, "priority", None)
+        if not priority:
+            if attributes.command == "append":
+                # All appended rules have priority -1, validation will ensure priority is None here
+                attributes.priority = -1
+            elif attributes.command == "insert":
+                # If priority is not specified for insert rules are put at the top block
+                attributes.priority = 1
 
         # Process source string to what iptables presents when listing rules
         if getattr(attributes, "source", None):
@@ -315,6 +326,12 @@ class IptablesPromiseTypeModule(PromiseModule):
     # catch any unwanted attributes.
     COMMANDS = {
         "append": Command("-A", {"priority", "rules"}),
+        "insert": Command(
+            "-I",
+            {
+                "rules",
+            },
+        ),
         "delete": Command(
             "-D",
             {
@@ -401,6 +418,10 @@ class IptablesPromiseTypeModule(PromiseModule):
             if v < 0:
                 raise ValidationError("Value must be greater or equal to 0")
 
+        def must_be_minus_one_or_positive(v):
+            if v != -1 and v < 1:
+                raise ValidationError("Value must be '-1' or greater than 0")
+
         self.add_attribute(
             "command",
             str,
@@ -418,7 +439,7 @@ class IptablesPromiseTypeModule(PromiseModule):
         self.add_attribute("destination_port", int, validator=must_be_non_negative)
         self.add_attribute("source", str)
         self.add_attribute("target", str, validator=must_be_one_of(self.TARGETS))
-        self.add_attribute("priority", int)
+        self.add_attribute("priority", int, validator=must_be_minus_one_or_positive)
         self.add_attribute("rules", dict)
         self.add_attribute("executable", str, default="iptables")
 
@@ -433,11 +454,17 @@ class IptablesPromiseTypeModule(PromiseModule):
                 )
             )
 
-        if command in {"delete", "append"}:
+        if command in {"delete", "append", "insert"}:
             if attributes.get("destination_port") and not attributes.get("protocol"):
                 raise ValidationError(
                     "Attribute 'destination_port' needs 'protocol' present"
                 )
+            if command == "insert":
+                priority = attributes.get("priority")
+                if priority and priority < 1:
+                    raise ValidationError(
+                        "Command 'insert' only accepts 'priority' >=1"
+                    )
 
         if command == "policy":
             target = attributes.get("target")
@@ -471,6 +498,11 @@ class IptablesPromiseTypeModule(PromiseModule):
                     attrs.executable, attrs.table, attrs.chain, model.rule_spec
                 )
 
+            elif command == "insert":
+                result = self.evaluate_command_insert(
+                    attrs.executable, attrs.table, attrs.chain, model.rule_spec
+                )
+
             elif command == "delete":
                 result = self.evaluate_command_delete(
                     attrs.executable, attrs.table, attrs.chain, model.rule_spec
@@ -487,10 +519,16 @@ class IptablesPromiseTypeModule(PromiseModule):
                 )
 
             else:
-                raise NotImplementedError(command)
+                raise NotImplementedError(
+                    "Command '{}' not implemented".format(command)
+                )
 
-        except IptablesError as e:
+        except (IptablesError, NotImplementedError) as e:
             self.log_error(e)
+            result = Result.NOT_KEPT
+
+        except Exception as e:
+            self.log_error("Unexpected '{}' occured: '{}'".format(type(e).__name__, e))
             result = Result.NOT_KEPT
 
         finally:
@@ -509,13 +547,36 @@ class IptablesPromiseTypeModule(PromiseModule):
     #      Evaluation Functions
     # --------------------------------
 
+    def evaluate_command_insert(self, executable, table, chain, rule_spec: List[str]):
+        check_result, index = self._iptables_check_insert(
+            executable, table, chain, rule_spec
+        )
+        if check_result == CheckResult.IN:
+            self.log_verbose(
+                "Promise to insert rule '-A {} {}' to table '{}' at position '{}' already kept".format(
+                    chain, " ".join(rule_spec), table, index
+                )
+            )
+
+            return Result.KEPT
+
+        self._iptables_insert(
+            executable,
+            table,
+            chain,
+            index,
+            rule_spec,
+        )
+        return Result.REPAIRED
+
     def evaluate_command_append(self, executable, table, chain, rule_spec: List[str]):
         """
         CAUTION: UNSTABLE
         -----------------
 
         Randomly the '-C' command fails to see the rule in the table. Cause unknown.
-        Debugging shows that the command that ``self._run`` runs is correct syntactically.
+        Debugging shows that the command run by ``self._run`` is correct syntactically.
+        Perhaps a problem outside this module?
         """
         check_result = self._iptables_check_append(executable, table, chain, rule_spec)
         if check_result == CheckResult.IN:
@@ -634,13 +695,19 @@ class IptablesPromiseTypeModule(PromiseModule):
 
         self._run([executable, "-t", table, "-A", chain] + rule_spec)
 
+    def _iptables_insert(self, executable, table, chain, index, rule_spec: List[str]):
+        assert chain != "ALL", "'insert' does not accept 'ALL' as chain"
+        rule_spec = self._sanitize_rule_spec_for_addition_command(rule_spec)
+
+        self._run([executable, "-t", table, "-I", chain, index] + rule_spec)
+
     def _iptables_delete(self, executable, table, chain, rule_spec: List[str]):
-        assert chain != "ALL"
+        assert chain != "ALL", "'delete' does not accept 'ALL' as chain"
 
         self._run([executable, "-t", table, "-D", chain] + rule_spec)
 
     def _iptables_policy(self, executable, table, chain, target):
-        assert chain != "ALL"
+        assert chain != "ALL", "'policy' does not accept 'ALL' as chain"
 
         self._run([executable, "-t", table, "-P", chain, target])
 
@@ -655,7 +722,7 @@ class IptablesPromiseTypeModule(PromiseModule):
     # -------------------------------
 
     def _iptables_check(
-        self, executable, table, chain, rule_spec: List[str], check_priority=False
+        self, executable, table, chain, rule_spec: List[str]
     ) -> CheckResult:
         try:
             self._run([executable, "-t", table, "-C", chain] + rule_spec)
@@ -669,7 +736,6 @@ class IptablesPromiseTypeModule(PromiseModule):
         """Check if rule_spec is in the proper rule block (with priority "-1") in the chain.
         Appended rules should be found together at the end of the chain in a sequence.
         """
-
         required_priority = rule_spec_priority(rule_spec)
         assert required_priority == "-1", "'append' only accepts priority '-1'"
 
@@ -686,6 +752,47 @@ class IptablesPromiseTypeModule(PromiseModule):
             result = CheckResult.IN if rule_spec_in_block else CheckResult.NOT_IN
 
         return result
+
+    def _iptables_check_insert(
+        self, executable, table, chain, rule_spec: List[str]
+    ) -> Tuple[CheckResult, str]:
+        """Return information of whether the rule is in the chain and an index (of where to insert, or where it is)
+        Note: returned indexes start from 1, just like iptables.
+        Algorithm:
+        * Find priority block
+          --> No block found return: NOT_IN, index_of_insertion
+        * Check if rule_spec in block
+          --> rule_spec IN block return: IN, index_of_position
+          --> rule_spec NOT IN block return: NOT INT, index_of_insertion
+
+        This does not take into account outside actors adding rules to the table, and will
+        result in fragmentation depending on how external rules are added.
+        """
+        required_priority = rule_spec_priority(rule_spec)
+        assert int(required_priority) >= 1, "'insert' only accepts priority >=1"
+
+        rules = self._iptables_packet_rules_of(executable, table, chain)
+        result = CheckResult.NOT_IN
+        return_index = None
+        rule_blocks = RuleBlocks(rules)
+
+        required_block = rule_blocks.get(required_priority)
+        if not required_block:
+            result = CheckResult.NOT_IN
+            return_index = rule_blocks.index_of_first_rule_with_priority_ge(
+                required_priority
+            )
+        else:
+            rule_spec_in_block = rule_blocks.rule_spec_is_in_priority_block(
+                required_priority, rule_spec
+            )
+
+            result = CheckResult.IN if rule_spec_in_block else CheckResult.NOT_IN
+            return_index = rule_blocks.index_of_rule_spec_in_priority_block(
+                required_priority, rule_spec
+            )
+
+        return result, str(return_index)
 
     def _iptables_all_rules_of(self, executable, table, chain) -> List[str]:
         """The list always starts with a sequence of policy rules followed by a sequence of chain rules.
