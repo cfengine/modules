@@ -65,7 +65,11 @@ class AttributeObject(object):
     def __init__(self, d):
         for key, value in d.items():
             setattr(self, key, value)
-
+    def __repr__(self):
+        return "{}({})".format(
+            self.__class__.__qualname__,
+            ", ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items())
+        )
 
 class ValidationError(Exception):
     def __init__(self, message):
