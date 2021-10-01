@@ -189,7 +189,7 @@ class GroupsExperimentalPromiseTypeModule(PromiseModule):
             return Result.NOT_KEPT
 
         if repairs > 0:
-            self.log_info("Promise '%s' repaired" % promiser)
+            self.log_verbose("Promise '%s' repaired" % promiser)
             return Result.REPAIRED
 
         self.log_verbose("Promise '%s' kept" % promiser)
