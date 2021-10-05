@@ -174,7 +174,7 @@ bundle agent main
 ### Total CFEngine control
 
 ```cfengine3
-bundle common AllowIncomingCFEngine
+bundle common allow_incoming_cfengine
 {
   vars:
       "rules" data => '{
@@ -192,7 +192,7 @@ bundle common AllowIncomingCFEngine
 bundle agent main
 {
   vars:
-      "rules" data => @{AllowIncomingCFEngine.rules};
+      "rules" data => @{allow_incoming_cfengine.rules};
 
   iptables:
       "clean_non_cfengine_rules"
