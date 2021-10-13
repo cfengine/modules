@@ -8,8 +8,11 @@ body common control
 {
     bundlesequence => {
        aggressive_policy,
+       input_flushed,
+       all_flushed,
     };
 }
+
 bundle agent aggressive_policy
 {
   iptables:
@@ -21,3 +24,26 @@ bundle agent aggressive_policy
   reports:
       "--- ${this.bundle} ---";
 }
+
+bundle agent input_flushed
+{
+  iptables:
+      "input_flushed"
+        command => "flush",
+        chain => "INPUT";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+
+bundle agent all_flushed
+{
+  iptables:
+      "all_flushed"
+        command => "flush",
+        chain => "ALL";
+
+  reports:
+      "--- ${this.bundle} ---";
+}
+

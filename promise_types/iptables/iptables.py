@@ -6,7 +6,7 @@ as they are in `man iptables`
 from cfengine import PromiseModule, ValidationError, Result, AttributeObject
 from typing import Callable, List, Dict, Tuple
 from collections import namedtuple
-from itertools import takewhile
+from itertools import takewhile, dropwhile
 import subprocess
 
 
@@ -49,12 +49,19 @@ class Model:
 
     @property
     def log_str(self) -> str:
-        if self.attributes.command == "policy":
+        command = self.attributes.command
+        if command == "policy":
             return "Setting policy of chain '{chain}' in table '{table}' to '{target}'".format(
                 chain=self.attributes.chain,
                 table=self.attributes.table,
                 target=self.attributes.target,
             )
+        if command == "flush":
+            return "Flushing '{}' chain(s) in table '{}'".format(
+                self.attributes.chain, self.attributes.table
+            )
+
+        return "Command '{}' has no log string".format(command)
 
     def __repr__(self):
         return "Model({})".format(
@@ -69,6 +76,10 @@ class IptablesPromiseTypeModule(PromiseModule):
     COMMANDS = {
         "policy": Command(
             "-P", {"protocol", "destination_port", "source", "priority", "rules"}
+        ),
+        "flush": Command(
+            "-F",
+            {"protocol", "destination_port", "source", "priority", "rules", "target"},
         ),
     }
 
@@ -91,6 +102,7 @@ class IptablesPromiseTypeModule(PromiseModule):
     }
 
     CHAINS = {
+        "ALL",
         "INPUT",
         "FORWARD",
         "OUTPUT",
@@ -167,6 +179,9 @@ class IptablesPromiseTypeModule(PromiseModule):
                     "The 'target' for the 'policy' command must be either 'ACCEPT' or 'DROP'"
                 )
 
+        if command != "flush" and attributes.get("chain") == "ALL":
+            raise ValidationError("Chain 'ALL' is only available for command 'flush'")
+
     def evaluate_promise(self, promiser: str, attributes: dict):
         safe_promiser = promiser.replace(",", "_")
 
@@ -186,6 +201,14 @@ class IptablesPromiseTypeModule(PromiseModule):
                 result = self.evaluate_command_policy(
                     attrs.executable, attrs.table, attrs.chain, attrs.target
                 )
+
+            elif command == "flush":
+                result = self.evaluate_command_flush(
+                    attrs.executable, attrs.table, attrs.chain
+                )
+
+            else:
+                raise NotImplementedError(command)
 
         except IptablesError as e:
             self.log_error(e)
@@ -219,6 +242,20 @@ class IptablesPromiseTypeModule(PromiseModule):
         self._iptables_policy(executable, table, chain, target)
         return Result.REPAIRED
 
+    def evaluate_command_flush(self, executable, table, chain):
+        packet_rules = self._iptables_packet_rules_of(executable, table, chain)
+        if len(packet_rules) == 0:
+            self.log_verbose(
+                "Promise to flush '{}' chain(s) of table '{}' already kept".format(
+                    chain, table
+                )
+            )
+
+            return Result.KEPT
+
+        self._iptables_flush(executable, table, chain)
+        return Result.REPAIRED
+
     def _run(self, args: List[str]) -> List[str]:
         self.log_verbose("Running command: '{}'".format(args))
 
@@ -238,17 +275,32 @@ class IptablesPromiseTypeModule(PromiseModule):
             raise IptablesError(e) from e
 
     def _iptables_policy(self, executable, table, chain, target):
+        assert chain != "ALL"
+
         self._run([executable, "-t", table, "-P", chain, target])
+
+    def _iptables_flush(self, executable, table, chain):
+        args = [executable, "-t", table, "-F"]
+        if chain != 'ALL':
+            args.append(chain)
+        self._run(args)
 
     def _iptables_all_rules_of(self, executable, table, chain) -> List[str]:
         """The list always starts with a sequence of policy rules followed by a sequence of chain rules.
         If chain is specified then only _one_ policy rule will be on top.
         """
-        return self._run([executable, "-t", table, "-S", chain])
+        args = [executable, "-t", table, "-S"]
+        if chain != 'ALL':
+            args.append(chain)
+        return self._run(args)
 
-    def _iptables_policy_rules_of(self, executable, table, chain):
+    def _iptables_policy_rules_of(self, executable, table, chain) -> Tuple[str, ...]:
         rules = self._iptables_all_rules_of(executable, table, chain)
         return tuple(takewhile(is_policy_rule, rules))
+
+    def _iptables_packet_rules_of(self, executable, table, chain) -> Tuple[str, ...]:
+        rules = self._iptables_all_rules_of(executable, table, chain)
+        return tuple(dropwhile(is_policy_rule, rules))
 
     def _collect_denied_attributes_of_command(self, command, attributes: dict) -> set:
         return self.COMMANDS[command].denied_attrs.intersection(attributes)
