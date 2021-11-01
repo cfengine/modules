@@ -2,7 +2,7 @@
 
 ## Synopsis
 - *Name*: `iptables`
-- *Version*: `0.1.1`
+- *Version*: `0.1.2`
 - *Description*: Manage network packet filter rules
 
 ## Requirements

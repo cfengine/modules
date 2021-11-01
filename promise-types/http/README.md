@@ -3,7 +3,7 @@
 ## Synopsis
 
 * *Name*: `http`
-* *Version*: `0.0.1`
+* *Version*: `0.0.2`
 * *Description*: Perform HTTP requests from policy.
 
 ## Requirements

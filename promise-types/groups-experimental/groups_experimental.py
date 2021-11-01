@@ -6,7 +6,7 @@ from cfengine import PromiseModule, ValidationError, Result
 
 class GroupsExperimentalPromiseTypeModule(PromiseModule):
     def __init__(self):
-        super().__init__("groups_experimental_promise_module", "0.0.1")
+        super().__init__("groups_experimental_promise_module", "0.0.2")
         self._name_regex = re.compile(r"^[a-z_][a-z0-9_-]*[$]?$")
         self._name_maxlen = 32
 

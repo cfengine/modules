@@ -3,7 +3,7 @@
 ## Synopsis
 
 * *Name*: `git`
-* *Version*: `0.1.1`
+* *Version*: `0.1.2`
 * *Description*: Manage git checkouts of repositories to deploy files or software.
 
 ## Requirements

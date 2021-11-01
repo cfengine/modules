@@ -117,7 +117,7 @@ class IptablesPromiseTypeModule(PromiseModule):
     }
 
     def __init__(self, **kwargs):
-        super().__init__("iptables_promise_module", "0.1.1", **kwargs)
+        super().__init__("iptables_promise_module", "0.1.2", **kwargs)
 
         def must_be_one_of(items) -> Callable:
             def validator(v):
