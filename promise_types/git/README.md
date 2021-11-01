@@ -1,4 +1,4 @@
-# git promise module
+# git promise type
 
 ## Synopsis
 
@@ -12,22 +12,22 @@
 
 ## Attributes
 
-| Name | Type | Description| Mandatory | Default |
-| --- | --- | --- | --- | --- |
-| `destination` | `string` | Destination path | No | Promiser |
-| `repository` | `string` | Git repository URL | Yes | - |
-| `bare` | `boolean` | If `true`, clones the repository as bare repository | No | - |
-| `clone` | `boolean` | If `true`, clones the repository if it doesn't exist at the destination path | No | - |
-| `depth` | `integer` | Create a shallow clone with a history truncated to the specified number or revisions. Set to 0 to perform a full clone. | No | `0` |
-| `executable` | `string` | Path to the `git` executable | No | `git` |
-| `force` | `boolean` | If `true`, discard any local changes to the repository before updating it | No | - |
-| `recursive` | `boolean` | If `true`, use the `--recursive` git option | No | `yes` |
-| `reference` | `string` | If set, use the `--reference` git option with the given value | No | - |
-| `remote` | `string` | Name of the git remote | No | `origin` |
-| `ssh_executable` | `string` | Path to the `ssh` executable | No | `ssh` |
-| `ssh_options` | `string` | Additional options for the `git` command, e.g. `-o StrictHostKeyChecking=no` | No | - |
-| `update` | `boolean` | If `true`, updates the repository if it already exists at the destination path | No | - |
-| `version` | `string` | The version of the repository to checkout. It can be a branch name, a tag name or a SHA-1 hash. | No | `HEAD` |
+| Name            | Type      | Description                                                                                                             | Mandatory | Default  |
+| --------------- | --------- | ----------------------------------------------------------------------------------------------------------------------- | --------- | -------- |
+| `destination`   | `string`  | Destination path                                                                                                        | No        | Promiser |
+| `repository`    | `string`  | Git repository URL                                                                                                      | Yes       | -        |
+| `bare`          | `boolean` | If `true`, clones the repository as bare repository                                                                     | No        | -        |
+| `clone`         | `boolean` | If `true`, clones the repository if it doesn't exist at the destination path                                            | No        | -        |
+| `depth`         | `integer` | Create a shallow clone with a history truncated to the specified number or revisions. Set to 0 to perform a full clone. | No        | `0`      |
+| `executable`    | `string`  | Path to the `git` executable                                                                                            | No        | `git`    |
+| `force`         | `boolean` | If `true`, discard any local changes to the repository before updating it                                               | No        | -        |
+| `recursive`     | `boolean` | If `true`, use the `--recursive` git option                                                                             | No        | `yes`    |
+| `reference`     | `string`  | If set, use the `--reference` git option with the given value                                                           | No        | -        |
+| `remote`        | `string`  | Name of the git remote                                                                                                  | No        | `origin` |
+| `ssh_executable`| `string`  | Path to the `ssh` executable                                                                                            | No        | `ssh`    |
+| `ssh_options`   | `string`  | Additional options for the `git` command, e.g. `-o StrictHostKeyChecking=no`                                            | No        | -        |
+| `update`        | `boolean` | If `true`, updates the repository if it already exists at the destination path                                          | No        | -        |
+| `version`       | `string`  | The version of the repository to checkout. It can be a branch name, a tag name or a SHA-1 hash.                         | No        | `HEAD`   |
 
 ## Examples
 
@@ -80,4 +80,3 @@ You can also pick up an existing task or file an issue in [our bug tracker](http
 ## License
 
 This software is licensed under the MIT License. See LICENSE in the root of the repository for the full license text.
-
