@@ -1,6 +1,0 @@
-promise agent groups_experimental
-# @brief Define groups_experimental promise type
-{
-  path => "$(sys.workdir)/modules/promises/groups_experimental.py";
-  interpreter => "/usr/bin/python3";
-}
