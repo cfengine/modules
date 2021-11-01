@@ -1,0 +1,6 @@
+promise agent groups
+# @brief Define groups promise type
+{
+  path => "$(sys.workdir)/modules/promises/groups.py";
+  interpreter => "/usr/bin/python3";
+}

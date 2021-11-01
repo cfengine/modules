@@ -4,9 +4,9 @@ from subprocess import Popen, PIPE
 from cfengine import PromiseModule, ValidationError, Result
 
 
-class GroupsExperimentalPromiseTypeModule(PromiseModule):
+class GroupsPromiseTypeModule(PromiseModule):
     def __init__(self):
-        super().__init__("groups_experimental_promise_module", "0.0.2")
+        super().__init__("groups_promise_module", "0.1.2")
         self._name_regex = re.compile(r"^[a-z_][a-z0-9_-]*[$]?$")
         self._name_maxlen = 32
 
@@ -412,4 +412,4 @@ class Group:
 
 
 if __name__ == "__main__":
-    GroupsExperimentalPromiseTypeModule().start()
+    GroupsPromiseTypeModule().start()

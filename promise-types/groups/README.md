@@ -1,9 +1,9 @@
-# groups-experimental promise type
+# groups promise type
 
 ## Synopsis
 
-* *Name*: `groups-experimental`
-* *Version*: `0.1.1`
+* *Name*: `groups`
+* *Version*: `0.1.2`
 * *Description*: Manage local groups.
 
 ## Requirements
@@ -25,7 +25,7 @@ Present group `foo` including user `alice` and `bob`, but excluding user `malcom
 ```
 bundle agent main
 {
-  groups_experimental:
+  groups:
     "foo"
       policy => "present",
       members => '{ "include": ["alice", "bob"],
@@ -38,7 +38,7 @@ Present group `bar` with GID `123` including only user `alice`:
 ```
 bundle agent main
 {
-  groups_experimental:
+  groups:
     "bar"
       members => '{ "only": ["alice"] }',
       gid = 123;
@@ -50,7 +50,7 @@ Absent group `baz`:
 ```
 bundle agent main
 {
-  groups_experimental:
+  groups:
     "baz"
       policy => "absent";
 }

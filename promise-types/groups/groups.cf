@@ -1,14 +1,13 @@
-# Example policy illustraing the use of custom promise module
-# groups_experimental.
+# Example policy illustraing the use of custom promise module groups.
 #
 # Note: As of 3.18.0, custom promise modules does not support bodies, thus
 # JSON strings are used to define members for now.
 
 
-promise agent groups_experimental
-# @brief Define groups_experimental promise type.
+promise agent groups
+# @brief Define groups promise type.
 {
-  path => "$(sys.workdir)/modules/promises/groups_experimental.py";
+  path => "$(sys.workdir)/modules/promises/groups.py";
   interpreter => "/usr/bin/python3";
 }
 
@@ -31,10 +30,10 @@ bundle common bar
 }
 
 
-bundle agent groups_experimental_example
-# @breif Example groups_experimental promise statements.
+bundle agent example_groups
+# @breif Example groups promise statements.
 {
-  groups_experimental:
+  groups:
     "foo"
       policy => "present",
       members => "$(foo.members)";
@@ -48,7 +47,7 @@ bundle agent groups_experimental_example
 
 
 bundle agent example_users
-# @breif Create users for the groups_experimental example.
+# @breif Create users for the groups example.
 {
   users:
     "alice"
@@ -64,5 +63,5 @@ bundle agent __main__
 {
   methods:
     "example_users";
-    "groups_experimental_example";
+    "example_groups";
 }
