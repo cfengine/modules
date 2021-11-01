@@ -3,7 +3,7 @@
 ## Synopsis
 
 * *Name*: `ansible`
-* *Version*: `0.1.0`
+* *Version*: `0.1.1`
 * *Description*: Run Ansible playbooks
 
 ## Requirements
@@ -76,4 +76,3 @@ You can also pick up an existing task or file an issue in [our bug tracker](http
 ## License
 
 This software is licensed under the MIT License. See LICENSE in the root of the repository for the full license text.
-
