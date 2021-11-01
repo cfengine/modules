@@ -1,6 +1,0 @@
-promise agent appstreams
-# @brief Define appstreams promise type
-{
-  path => "$(sys.workdir)/modules/promises/appstreams.py";
-  interpreter => "/usr/bin/python3";
-}
