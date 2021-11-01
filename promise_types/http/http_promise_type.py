@@ -1,3 +1,5 @@
+"""HTTP module for CFEngine"""
+
 import os
 import urllib
 import urllib.request

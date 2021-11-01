@@ -1,0 +1,13 @@
+promise agent http
+# @brief Define http promise type
+{
+  path => "$(sys.workdir)/modules/promises/http_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent __main__ {
+  http:
+      "https://cfengine.com/images/cfengine-logo.svg"
+        file => "/var/cfengine/cfengine-logo.svg",
+        if => not(fileexists("/var/cfengine/cfengine-logo.svg"));
+}
