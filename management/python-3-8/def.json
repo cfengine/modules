@@ -1,6 +1,0 @@
-{
-  "vars": {
-    "augment_inputs": [ "$(sys.inputdir)/services/cfbs/python-3-8/ensure_python_3_8.cf" ],
-    "control_common_bundlesequence_end": [ "manage_python3" ]
-  }
-}
