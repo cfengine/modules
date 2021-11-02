@@ -13,8 +13,8 @@ _SUPPORTED_METHODS = {"GET", "POST", "PUT", "DELETE", "PATCH"}
 
 
 class HTTPPromiseModule(PromiseModule):
-    def __init__(self):
-        super().__init__("http_promise_module", "0.0.3")
+    def __init__(self, *args, **kwargs):
+        super().__init__("http_promise_module", "0.0.3", *args, **kwargs)
 
     def validate_promise(self, promiser, attributes):
         if "url" in attributes:
