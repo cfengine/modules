@@ -106,7 +106,7 @@ class HTTPPromiseModule(PromiseModule):
                             target_file.write(data)
                             done = bool(data)
             else:
-                with urllib.urlopen(request, context=SSL_context) as url_req:
+                with urllib.request.urlopen(request, context=SSL_context) as url_req:
                     if not (200 <= url_req.status <= 300):
                         self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
                         return Result.NOT_KEPT
@@ -124,7 +124,7 @@ class HTTPPromiseModule(PromiseModule):
         if target:
             self.log_info("Saved request response from '%s' to '%s'" % (url, target))
         else:
-            self.log_info("Successfully executed%s request to '%s'" % ((method + " " if method else ""),
+            self.log_info("Successfully executed%s request to '%s'" % ((" " + method if method else ""),
                                                                        url))
         return Result.REPAIRED
 
