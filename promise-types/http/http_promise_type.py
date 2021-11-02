@@ -14,7 +14,7 @@ _SUPPORTED_METHODS = {"GET", "POST", "PUT", "DELETE", "PATCH"}
 
 class HTTPPromiseModule(PromiseModule):
     def __init__(self):
-        super().__init__("http_promise_module", "0.0.2")
+        super().__init__("http_promise_module", "0.0.3")
 
     def validate_promise(self, promiser, attributes):
         if "url" in attributes:
@@ -75,6 +75,8 @@ class HTTPPromiseModule(PromiseModule):
         target = attributes.get("file")
         insecure = attributes.get("insecure", False)
 
+        canonical_promiser = promiser.translate(str.maketrans({char: "_" for char in ("@", "/", ":", "?", "&", "%")}))
+
         if headers and type(headers) != dict:
             if type(headers) == str:
                 headers = {key: value for key, value in (line.split(":") for line in headers.splitlines())}
@@ -87,7 +89,10 @@ class HTTPPromiseModule(PromiseModule):
                     payload = json.dumps(payload)
                 except TypeError:
                     self.log_error("Failed to convert 'payload' to text representation for request '%s'" % url)
-                    return Result.NOT_KEPT
+                    return (Result.NOT_KEPT,
+                            ["%s_%s_request_failed" % (canonical_promiser, method),
+                             "%s_%s_payload_failed" % (canonical_promiser, method),
+                             "%s_%s_payload_conversion_failed" % (canonical_promiser, method)])
 
                 if "Content-Type" not in headers:
                     headers["Content-Type"] = "application/json"
@@ -100,7 +105,10 @@ class HTTPPromiseModule(PromiseModule):
                     payload = open(path, "rb")
                 except OSError as e:
                     self.log_error("Failed to open payload file '%s' for request '%s': %s" % (path, url, e))
-                    return Result.NOT_KEPT
+                    return (Result.NOT_KEPT,
+                            ["%s_%s_request_failed" % (canonical_promiser, method),
+                             "%s_%s_payload_failed" % (canonical_promiser, method),
+                             "%s_%s_payload_file_failed" % (canonical_promiser, method)])
 
                 if "Content-Lenght" not in headers:
                     headers["Content-Length"] = os.path.getsize(path)
@@ -121,13 +129,12 @@ class HTTPPromiseModule(PromiseModule):
 
         try:
             if target:
-                # TODO: idempotency!
                 # TODO: create directories
                 with open(target, "wb") as target_file:
                     with urllib.request.urlopen(request, context=SSL_context) as url_req:
                         if not (200 <= url_req.status <= 300):
                             self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
-                            return Result.NOT_KEPT
+                            return (Result.NOT_KEPT, ["%s_%s_request_failed" % (canonical_promiser, method)])
                         # TODO: log progress when url_req.headers["Content-length"] > REPORTING_THRESHOLD
                         done = False
                         while not done:
@@ -138,24 +145,26 @@ class HTTPPromiseModule(PromiseModule):
                 with urllib.request.urlopen(request, context=SSL_context) as url_req:
                     if not (200 <= url_req.status <= 300):
                         self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
-                        return Result.NOT_KEPT
+                        return (Result.NOT_KEPT, ["%s_%s_request_failed" % (canonical_promiser, method)])
                     done = False
                     while not done:
                         data = url_req.read(512 * 1024)
                         done = bool(data)
         except urllib.error.URLError as e:
             self.log_error("Failed to request '%s': %s" % (url, e))
-            return Result.NOT_KEPT
+            return (Result.NOT_KEPT, ["%s_%s_request_failed" % (canonical_promiser, method)])
         except OSError as e:
             self.log_error("Failed to store '%s' response to '%s': %s" % (url, target, e))
-            return Result.NOT_KEPT
+            return (Result.NOT_KEPT,
+                    ["%s_%s_request_failed" % (canonical_promiser, method),
+                     "%s_%s_file_failed" % (canonical_promiser, method)])
 
         if target:
             self.log_info("Saved request response from '%s' to '%s'" % (url, target))
         else:
             self.log_info("Successfully executed%s request to '%s'" % ((" " + method if method else ""),
                                                                        url))
-        return Result.REPAIRED
+        return (Result.REPAIRED, ["%s_%s_request_done" % (canonical_promiser, method)])
 
 if __name__ == "__main__":
     HTTPPromiseModule().start()

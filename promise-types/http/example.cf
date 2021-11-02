@@ -5,9 +5,20 @@ promise agent http
   interpreter => "/usr/bin/python3";
 }
 
+bundle agent backup_file(file) {
+  http:
+      "http://localhost:8080/backups/$file"
+        method => "POST",
+        payload => "@$(file)",
+        if => not(canonify(concat("$(this.promiser)", "_POST_request_done")));
+}
+
 bundle agent __main__ {
   http:
       "https://cfengine.com/images/cfengine-logo.svg"
         file => "/var/cfengine/cfengine-logo.svg",
         if => not(fileexists("/var/cfengine/cfengine-logo.svg"));
+
+  methods:
+      "Backup cf-lock.lmdb" usebundle => backup_file("/var/cfengine/state/cf_lock.lmdb");
 }
