@@ -13,6 +13,17 @@
       "subdirectory": "reporting/client-initiated-reporting",
       "steps": ["json def.json def.json"]
     },
+    "demo": {
+      "description": "Enables convenient and insecure settings for demoing CFEngine",
+      "subdirectory": "management/demo",
+      "dependencies": ["autorun", "every-minute"],
+      "steps": ["json def.json def.json"]
+    },
+    "every-minute": {
+      "description": "Make policy fetching, evaluation, and reporting happen every minute",
+      "subdirectory": "management/every-minute",
+      "steps": ["json def.json def.json"]
+    },
     "library-for-promise-types-in-bash": {
       "description": "Library enabling promise types implemented in bash",
       "subdirectory": "libraries/bash/",
@@ -26,7 +37,7 @@
     "promise-type-ansible": {
       "description": "Promise type to manage systemd services",
       "dependencies": ["library-for-promise-types-in-python"],
-      "subdirectory": "promise_types/ansible/",
+      "subdirectory": "promise-types/ansible/",
       "steps": [
         "copy ansible_promise.py modules/promises/",
         "append enable.cf services/init.cf"
@@ -35,25 +46,25 @@
     "promise-type-git": {
       "description": "Promise type to manage git repos",
       "dependencies": ["library-for-promise-types-in-python"],
-      "subdirectory": "promise_types/git/",
+      "subdirectory": "promise-types/git/",
       "steps": [
         "copy git.py modules/promises/",
         "append enable.cf services/init.cf"
       ]
     },
-    "promise-type-groups-experimental": {
+    "promise-type-groups": {
       "description": "Experimental promise type to manage local user groups",
       "dependencies": ["library-for-promise-types-in-python"],
-      "subdirectory": "promise_types/groups-experimental/",
+      "subdirectory": "promise-types/groups/",
       "steps": [
-        "copy groups_experimental.py modules/promises/",
+        "copy groups.py modules/promises/",
         "append enable.cf services/init.cf"
       ]
     },
     "promise-type-systemd": {
       "description": "Promise type to manage systemd services",
       "dependencies": ["library-for-promise-types-in-python"],
-      "subdirectory": "promise_types/systemd/",
+      "subdirectory": "promise-types/systemd/",
       "steps": [
         "copy systemd.py modules/promises/",
         "append enable.cf services/init.cf"
