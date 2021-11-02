@@ -3,7 +3,7 @@
 ** Synopsis
 
 - /Name/: =http=
-- /Version/: =0.0.2=
+- /Version/: =0.0.3=
 - /Description/: Perform HTTP(S) requests from policy.
 
 ** Promiser and attributes
@@ -14,13 +14,14 @@ the URL is specified in the promiser.
 
 *** Attributes
 
-| Name      | Type                        | Description                                                                                                                                                      | Mandatory | Default    |
-|-----------+-----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------+------------|
-| =url=     | =string=                    | URL or the request (starting with "http://" or "https://")                                                                                                       | No        | /promiser/ |
-| =file=    | =string=                    | File system path for where to save the response (body).                                                                                                          | No        | -          |
-| =method=  | =string=                    | HTTP method of the request (GET, POST, PUT, DELETE or PATCH)                                                                                                     | No        | -          |
-| =headers= | =string=, =slist= or =data= | headers to send with the request (=data= with key-value pairs, =slist= with colon-separated key-value pairs, or =string= with key:value pairs) on separate lines | No        | -          |
-| =data=    | =string= or =data=          | data payload to send with the request [=data= that will be converted to string                                                                                   | No        | -          |
+| Name       | Type                        | Description                                                                                                                                                      | Mandatory | Default    |
+|------------+-----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------+------------|
+| =url=      | =string=                    | URL or the request (starting with "http://" or "https://")                                                                                                       | No        | /promiser/ |
+| =file=     | =string=                    | File system path for where to save the response (body).                                                                                                          | No        | -          |
+| =method=   | =string=                    | HTTP method of the request (GET, POST, PUT, DELETE or PATCH)                                                                                                     | No        | -          |
+| =headers=  | =string=, =slist= or =data= | headers to send with the request (=data= with key-value pairs, =slist= with colon-separated key-value pairs, or =string= with key:value pairs) on separate lines | No        | -          |
+| =data=     | =string= or =data=          | data payload to send with the request [=data= that will be converted to string                                                                                   | No        | -          |
+| =insecure= | =string=                    | Whether to skip TLS validation of the server's certificate (/"true"/) or not (/"false"/)                                                                         | No        | /"false"/  |
 
 
 ** Examples
