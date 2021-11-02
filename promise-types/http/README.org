@@ -3,7 +3,7 @@
 ** Synopsis
 
 - /Name/: =http=
-- /Version/: =0.0.3=
+- /Version/: =1.0.0=
 - /Description/: Perform HTTP(S) requests from policy.
 
 ** Promiser and attributes
