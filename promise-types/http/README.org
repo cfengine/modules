@@ -1,0 +1,64 @@
+* http promise type
+
+** Synopsis
+
+- /Name/: =http=
+- /Version/: =0.0.2=
+- /Description/: Perform HTTP(S) requests from policy.
+
+** Promiser and attributes
+
+The promiser can either be a URL of the request or, if the /url/ attribute is
+used (see below), it can be an arbitrary string. All attributes are optional if
+the URL is specified in the promiser.
+
+*** Attributes
+
+| Name      | Type                        | Description                                                                                                                                                      | Mandatory | Default    |
+|-----------+-----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------+------------|
+| =url=     | =string=                    | URL or the request (starting with "http://" or "https://")                                                                                                       | No        | /promiser/ |
+| =file=    | =string=                    | File system path for where to save the response (body).                                                                                                          | No        | -          |
+| =method=  | =string=                    | HTTP method of the request (GET, POST, PUT, DELETE or PATCH)                                                                                                     | No        | -          |
+| =headers= | =string=, =slist= or =data= | headers to send with the request (=data= with key-value pairs, =slist= with colon-separated key-value pairs, or =string= with key:value pairs) on separate lines | No        | -          |
+| =data=    | =string= or =data=          | data payload to send with the request [=data= that will be converted to string                                                                                   | No        | -          |
+
+
+** Examples
+
+#+BEGIN_EXAMPLE
+  bundle agent __main__ {
+    http:
+        "https://cfengine.com/images/cfengine-logo.svg"
+          file => "/var/cfengine/cfengine-logo.svg",
+          if => not(fileexists("/var/cfengine/cfengine-logo.svg"));
+  }
+#+END_EXAMPLE
+
+** Authors
+
+This software was created by the team at [[https://northern.tech][Northern.tech AS]], with many
+contributions from the community. Thanks everyone!
+
+[[https://cfengine.com][CFEngine]] is sponsored by [[https://northern.tech][Northern.tech AS]]
+
+** Contribute
+
+Feel free to open pull requests to expand this documentation, add features or
+fix problems. You can also pick up an existing task or file an issue in [[https://tracker.mender.io/issues/][our bug
+tracker]].
+
+** License
+
+This software is licensed under the MIT License. See LICENSE in the root of the
+repository for the full license text.
+
+** Drawbacks and TODOs
+
+The current implementation of the module *is not idempotent* and so a request is
+made every time a promise of the /http/ promise type is evaluated.
+
+*** TODO TODO [0/2]
+
+- [ ] /insecure/ attribute
+- [ ] /data/ of type =data= should result in the ~Content-type:
+      application/json~ added to /headers/
