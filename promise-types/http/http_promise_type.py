@@ -52,6 +52,9 @@ class HTTPPromiseModule(PromiseModule):
             if type(payload) not in (str, dict):
                 raise ValidationError("'payload' must be a string or a data value")
 
+            if type(payload) == str and payload.startswith("@") and not os.path.isabs(payload[1:]):
+                raise ValidationError("File-based payload must be an absolute path")
+
         if "file" in attributes:
             file_ = attributes["file"]
             if type(file_) != str or not os.path.isabs(file_):
@@ -88,9 +91,22 @@ class HTTPPromiseModule(PromiseModule):
                 if "Content-Type" not in headers:
                     headers["Content-Type"] = "application/json"
 
+            elif payload.startswith("@"):
+                path = payload[1:]
+                try:
+                    # Closed automatically when this variable gets out of
+                    # scope. Thank you, Python!
+                    payload = open(path, "rb")
+                except OSError as e:
+                    self.log_error("Failed to open payload file '%s' for request '%s': %s" % (path, url, e))
+                    return Result.NOT_KEPT
+
+                if "Content-Lenght" not in headers:
+                    headers["Content-Length"] = os.path.getsize(path)
+
             # must be 'None' or bytes or file object
-            # TODO: support '@/some/path' for binary payloads
-            payload = payload.encode("utf-8")
+            if type(payload) == str:
+                payload = payload.encode("utf-8")
 
         request = urllib.request.Request(url=url, data=payload, method=method, headers=headers)
 
