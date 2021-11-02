@@ -60,6 +60,6 @@ made every time a promise of the /http/ promise type is evaluated.
 
 *** TODO TODO [0/2]
 
-- [ ] /insecure/ attribute
+- [x] /insecure/ attribute
 - [ ] /data/ of type =data= should result in the ~Content-type:
       application/json~ added to /headers/
