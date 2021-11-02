@@ -4,6 +4,7 @@ import os
 import urllib
 import urllib.request
 import ssl
+import json
 
 from cfengine import PromiseModule, ValidationError, Result
 
@@ -77,9 +78,20 @@ class HTTPPromiseModule(PromiseModule):
                 headers = {key: value for key, value in (line.split(":") for line in headers)}
 
         if data:
+            if type(data) == dict:
+                try:
+                    data = json.dumps(data)
+                except TypeError:
+                    self.log_error("Failed to convert 'data' to text representation for request '%s'" % url)
+                    return Result.NOT_KEPT
+
+                if "Content-Type" not in headers:
+                    headers["Content-Type"] = "application/json"
+
             # must be 'None' or bytes or file object
-            # TODO: ASCII?
+            # TODO: support '@/some/path' for binary payloads
             data = data.encode("utf-8")
+
         request = urllib.request.Request(url=url, data=data, method=method, headers=headers)
 
         SSL_context = None

@@ -58,8 +58,11 @@ repository for the full license text.
 The current implementation of the module *is not idempotent* and so a request is
 made every time a promise of the /http/ promise type is evaluated.
 
-*** TODO TODO [0/2]
+*** TODO TODO [2/5]
 
-- [x] /insecure/ attribute
-- [ ] /data/ of type =data= should result in the ~Content-type:
+- [X] /insecure/ attribute
+- [X] /data/ of type =data= should result in the ~Content-Type:
       application/json~ added to /headers/
+- [ ] ~@/some/file/path~ special values for POST/PUT requests
+- [ ] progress reporting if response ~Content-Lenght~ is big
+- [ ] /GET/ requests should not overwrite data if it is the same
