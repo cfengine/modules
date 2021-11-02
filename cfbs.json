@@ -52,12 +52,12 @@
         "append enable.cf services/init.cf"
       ]
     },
-    "promise-type-groups-experimental": {
+    "promise-type-groups": {
       "description": "Experimental promise type to manage local user groups",
       "dependencies": ["library-for-promise-types-in-python"],
-      "subdirectory": "promise-types/groups-experimental/",
+      "subdirectory": "promise-types/groups/",
       "steps": [
-        "copy groups_experimental.py modules/promises/",
+        "copy groups.py modules/promises/",
         "append enable.cf services/init.cf"
       ]
     },
