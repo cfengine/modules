@@ -20,7 +20,7 @@ the URL is specified in the promiser.
 | =file=     | =string=                    | File system path for where to save the response (body).                                                                                                          | No        | -          |
 | =method=   | =string=                    | HTTP method of the request (GET, POST, PUT, DELETE or PATCH)                                                                                                     | No        | -          |
 | =headers=  | =string=, =slist= or =data= | headers to send with the request (=data= with key-value pairs, =slist= with colon-separated key-value pairs, or =string= with key:value pairs) on separate lines | No        | -          |
-| =data=     | =string= or =data=          | data payload to send with the request [=data= that will be converted to string                                                                                   | No        | -          |
+| =payload=  | =string= or =data=          | data payload to send with the request (=string= or =data= that will be converted to a string)                                                                    | No        | -          |
 | =insecure= | =string=                    | Whether to skip TLS validation of the server's certificate (/"true"/) or not (/"false"/)                                                                         | No        | /"false"/  |
 
 
@@ -61,7 +61,7 @@ made every time a promise of the /http/ promise type is evaluated.
 *** TODO TODO [2/5]
 
 - [X] /insecure/ attribute
-- [X] /data/ of type =data= should result in the ~Content-Type:
+- [X] /payload/ of type =data= should result in the ~Content-Type:
       application/json~ added to /headers/
 - [ ] ~@/some/file/path~ special values for POST/PUT requests
 - [ ] progress reporting if response ~Content-Lenght~ is big

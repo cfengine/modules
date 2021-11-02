@@ -47,10 +47,10 @@ class HTTPPromiseModule(PromiseModule):
             else:
                 raise ValidationError("'headers' must be a string, an slist or a data value with 'name: value' pairs")
 
-        if "data" in attributes:
-            data = attributes["data"]
-            if type(data) not in (str, dict):
-                raise ValidationError("'data' must be a string or a data value")
+        if "payload" in attributes:
+            payload = attributes["payload"]
+            if type(payload) not in (str, dict):
+                raise ValidationError("'payload' must be a string or a data value")
 
         if "file" in attributes:
             file_ = attributes["file"]
@@ -67,7 +67,7 @@ class HTTPPromiseModule(PromiseModule):
         url = attributes.get("url", promiser)
         method = attributes.get("method", "GET")
         headers = attributes.get("headers", dict())
-        data = attributes.get("data")
+        payload = attributes.get("payload")
         target = attributes.get("file")
         insecure = attributes.get("insecure", False)
 
@@ -77,12 +77,12 @@ class HTTPPromiseModule(PromiseModule):
             elif type(headers) == list:
                 headers = {key: value for key, value in (line.split(":") for line in headers)}
 
-        if data:
-            if type(data) == dict:
+        if payload:
+            if type(payload) == dict:
                 try:
-                    data = json.dumps(data)
+                    payload = json.dumps(payload)
                 except TypeError:
-                    self.log_error("Failed to convert 'data' to text representation for request '%s'" % url)
+                    self.log_error("Failed to convert 'payload' to text representation for request '%s'" % url)
                     return Result.NOT_KEPT
 
                 if "Content-Type" not in headers:
@@ -90,9 +90,9 @@ class HTTPPromiseModule(PromiseModule):
 
             # must be 'None' or bytes or file object
             # TODO: support '@/some/path' for binary payloads
-            data = data.encode("utf-8")
+            payload = payload.encode("utf-8")
 
-        request = urllib.request.Request(url=url, data=data, method=method, headers=headers)
+        request = urllib.request.Request(url=url, data=payload, method=method, headers=headers)
 
         SSL_context = None
         if insecure:
