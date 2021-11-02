@@ -3,6 +3,7 @@
 import os
 import urllib
 import urllib.request
+import ssl
 
 from cfengine import PromiseModule, ValidationError, Result
 
@@ -55,6 +56,11 @@ class HTTPPromiseModule(PromiseModule):
             if type(file_) != str or not os.path.isabs(file_):
                 raise ValidationError("'file' must be an absolute path to a file")
 
+        if "insecure" in attributes:
+            insecure = attributes["insecure"]
+            if type(insecure) != str or insecure not in ("true", "True", "false", "False"):
+                raise ValidationError("'insecure' must be either \"true\" or \"false\"")
+
 
     def evaluate_promise(self, promiser, attributes):
         url = attributes.get("url", promiser)
@@ -62,6 +68,7 @@ class HTTPPromiseModule(PromiseModule):
         headers = attributes.get("headers", dict())
         data = attributes.get("data")
         target = attributes.get("file")
+        insecure = attributes.get("insecure", False)
 
         if headers and type(headers) != dict:
             if type(headers) == str:
@@ -75,12 +82,20 @@ class HTTPPromiseModule(PromiseModule):
             data = data.encode("utf-8")
         request = urllib.request.Request(url=url, data=data, method=method, headers=headers)
 
+        SSL_context = None
+        if insecure:
+            # convert to a boolean
+            insecure = (insecure.lower() == "true")
+            if insecure:
+                SSL_context = ssl.SSLContext()
+                SSL_context.verify_method = ssl.CERT_NONE
+
         try:
             if target:
                 # TODO: idempotency!
                 # TODO: create directories
                 with open(target, "wb") as target_file:
-                    with urllib.request.urlopen(request) as url_req:
+                    with urllib.request.urlopen(request, context=SSL_context) as url_req:
                         if not (200 <= url_req.status <= 300):
                             self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
                             return Result.NOT_KEPT
@@ -91,7 +106,7 @@ class HTTPPromiseModule(PromiseModule):
                             target_file.write(data)
                             done = bool(data)
             else:
-                with urllib.urlopen(request) as url_req:
+                with urllib.urlopen(request, context=SSL_context) as url_req:
                     if not (200 <= url_req.status <= 300):
                         self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
                         return Result.NOT_KEPT
