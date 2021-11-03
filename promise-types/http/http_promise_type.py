@@ -45,12 +45,13 @@ class HTTPPromiseModule(PromiseModule):
                 # nothing to check for dict?
                 pass
             else:
-                raise ValidationError("'headers' must be a string, an slist or a data value with 'name: value' pairs")
+                raise ValidationError("'headers' must be a string, an slist or a data container" +
+                                      " value with 'name: value' pairs")
 
         if "payload" in attributes:
             payload = attributes["payload"]
             if type(payload) not in (str, dict):
-                raise ValidationError("'payload' must be a string or a data value")
+                raise ValidationError("'payload' must be a string or a data container value")
 
             if type(payload) == str and payload.startswith("@") and not os.path.isabs(payload[1:]):
                 raise ValidationError("File-based payload must be an absolute path")
