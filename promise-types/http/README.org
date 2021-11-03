@@ -3,7 +3,7 @@
 ** Synopsis
 
 - /Name/: =http=
-- /Version/: =0.0.3=
+- /Version/: =1.0.0=
 - /Description/: Perform HTTP(S) requests from policy.
 
 ** Promiser and attributes
@@ -22,6 +22,27 @@ the URL is specified in the promiser.
 | =headers=  | =string=, =slist= or =data= | headers to send with the request (=data= with key-value pairs, =slist= with colon-separated key-value pairs, or =string= with key:value pairs) on separate lines | No        | -          |
 | =payload=  | =string= or =data=          | data payload to send with the request (=string= or =data= that will be converted to a string); /@\/some\/path/ values can be used to send file-based payloads    | No        | -          |
 | =insecure= | =string=                    | Whether to skip TLS validation of the server's certificate (/"true"/) or not (/"false"/)                                                                         | No        | /"false"/  |
+
+
+** Result classes
+   :PROPERTIES:
+   :CUSTOM_ID: result-classes
+   :END:
+
+On success, each /http/ promise defines a class that is in the form of
+~$(this.promiser)_METHOD_request_done~. On failure, class of form
+~$(this.promiser)_METHOD_request_failed~ is defined plus classes of form:
+
+- ~$(this.promiser)_METHOD_payload_failed~ (payload-related failures)
+- ~$(this.promiser)_METHOD_payload_file_failed~ (file-based payload failures)
+- ~$(this.promiser)_METHOD_payload_conversion_failed~ (payload conversion failures)
+- ~$(this.promiser)_METHOD_file_failed~ (/file/-related failures, see above)
+
+in the respective cases. There are currently no special classes for HTTP
+response codes, only the ~$(this.promiser)_METHOD_request_failed~ class is
+defined in case the response code is not an OK code.
+
+*The promiser is canonified in all the above classes.*
 
 
 ** Examples
@@ -56,14 +77,17 @@ repository for the full license text.
 ** Drawbacks and TODOs
 
 The current implementation of the module *is not idempotent* and so a request is
-made every time a promise of the /http/ promise type is evaluated.
+made every time a promise of the /http/ promise type is evaluated. [[#result-classes][Result
+classes]] can be used to ensure the request is only made once.
 
-*** TODO TODO [3/6]
+*** TODO TODO [4/8]
 
 - [X] /insecure/ attribute
 - [X] /payload/ of type =data= should result in the ~Content-Type:
       application/json~ added to /headers/
 - [X] ~@/some/file/path~ special values for POST/PUT requests
+- [X] result classes to allow idempotency without locking
 - [ ] progress reporting if response ~Content-Lenght~ is big
 - [ ] /GET/ requests should not overwrite data if it is the same
 - [ ] /checksum/ attribute
+- [ ] result classes for /4xx/, /5xx/,... failure response codes
