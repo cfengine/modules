@@ -38,7 +38,11 @@ On success, each /http/ promise defines a class that is in the form of
 - ~$(this.promiser)_METHOD_payload_conversion_failed~ (payload conversion failures)
 - ~$(this.promiser)_METHOD_file_failed~ (/file/-related failures, see above)
 
-in the respective cases. *The promiser is canonified in all the above classes.*
+in the respective cases. There are currently no special classes for HTTP
+response codes, only the ~$(this.promiser)_METHOD_request_failed~ class is
+defined in case the response code is not an OK code.
+
+*The promiser is canonified in all the above classes.*
 
 
 ** Examples
@@ -76,7 +80,7 @@ The current implementation of the module *is not idempotent* and so a request is
 made every time a promise of the /http/ promise type is evaluated. [[#result-classes][Result
 classes]] can be used to ensure the request is only made once.
 
-*** TODO TODO [4/7]
+*** TODO TODO [4/8]
 
 - [X] /insecure/ attribute
 - [X] /payload/ of type =data= should result in the ~Content-Type:
@@ -86,3 +90,4 @@ classes]] can be used to ensure the request is only made once.
 - [ ] progress reporting if response ~Content-Lenght~ is big
 - [ ] /GET/ requests should not overwrite data if it is the same
 - [ ] /checksum/ attribute
+- [ ] result classes for /4xx/, /5xx/,... failure response codes
