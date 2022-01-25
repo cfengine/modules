@@ -3,7 +3,7 @@
 ## Synopsis
 
 * *Name*: `groups`
-* *Version*: `0.1.2`
+* *Version*: `0.1.3`
 * *Description*: Manage local groups.
 * *Note*: This is an experimental version of a promise type, and may be changed in the future.
 
