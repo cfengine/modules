@@ -13,36 +13,59 @@
 
 ## Attributes
 
-| Name      | Type      | Description                                                      | Mandatory | Default |
-| --------- | --------- | -----------------------------------------------------------------| --------- | ------- |
-| `policy`  | `string`  | Whether group should be present or absent on the local host      | No        | present |
-| `members` | `string`  | JSON object containing attributes "include", "exclude" & "only"  | no        | -       |
-| `gid`     | `integer` | The GID of the group                                             | No        | -       |
+| Name      | Type                        | Description                                                                                     | Mandatory | Default |
+| --------- | --------------------------- | ----------------------------------------------------------------------------------------------- | --------- | ------- |
+| `policy`  | `string`                    | Whether group should be present or absent on the local host                                     | no        | present |
+| `members` | `string` / `data` / `body`  | JSON string / data container / custom body containing attributes "include", "exclude" & "only"  | no        | -       |
+| `gid`     | `integer`                   | The GID of the group                                                                            | no        | -       |
 
 ## Examples
 
 Present group `foo` including user `alice` and `bob`, but excluding user `malcom`:
 
 ```
+@if minimum_version(3.20)
+body members foo
+{
+  include => { "alice", "bob" };
+  exclude => { "malcom" };
+}
+@endif
+
 bundle agent main
 {
   groups:
-    "foo"
-      policy => "present",
-      members => '{ "include": ["alice", "bob"],
-                    "exclude": ["malcom"] }';
+      "foo"
+        policy => "present",
+@if minimum_version(3.20)
+        members => foo;
+@else
+        members => '{ "include": ["alice", "bob"],
+                      "exclude": ["malcom"] }';
+@endif
 }
 ```
 
 Present group `bar` with GID `123` including only user `alice`:
 
 ```
+@if minimum_version(3.20)
+body members bar
+{
+  only => { "alice" };
+}
+@endif
+
 bundle agent main
 {
   groups:
-    "bar"
-      members => '{ "only": ["alice"] }',
-      gid = 123;
+      "bar"
+@if minimum_version(3.20)
+        members => bar,
+@else
+        members => '{ "only": ["alice"] }',
+@endif
+        gid = 123;
 }
 ```
 
@@ -52,8 +75,8 @@ Absent group `baz`:
 bundle agent main
 {
   groups:
-    "baz"
-      policy => "absent";
+      "baz"
+        policy => "absent";
 }
 ```
 
