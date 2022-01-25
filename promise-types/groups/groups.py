@@ -11,10 +11,6 @@ class GroupsPromiseTypeModule(PromiseModule):
         self._name_maxlen = 32
 
     def validate_promise(self, promiser, attributes):
-        # check promiser type
-        if type(promiser) is not str:
-            raise ValidationError("Invalid type for promiser: expected string")
-
         # check promiser value
         if self._name_regex.match(promiser) is None:
             self.log_warning(
