@@ -79,9 +79,20 @@ class GroupsPromiseTypeModule(PromiseModule):
 
         # check attribute members if present
         if "members" in attributes:
-            # parse json
-            members = json.loads(attributes["members"])
-            attributes["members"] = members
+            # Parse as JSON, if type is string
+            if type(attributes["members"]) is str:
+                try:
+                    attributes["members"] = json.loads(attributes["members"])
+                except json.JSONDecodeError:
+                    raise ValidationError(
+                        "Invalid value for attribute 'members': Could not parse JSON"
+                    )
+            # Type should be dict if custom body or data container is used instead
+            elif type(attributes["members"]) is not dict:
+                raise ValidationError(
+                    "Invalid type for attribute 'members': expected 'body', 'data' or 'string'"
+                )
+            members = attributes["members"]
 
             # check attribute only not used with attributes include or exclude
             if "only" in members and ("include" in members or "exclude" in members):
@@ -126,7 +137,11 @@ class GroupsPromiseTypeModule(PromiseModule):
 
         # parse json in attribute members
         if "members" in attributes:
-            attributes["members"] = json.loads(attributes["members"])
+            # if members attribute is passed as a string, parse it as json
+            if type(attributes["members"]) is str:
+                attributes["members"] = json.loads(attributes["members"])
+            else:
+                assert type(attributes["members"]) is dict
 
         # set policy to present by default, if not specified
         if "policy" not in attributes:
