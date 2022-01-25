@@ -1,7 +1,8 @@
 # Example policy illustraing the use of custom promise module groups.
 #
-# Note: As of 3.18.0, custom promise modules does not support bodies, thus
-# JSON strings are used to define members for now.
+# Note: As of 3.20.0, custom promise modules support the use of custom bodies.
+#       Versions before 3.20.0 uses JSON strings or data containers to define
+#       members instead.
 
 
 promise agent groups
@@ -11,38 +12,66 @@ promise agent groups
   interpreter => "/usr/bin/python3";
 }
 
-
-bundle common foo
+@if minimum_version(3.20)
+body members foo
 # @breif Define members for group foo using attributes `include` and
 #        `exclude`.
 {
-  vars:
-    "members" string => '{ "include": ["alice", "bob"],
-                           "exclude": ["malcom"] }';
+  include => { "alice", "bob" };
+  exclude => { "malcom" };
 }
-
-
-bundle common bar
-# @breif Define members for group bar using attribute `only`.
+@else
+bundle common foo
+# @breif Define members using JSON string.
 {
   vars:
-    "members" string => '{ "only": ["alice"] }';
+      "members"
+        string => '{ "include": ["alice", "bob"],
+                     "exclude": ["malcom"] }';
 }
+@endif
+
+
+@if minimum_version(3.20)
+body members bar
+# @breif Define members for group bar using attribute `only`.
+{
+  only => { "alice" };
+}
+@else
+bundle common bar
+# @brief Define members using data container.
+{
+  vars:
+      "members"
+        data => '{ "only": ["alice"] }';
+}
+@endif
 
 
 bundle agent example_groups
 # @breif Example groups promise statements.
 {
   groups:
-    "foo"
-      policy => "present",
-      members => "$(foo.members)";
-    "bar"
+      "foo"
+        policy => "present",
+@if minimum_version(3.20)
+        members => foo;
+@else
+        members => "$(foo.members)";
+@endif
+
+      "bar"
       # policy defaults to present
-      members => "$(bar.members)",
-      gid => "1234";
-    "baz"
-      policy => "absent";
+@if minimum_version(3.20)
+        members => bar,
+@else
+        members => "@(bar.members)",
+@endif
+        gid => "1234";
+
+      "baz"
+        policy => "absent";
 }
 
 
@@ -50,18 +79,18 @@ bundle agent example_users
 # @breif Create users for the groups example.
 {
   users:
-    "alice"
-      policy => "present";
-    "bob"
-      policy => "present";
-    "malcom"
-      policy => "present";
+      "alice"
+        policy => "present";
+      "bob"
+        policy => "present";
+      "malcom"
+        policy => "present";
 }
 
 
 bundle agent __main__
 {
   methods:
-    "example_users";
-    "example_groups";
+      "example_users";
+      "example_groups";
 }
