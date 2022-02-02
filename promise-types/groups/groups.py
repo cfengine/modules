@@ -6,15 +6,11 @@ from cfengine import PromiseModule, ValidationError, Result
 
 class GroupsPromiseTypeModule(PromiseModule):
     def __init__(self):
-        super().__init__("groups_promise_module", "0.1.2")
+        super().__init__("groups_promise_module", "0.1.3")
         self._name_regex = re.compile(r"^[a-z_][a-z0-9_-]*[$]?$")
         self._name_maxlen = 32
 
     def validate_promise(self, promiser, attributes):
-        # check promiser type
-        if type(promiser) is not str:
-            raise ValidationError("Invalid type for promiser: expected string")
-
         # check promiser value
         if self._name_regex.match(promiser) is None:
             self.log_warning(
@@ -79,9 +75,20 @@ class GroupsPromiseTypeModule(PromiseModule):
 
         # check attribute members if present
         if "members" in attributes:
-            # parse json
-            members = json.loads(attributes["members"])
-            attributes["members"] = members
+            # Parse as JSON, if type is string
+            if type(attributes["members"]) is str:
+                try:
+                    attributes["members"] = json.loads(attributes["members"])
+                except json.JSONDecodeError:
+                    raise ValidationError(
+                        "Invalid value for attribute 'members': Could not parse JSON"
+                    )
+            # Type should be dict if custom body or data container is used instead
+            elif type(attributes["members"]) is not dict:
+                raise ValidationError(
+                    "Invalid type for attribute 'members': expected 'body', 'data' or 'string'"
+                )
+            members = attributes["members"]
 
             # check attribute only not used with attributes include or exclude
             if "only" in members and ("include" in members or "exclude" in members):
@@ -126,7 +133,11 @@ class GroupsPromiseTypeModule(PromiseModule):
 
         # parse json in attribute members
         if "members" in attributes:
-            attributes["members"] = json.loads(attributes["members"])
+            # if members attribute is passed as a string, parse it as json
+            if type(attributes["members"]) is str:
+                attributes["members"] = json.loads(attributes["members"])
+            else:
+                assert type(attributes["members"]) is dict
 
         # set policy to present by default, if not specified
         if "policy" not in attributes:
