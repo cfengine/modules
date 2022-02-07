@@ -47,14 +47,15 @@ defined in case the response code is not an OK code.
 
 ** Examples
 
-#+BEGIN_EXAMPLE
-  bundle agent __main__ {
-    http:
-        "https://cfengine.com/images/cfengine-logo.svg"
-          file => "/var/cfengine/cfengine-logo.svg",
-          if => not(fileexists("/var/cfengine/cfengine-logo.svg"));
-  }
-#+END_EXAMPLE
+#+BEGIN_SRC cf3
+bundle agent __main__
+{
+  http:
+    "https://cfengine.com/images/cfengine-logo.svg"
+      file => "/var/cfengine/cfengine-logo.svg",
+      if => not(fileexists("/var/cfengine/cfengine-logo.svg"));
+}
+#+END_SRC
 
 ** Authors
 
