@@ -23,6 +23,7 @@ the URL is specified in the promiser.
 | =payload=  | =string= or =data=          | data payload to send with the request (=string= or =data= that will be converted to a string); /@\/some\/path/ values can be used to send file-based payloads    | No        | -          |
 | =insecure= | =string=                    | Whether to skip TLS validation of the server's certificate (/"true"/) or not (/"false"/)                                                                         | No        | /"false"/  |
 
+*Note:* if no =file= attribute is provided the request will be sent to =/dev/null=. This is useful for something like a REST API endpoint where all you care about is an OK response (http code between 200 and 300) that results in the promise being =KEPT=
 
 ** Result classes
    :PROPERTIES:
@@ -44,10 +45,9 @@ defined in case the response code is not an OK code.
 
 *The promiser is canonified in all the above classes.*
 
-
 ** Examples
 
-#+BEGIN_SRC cf3
+#+BEGIN_SRC cfengine3
 bundle agent __main__
 {
   http:
@@ -81,14 +81,14 @@ The current implementation of the module *is not idempotent* and so a request is
 made every time a promise of the /http/ promise type is evaluated. [[#result-classes][Result
 classes]] can be used to ensure the request is only made once.
 
-*** TODO TODO [4/8]
+*** TODO TODO [6/8]
 
 - [X] /insecure/ attribute
 - [X] /payload/ of type =data= should result in the ~Content-Type:
       application/json~ added to /headers/
 - [X] ~@/some/file/path~ special values for POST/PUT requests
 - [X] result classes to allow idempotency without locking
-- [ ] progress reporting if response ~Content-Lenght~ is big
-- [ ] /GET/ requests should not overwrite data if it is the same
+- [X] progress reporting if response ~Content-Length~ is big
+- [X] /GET/ requests should not overwrite data if it is the same
 - [ ] /checksum/ attribute
 - [ ] result classes for /4xx/, /5xx/,... failure response codes

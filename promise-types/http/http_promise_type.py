@@ -1,20 +1,27 @@
 """HTTP module for CFEngine"""
 
+import filecmp
 import os
 import urllib
 import urllib.request
 import ssl
 import json
+from contextlib import contextmanager
 
 from cfengine import PromiseModule, ValidationError, Result
 
 
 _SUPPORTED_METHODS = {"GET", "POST", "PUT", "DELETE", "PATCH"}
 
+class FileInfo:
+    def __init__(self, target):
+        self.target = target
+        self.was_repaired = False
+
 
 class HTTPPromiseModule(PromiseModule):
-    def __init__(self, *args, **kwargs):
-        super().__init__("http_promise_module", "1.0.0", *args, **kwargs)
+    def __init__(self, name="http_promise_module", version="1.0.0", **kwargs):
+        super().__init__(name, version, **kwargs)
 
     def validate_promise(self, promiser, attributes):
         if "url" in attributes:
@@ -66,6 +73,23 @@ class HTTPPromiseModule(PromiseModule):
             if type(insecure) != str or insecure not in ("true", "True", "false", "False"):
                 raise ValidationError("'insecure' must be either \"true\" or \"false\"")
 
+    @contextmanager
+    def target_fh(self, file_info):
+        if file_info.target:
+            dirname = os.path.dirname(file_info.target)
+            os.makedirs(dirname, exist_ok=True)
+            temp_file = file_info.target+".cftemp"
+            with open(temp_file, "wb") as fh:
+                yield fh
+            if not os.path.isfile(file_info.target) or not filecmp.cmp(temp_file, file_info.target):
+                os.replace(temp_file, file_info.target)
+                file_info.was_repaired = True
+            else:
+                os.remove(temp_file)
+        else:
+            # this is to do something like API requests where you don't care about the result other than response code
+            yield open(os.devnull, "wb")
+
 
     def evaluate_promise(self, promiser, attributes):
         url = attributes.get("url", promiser)
@@ -74,6 +98,7 @@ class HTTPPromiseModule(PromiseModule):
         payload = attributes.get("payload")
         target = attributes.get("file")
         insecure = attributes.get("insecure", False)
+        result = Result.KEPT
 
         canonical_promiser = promiser.translate(str.maketrans({char: "_" for char in ("@", "/", ":", "?", "&", "%")}))
 
@@ -110,7 +135,7 @@ class HTTPPromiseModule(PromiseModule):
                              "%s_%s_payload_failed" % (canonical_promiser, method),
                              "%s_%s_payload_file_failed" % (canonical_promiser, method)])
 
-                if "Content-Lenght" not in headers:
+                if "Content-Length" not in headers:
                     headers["Content-Length"] = os.path.getsize(path)
 
             # must be 'None' or bytes or file object
@@ -127,29 +152,21 @@ class HTTPPromiseModule(PromiseModule):
                 SSL_context = ssl.SSLContext()
                 SSL_context.verify_method = ssl.CERT_NONE
 
-        try:
-            if target:
-                # TODO: create directories
-                with open(target, "wb") as target_file:
-                    with urllib.request.urlopen(request, context=SSL_context) as url_req:
-                        if not (200 <= url_req.status <= 300):
-                            self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
-                            return (Result.NOT_KEPT, ["%s_%s_request_failed" % (canonical_promiser, method)])
-                        # TODO: log progress when url_req.headers["Content-length"] > REPORTING_THRESHOLD
-                        done = False
-                        while not done:
-                            data = url_req.read(512 * 1024)
-                            target_file.write(data)
-                            done = bool(data)
-            else:
-                with urllib.request.urlopen(request, context=SSL_context) as url_req:
-                    if not (200 <= url_req.status <= 300):
-                        self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
-                        return (Result.NOT_KEPT, ["%s_%s_request_failed" % (canonical_promiser, method)])
-                    done = False
-                    while not done:
+        try:      
+            with urllib.request.urlopen(request, context=SSL_context) as url_req:
+                if not (200 <= url_req.status <= 300):
+                    self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
+                    return (Result.NOT_KEPT, ["%s_%s_request_failed" % (canonical_promiser, method)])
+                # TODO: log progress when url_req.headers["Content-length"] > REPORTING_THRESHOLD
+                file_info = FileInfo(target)
+                with self.target_fh(file_info) as target_file:
+                    should_read = True
+                    while should_read:
                         data = url_req.read(512 * 1024)
-                        done = bool(data)
+                        target_file.write(data)
+                        should_read = bool(data)
+                if file_info.was_repaired:
+                    result = Result.REPAIRED
         except urllib.error.URLError as e:
             self.log_error("Failed to request '%s': %s" % (url, e))
             return (Result.NOT_KEPT, ["%s_%s_request_failed" % (canonical_promiser, method)])
@@ -160,11 +177,14 @@ class HTTPPromiseModule(PromiseModule):
                      "%s_%s_file_failed" % (canonical_promiser, method)])
 
         if target:
-            self.log_info("Saved request response from '%s' to '%s'" % (url, target))
+            if result == Result.REPAIRED:
+                self.log_info("Saved request response from '%s' to '%s'" % (url, target))
+            else:
+                self.log_info("No changes in request response from '%s' to '%s'" % (url, target))
         else:
             self.log_info("Successfully executed%s request to '%s'" % ((" " + method if method else ""),
                                                                        url))
-        return (Result.REPAIRED, ["%s_%s_request_done" % (canonical_promiser, method)])
+        return (result, ["%s_%s_request_done" % (canonical_promiser, method)])
 
 if __name__ == "__main__":
     HTTPPromiseModule().start()
