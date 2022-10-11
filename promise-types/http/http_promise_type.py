@@ -152,7 +152,7 @@ class HTTPPromiseModule(PromiseModule):
                 SSL_context = ssl.SSLContext()
                 SSL_context.verify_method = ssl.CERT_NONE
 
-        try:      
+        try:
             with urllib.request.urlopen(request, context=SSL_context) as url_req:
                 if not (200 <= url_req.status < 300):
                     self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
