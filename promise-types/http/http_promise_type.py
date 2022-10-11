@@ -154,7 +154,7 @@ class HTTPPromiseModule(PromiseModule):
 
         try:      
             with urllib.request.urlopen(request, context=SSL_context) as url_req:
-                if not (200 <= url_req.status <= 300):
+                if not (200 <= url_req.status < 300):
                     self.log_error("Request for '%s' failed with code %d" % (url, url_req.status))
                     return (Result.NOT_KEPT, ["%s_%s_request_failed" % (canonical_promiser, method)])
                 # TODO: log progress when url_req.headers["Content-length"] > REPORTING_THRESHOLD
