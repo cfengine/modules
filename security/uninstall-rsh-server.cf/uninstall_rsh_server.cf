@@ -1,0 +1,33 @@
+bundle agent uninstall_rsh_server
+# @brief Makes sure the rsh server package is not installed on the system.
+# Based on the OpenSCAP Security Guide for RHEL 7:
+# https://static.open-scap.org/ssg-guides/ssg-rhel7-guide-anssi_nt28_minimal.html
+# CFEngine policy based on this module:
+# https://build.cfengine.com/modules/uninstall-ftp/
+{
+  vars:
+    redhat|suse::
+      "pkg_name" slist => { "rsh-server" }; # Name in yum
+    debian::
+      "pkg_name" slist => { "rsh-server" }; # name in apt
+
+  classes:
+      "rsh_server_allowed"
+        or => {
+          "hardening_rsh_server_allowed",
+          "data:hardening_rsh_server_allowed",
+          "exception_uninstall_rsh_server",
+          "data:exception_uninstall_rsh_server",
+        };
+
+  packages:
+    !rsh_server_allowed::
+      "${pkg_name}" -> { "CCE-27342-5" }
+        policy => "absent",
+        if => isvariable("pkg_name");
+
+  reports:
+    !rsh_server_allowed::
+      "warning: rsh server package name not known for this platform"
+        unless => isvariable("pkg_name");
+}
