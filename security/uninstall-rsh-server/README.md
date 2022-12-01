@@ -12,7 +12,7 @@ This ensures you are protected in the future, if somebody installs the package o
 
 With Mission Portal you can find hosts which have `rsh-server` installed with a Custom report using the Report Builder GUI:
 
-![Report Builder to find hosts with rsh-server](rsh-server-report-builder.png)
+![Report Builder to find hosts with rsh-server](https://raw.githubusercontent.com/cfengine/modules/master/security/uninstall-rsh-server/rsh-server-report-builder.png)
 
 Or enter the following query in the Show Query section at the bottom.
 
@@ -22,7 +22,7 @@ SELECT Hosts.HostName AS "Host name", Software.SoftwareName AS "Software name", 
 
 Run or Save the report and see which hosts in your environment have `rsh-server` installed.
 
-![hosts with rsh-server installed](hosts-with-rsh-server-installed.png)
+![hosts with rsh-server installed](https://raw.githubusercontent.com/cfengine/modules/master/security/uninstall-rsh-server/hosts-with-rsh-server-installed.png)
 
 ## Example
 
