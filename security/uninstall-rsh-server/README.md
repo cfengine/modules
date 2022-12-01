@@ -7,6 +7,23 @@ In some implementations of `rsh`, passwords are also sent over the network in pl
 Use CFEngine Enterprise's software inventory to verify that it isn't installed anywhere, and this module to enforce it (uninstalling the module if it appears somewhere).
 This ensures you are protected in the future, if somebody installs the package on a machine, or if somebody adds a machine with the package installed to the infrastructure. 
 
+
+## Inventory
+
+With Mission Portal you can find hosts which have `rsh-server` installed with a Custom report using the Report Builder GUI:
+
+![Report Builder to find hosts with rsh-server](rsh-server-report-builder.png)
+
+Or enter the following query in the Show Query section at the bottom.
+
+```
+SELECT Hosts.HostName AS "Host name", Software.SoftwareName AS "Software name", Software.SoftwareVersion AS "Software version", Software.ChangeTimeStamp AS "Change time" FROM Hosts LEFT JOIN Software ON Software.HostKey = Hosts.HostKey WHERE  Software.SoftwareName = 'rsh-server'
+```
+
+Run or Save the report and see which hosts in your environment have `rsh-server` installed.
+
+![hosts with rsh-server installed](hosts-with-rsh-server-installed.png)
+
 ## Example
 
 If you try installing the package and running the agent with this module, you should see it get uninstalled:
