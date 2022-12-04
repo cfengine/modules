@@ -1,0 +1,33 @@
+bundle agent uninstall_talk
+# @brief Makes sure the talk packages are not installed on the system.
+# Based on the OpenSCAP Security Guide for RHEL 7:
+# https://static.open-scap.org/ssg-guides/ssg-rhel7-guide-anssi_nt28_minimal.html
+# CFEngine policy based on this module:
+# https://build.cfengine.com/modules/uninstall-ftp/
+{
+  vars:
+    redhat|suse::
+      "pkg_name" slist => { "talk", "talk-server" }; # Name in yum
+    debian::
+      "pkg_name" slist => { "talk", "talkd" }; # name in apt
+
+  classes:
+      "talk_allowed"
+        or => {
+          "hardening_talk_allowed",
+          "data:hardening_talk_allowed",
+          "exception_uninstall_talk",
+          "data:exception_uninstall_talk",
+        };
+
+  packages:
+    !talk_allowed::
+      "${pkg_name}" -> { "CCE-27432-4" }
+        policy => "absent",
+        if => isvariable("pkg_name");
+
+  reports:
+    !talk_allowed::
+      "warning: talk package name not known for this platform"
+        unless => isvariable("pkg_name");
+}
