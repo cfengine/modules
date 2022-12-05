@@ -78,6 +78,15 @@
         "copy systemd.py modules/promises/",
         "append enable.cf services/init.cf"
       ]
+    },
+    "uninstall-rsh-server": {
+      "description": "Ensure the remote shell (rsh) server package is not installed on the system",
+      "subdirectory": "security/uninstall-rsh-server",
+      "steps": [
+        "copy uninstall-rsh-server.cf services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf",
+        "bundles uninstall_rsh_server",
+        "policy_files services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf"
+      ]
     }
   }
 }
