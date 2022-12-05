@@ -1,6 +1,6 @@
 [Address space layout randomization (ASLR)](https://en.wikipedia.org/wiki/Address_space_layout_randomization) helps prevent exploits by randomly changing the address at which programs are located.
 Without ASLR an exploit can rely on the location of various aspects of a program and more easily perform an attack.
-This feature was first introduced around 2015 in Linux and subsequently in most other operating systems in the following years.
+This feature was first introduced around 2005 in Linux and subsequently in most other operating systems in the following years.
 64-bit systems benefit more from this feature because the larger address space allows for greater entropy in randomizing the locations of programs.
 At this time there are known exploitations even of this protection mechanism but it is still best practice to ensure this feature is fully enabled on your systems.
 
