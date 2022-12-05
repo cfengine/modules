@@ -19,6 +19,15 @@
       "dependencies": ["autorun", "every-minute"],
       "steps": ["json def.json def.json"]
     },
+    "enable-aslr": {
+      "description": "Ensure that Address space layout randomization (ASLR) is enabled on the system",
+      "subdirectory": "security/enable-aslr",
+      "steps": [
+        "copy enable-aslr.cf services/cfbs/modules/enable-aslr/enable-aslr.cf",
+        "bundles enable_aslr",
+        "policy_files services/cfbs/modules/enable-aslr/enable-aslr.cf"
+      ]
+    },
     "every-minute": {
       "description": "Make policy fetching, evaluation, and reporting happen every minute ",
       "subdirectory": "management/every-minute",

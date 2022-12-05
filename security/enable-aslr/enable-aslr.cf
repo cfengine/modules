@@ -1,0 +1,42 @@
+bundle agent enable_aslr
+# @brief Makes sure that ASLR (Address space layout randomization) is enabled on the system.
+# Based on the OpenSCAP Security Guide for RHEL 9:
+# https://static.open-scap.org/ssg-guides/ssg-rhel9-guide-index.html
+# CFEngine policy based on this module:
+# https://build.cfengine.com/modules/uninstall-rsh-server/
+{
+  vars:
+    linux::
+      # see https://www.kernel.org/doc/html/latest/admin-guide/sysctl/kernel.html#randomize-va-space
+      # or `man procfs`
+      # for description of the three modes: 0,1,2
+      "aslr_mode[0]" string => "Disabled";
+      "aslr_mode[1]" string => "Conservative Randomization";
+      "aslr_mode[2]" string => "Full Randomization";
+
+      "aslr_proc_path" string => "/proc/sys/kernel/randomize_va_space";
+      "aslr_conf_path" string => "/etc/sysctl.d/60-enable-aslr.conf";
+      "aslr_value" string => readfile("${aslr_proc_path}");
+      "randomize_va_space_inventory" string => "${aslr_mode[${aslr_value}]} (${aslr_value})",
+        meta => { "inventory", "attribute_name=Address space layout randomization (ASLR)" },
+        comment => "Report on Address space layout randomization (ASLR) mode";
+
+  classes:
+    "aslr_enabled" expression => strcmp("${aslr_value}", "2");
+    "aslr_management_disabled"
+      or => {
+        "exception_enable_aslr",
+        "data:exception_enable_aslr",
+      };
+
+  files:
+    !aslr_management_disabled.(linux.!aslr_enabled)::
+      "${aslr_conf_path}"
+        content => "kernel.randomize_va_space = 2",
+        classes => if_repaired("enable_aslr_repaired");
+
+  commands:
+    !aslr_management_disabled.(linux.!aslr_enabled)::
+      "sysctl --load ${aslr_conf_path}"
+        contain => in_shell;
+}
