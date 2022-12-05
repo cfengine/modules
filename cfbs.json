@@ -19,6 +19,15 @@
       "dependencies": ["autorun", "every-minute"],
       "steps": ["json def.json def.json"]
     },
+    "enable-aslr": {
+      "description": "Ensure that Address space layout randomization (ASLR) is enabled on the system",
+      "subdirectory": "security/enable-aslr",
+      "steps": [
+        "copy enable-aslr.cf services/cfbs/modules/enable-aslr/enable-aslr.cf",
+        "bundles enable_aslr",
+        "policy_files services/cfbs/modules/enable-aslr/enable-aslr.cf"
+      ]
+    },
     "every-minute": {
       "description": "Make policy fetching, evaluation, and reporting happen every minute ",
       "subdirectory": "management/every-minute",
@@ -68,6 +77,15 @@
       "steps": [
         "copy systemd.py modules/promises/",
         "append enable.cf services/init.cf"
+      ]
+    },
+    "uninstall-rsh-server": {
+      "description": "Ensure the remote shell (rsh) server package is not installed on the system",
+      "subdirectory": "security/uninstall-rsh-server",
+      "steps": [
+        "copy uninstall-rsh-server.cf services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf",
+        "bundles uninstall_rsh_server",
+        "policy_files services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf"
       ]
     }
   }
