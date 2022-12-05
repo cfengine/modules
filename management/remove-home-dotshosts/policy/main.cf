@@ -1,0 +1,62 @@
+body file control
+{
+    namespace => "remove_home_dotshosts";
+}
+bundle agent main
+# @var remove_home_dotshosts:main.exception String documenting necessary information about exception for this host.
+# @var remove_home_dotshosts:main.home_dir_roots list of home directory roots (defaults to /home). Note: /root/.shosts is always checked.
+# @inventory ~/.shosts list of ~.shosts files found.
+# @inventory ~/.shosts Exception The string defined that records the details about why a host has an exception for this policy.
+{
+  vars:
+    !default:windows::
+
+      # /home and /root are common default home dir roots, but it's not uncommon
+      # to have other home dir roots
+
+      "home_dir_roots"
+        slist => { "/home" },
+        meta => { "noreport" },
+        if => not( isvariable( "home_dir_roots" ));
+
+    # Find .shosts files in the root of peoples home directories.
+      "_found[$(home_dir_roots)]"
+        slist => findfiles( "$(home_dir_roots)/*/.shosts" ),
+        if => isdir( $(home_dir_roots) );
+      "_found[/root]"
+        slist => { "/root/.shosts" },
+        if => fileexists( "/root/.shosts" );
+
+      "_found"
+        slist => getvalues( _found );
+
+      # We inventory the found files so that we easily know where they are.
+      # This way, even hosts with exceptions will report the inventory, but not
+      # have them removed.
+      #
+      # Why not inventory the _found list?
+      # - Because if the list is too long (~4k) it will get truncated.
+      # - In an associative array, each key is an independent variable,
+      #   so it's much less likely to hit the truncation limit.
+      "inv_found[$(_found)]"
+        string => "$(_found)",
+        meta => { "inventory", "attribute_name=~/.shosts" };
+
+      "inv_exception"
+        string => "$(exception)",
+        if => isvariable( "exception" ),
+        meta => { "inventory", "attribute_name=~/.shosts Exception" };
+
+  files:
+    !default:windows::
+      "$(_found)"
+        delete => default:tidy,
+        unless => isvariable( exception );
+
+  reports:
+    (default:inform_mode|default:verboe_mode)::
+      "Found $(with), but not removing because of exception: $(exception)"
+        with => join( ", ", _found ),
+        if => and( isvariable( exception ),
+                   isgreaterthan( length( _found ), 0 ) );
+}
