@@ -9,7 +9,7 @@ However a global `.shosts.equiv` is preferable to having `.shosts` in each and e
 
 With Mission Portal you can find hosts which have `~/.shosts` files and details about reasons for exception:
 
-![Inventory Report showing found ~/.shosts and Exception](https://raw.githubusercontent.com/cfengine/modules/master/security/delete-home-dotshosts/media/inventory-report.png)
+[![Inventory Report showing found ~/.shosts and Exception](https://raw.githubusercontent.com/cfengine/modules/master/security/delete-home-dotshosts/media/inventory-report.png)](https://raw.githubusercontent.com/cfengine/modules/master/security/delete-home-dotshosts/media/inventory-report.png)
 
 ## Example
 
