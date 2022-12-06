@@ -35,7 +35,7 @@ $ sudo cf-agent -KI
 
 ### Specifying home directory roots to search
 
-Define `delete_home_dotshosts:main.home_dir_roots` as a list or data container array with each element being a home directory root to search.
+In [augments](https://docs.cfengine.com/docs/master/reference-language-concepts-augments.html#top) define a [variable](https://docs.cfengine.com/docs/master/reference-language-concepts-variables.html) `delete_home_dotshosts:main.home_dir_roots` as a list or data container array with each element being a home directory root to search.
 
 ### Adding exceptions
 
