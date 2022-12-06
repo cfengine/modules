@@ -87,6 +87,14 @@
         "bundles uninstall_rsh_server",
         "policy_files services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf"
       ]
+    },
+    "remove-home-dotshosts": {
+      "description": "Policy to make sure that ~/.shosts is not present without an exception.",
+      "subdirectory": "management/remove-home-dotshots/",
+      "steps": [
+        "copy policy/main.cf services/cfbs/remove-home-dotshots/",
+        "policy_files services/cfbs/remove-home-dotshots/"
+      ]
     }
   }
 }
