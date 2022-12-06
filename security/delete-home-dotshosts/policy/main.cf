@@ -56,12 +56,12 @@ bundle agent main
       #   so it's much less likely to hit the truncation limit.
       "inv_found[$(_found)]"
         string => "$(_found)",
-        meta => { "inventory", "attribute_name=~/.shosts" };
+        meta => { "inventory", "attribute_name=~/.shosts files" };
 
       "inv_exception"
         string => "$(exception)",
         if => isvariable( "exception" ),
-        meta => { "inventory", "attribute_name=~/.shosts Exception" };
+        meta => { "inventory", "attribute_name=~/.shosts exception reason" };
 
   files:
     !dotshosts_management_disabled.!default:windows::

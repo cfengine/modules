@@ -9,7 +9,7 @@ However a global `.shosts.equiv` is preferable to having `.shosts` in each and e
 
 With Mission Portal you can find hosts which have `~/.shosts` files and details about reasons for exception:
 
-![Inventory Report showing found ~/.shosts and Exception](https://raw.githubusercontent.com/cfengine/modules/master/security/delete-home-dotshosts/media/inventory-report.png)
+[![Inventory Report showing found ~/.shosts and Exception](https://raw.githubusercontent.com/cfengine/modules/master/security/delete-home-dotshosts/media/inventory-report.png)](https://raw.githubusercontent.com/cfengine/modules/master/security/delete-home-dotshosts/media/inventory-report.png)
 
 ## Example
 
@@ -44,5 +44,8 @@ If `~/.shosts` files are really needed on some hosts, you can add an exception i
 * Define the `exception_delete_home_dotshosts` class.
 * Define the `delete_home_dotshosts:main.exception` variable as a string with the reason for the exception as its value.
 
-This can be done from the **Host specific data** section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.
 Functionally, they do the same, but the variable allows you to list the reasons for exceptions in an **Inventory report** (as seen above).
+This can be done from the **Host specific data** section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.
+Here is an example of setting the variable:
+
+[![Host specific data UI, setting the variable delete_home_dotshosts:main.exception](https://raw.githubusercontent.com/cfengine/modules/master/security/delete-home-dotshosts/media/host-specific-data.png)](https://raw.githubusercontent.com/cfengine/modules/master/security/delete-home-dotshosts/media/host-specific-data.png)
