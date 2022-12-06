@@ -93,7 +93,8 @@
       "subdirectory": "security/delete-home-dotshots/",
       "steps": [
         "copy policy/main.cf services/cfbs/delete-home-dotshots/",
-        "policy_files services/cfbs/delete-home-dotshots/"
+        "policy_files services/cfbs/delete-home-dotshots/",
+        "bundles delete_home_dotshosts:main"
       ]
     }
   }
