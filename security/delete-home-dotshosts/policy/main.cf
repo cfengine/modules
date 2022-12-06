@@ -16,14 +16,14 @@ bundle agent main
         "data:exception_delete_home_dotshosts",
         "default:exception_delete_home_dotshosts",
         "delete_home_dotshosts:exception_delete_home_dotshosts",
-        isvariable(delete_home_dotshosts:main.exception),
+        isvariable("delete_home_dotshosts:main.exception"),
       };
 
   vars:
     dotshosts_management_disabled::
       "exception" # Fill in exception reason if missing (class was used)
         string => "Unknown reason",
-        if => not(isvariable(delete_home_dotshosts:main.exception));
+        if => not(isvariable("delete_home_dotshosts:main.exception"));
 
     !default:windows::
 
