@@ -1,14 +1,15 @@
-[Host-based authentication with ~/.shosts](https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Host-based_Authentication) is the equivalent to `/etc/ssh/.shosts.equiv`. It allows individual users to define a list of trusted remote machines, or user-machine pairs, which are allowed to try host-based authentication.
+[Host-based authentication with ~/.shosts](https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Host-based_Authentication) is the equivalent to `/etc/ssh/.shosts.equiv`.
+It allows individual users to define a list of trusted remote machines, or user-machine pairs, which are allowed to try host-based authentication.
 
 However a global `.shosts.equiv` is preferable to having `.shosts` in each and every home directory.
 
-****Recommendation:**** Do not use user defined host based authentication. Use this `delete_home_dotshosts` module to inventory and delete `~/.shosts` files (if there is no documented exception). This ensures you are protected in the future, if somebody adds a `~/.shosts` file in the future.
+****Recommendation:**** Do not use user defined host based authentication. Use this `delete-home-dotshosts` module to inventory and delete `~/.shosts` files. This ensures you are protected in the future, if somebody adds a `~/.shosts` file.
 
 ## Inventory
 
-With Mission Portal you can find hosts which have `~/.shosts` files and details about reasons for exception.
+With Mission Portal you can find hosts which have `~/.shosts` files and details about reasons for exception:
 
-![Inventory Report showing found ~/.shosts and Exception](https://raw.githubusercontent.com/cfengine/modules/master/management/delete-home-dotshots/media/inventory-report.png)
+![Inventory Report showing found ~/.shosts and Exception](https://raw.githubusercontent.com/cfengine/modules/master/security/delete-home-dotshosts/media/inventory-report.png)
 
 ## Example
 
@@ -38,4 +39,10 @@ Define `delete_home_dotshosts:main.home_dir_roots` as a list or data container a
 
 ### Adding exceptions
 
-If `~/.shosts` files are really needed on some hosts, you can add an exception by defining the variable `delete_home_dotshosts.main.exception` containing text describing why the exception is granted and where to find further information. This variable can be defined from the `Host specific data` section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.
+If `~/.shosts` files are really needed on some hosts, you can add an exception in one of two ways:
+
+* Define the `exception_delete_home_dotshosts` class.
+* Define the `delete_home_dotshosts:main.exception` variable as a string with the reason for the exception as its value.
+
+This can be done from the **Host specific data** section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.
+Functionally, they do the same, but the variable allows you to list the reasons for exceptions in an **Inventory report** (as seen above).
