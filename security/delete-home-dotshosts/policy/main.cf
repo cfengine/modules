@@ -1,10 +1,11 @@
 body file control
 {
-    namespace => "remove_home_dotshosts";
+    namespace => "delete_home_dotshosts";
 }
+
 bundle agent main
-# @var remove_home_dotshosts:main.exception String documenting necessary information about exception for this host.
-# @var remove_home_dotshosts:main.home_dir_roots list of home directory roots (defaults to /home). Note: /root/.shosts is always checked.
+# @var delete_home_dotshosts:main.exception String documenting necessary information about exception for this host.
+# @var delete_home_dotshosts:main.home_dir_roots list of home directory roots (defaults to /home). Note: /root/.shosts is always checked.
 # @inventory ~/.shosts list of ~.shosts files found.
 # @inventory ~/.shosts Exception The string defined that records the details about why a host has an exception for this policy.
 {

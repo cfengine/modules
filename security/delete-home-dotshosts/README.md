@@ -2,13 +2,13 @@
 
 However a global `.shosts.equiv` is preferable to having `.shosts` in each and every home directory.
 
-****Recommendation:**** Do not use user defined host based authentication. Use this `remove_home_dotshosts` module to inventory and delete `~/.shosts` files (if there is no documented exception). This ensures you are protected in the future, if somebody adds a `~/.shosts` file in the future.
+****Recommendation:**** Do not use user defined host based authentication. Use this `delete_home_dotshosts` module to inventory and delete `~/.shosts` files (if there is no documented exception). This ensures you are protected in the future, if somebody adds a `~/.shosts` file in the future.
 
 ## Inventory
 
 With Mission Portal you can find hosts which have `~/.shosts` files and details about reasons for exception.
 
-![Inventory Report showing found ~/.shosts and Exception](https://raw.githubusercontent.com/cfengine/modules/master/management/remove-home-dotshots/media/inventory-report.png)
+![Inventory Report showing found ~/.shosts and Exception](https://raw.githubusercontent.com/cfengine/modules/master/management/delete-home-dotshots/media/inventory-report.png)
 
 ## Example
 
@@ -34,8 +34,8 @@ $ sudo cf-agent -KI
 
 ### Specifying home directory roots to search
 
-Define `remove_home_dotshosts:main.home_dir_roots` as a list or data container array with each element being a home directory root to search.
+Define `delete_home_dotshosts:main.home_dir_roots` as a list or data container array with each element being a home directory root to search.
 
 ### Adding exceptions
 
-If `~/.shosts` files are really needed on some hosts, you can add an exception by defining the variable `remove_home_dotshosts.main.exception` containing text describing why the exception is granted and where to find further information. This variable can be defined from the `Host specific data` section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.
+If `~/.shosts` files are really needed on some hosts, you can add an exception by defining the variable `delete_home_dotshosts.main.exception` containing text describing why the exception is granted and where to find further information. This variable can be defined from the `Host specific data` section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.
