@@ -1,14 +1,30 @@
 body file control
 {
-    namespace => "remove_home_dotshosts";
+    namespace => "delete_home_dotshosts";
 }
+
 bundle agent main
-# @var remove_home_dotshosts:main.exception String documenting necessary information about exception for this host.
-# @var remove_home_dotshosts:main.home_dir_roots list of home directory roots (defaults to /home). Note: /root/.shosts is always checked.
+# @var delete_home_dotshosts:main.exception String documenting necessary information about exception for this host.
+# @var delete_home_dotshosts:main.home_dir_roots list of home directory roots (defaults to /home). Note: /root/.shosts is always checked.
 # @inventory ~/.shosts list of ~.shosts files found.
 # @inventory ~/.shosts Exception The string defined that records the details about why a host has an exception for this policy.
 {
+
+  classes:
+    "dotshosts_management_disabled"
+      or => {
+        "data:exception_delete_home_dotshosts",
+        "default:exception_delete_home_dotshosts",
+        "delete_home_dotshosts:exception_delete_home_dotshosts",
+        isvariable(delete_home_dotshosts:main.exception),
+      };
+
   vars:
+    dotshosts_management_disabled::
+      "exception" # Fill in exception reason if missing (class was used)
+        string => "Unknown reason",
+        if => not(isvariable(delete_home_dotshosts:main.exception));
+
     !default:windows::
 
       # /home and /root are common default home dir roots, but it's not uncommon
@@ -48,15 +64,12 @@ bundle agent main
         meta => { "inventory", "attribute_name=~/.shosts Exception" };
 
   files:
-    !default:windows::
+    !dotshosts_management_disabled.!default:windows::
       "$(_found)"
-        delete => default:tidy,
-        unless => isvariable( exception );
+        delete => default:tidy;
 
   reports:
-    (default:inform_mode|default:verboe_mode)::
+    dotshosts_management_disabled.(default:inform_mode|default:verbose_mode)::
       "Found $(with), but not removing because of exception: $(exception)"
-        with => join( ", ", _found ),
-        if => and( isvariable( exception ),
-                   isgreaterthan( length( _found ), 0 ) );
+        with => join( ", ", _found );
 }
