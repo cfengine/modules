@@ -1,0 +1,17 @@
+body file control
+{
+        namespace => "inventory_local_users_unhashed_password";
+}
+
+bundle agent main
+# @brief inventory local uses who are not using hashed passwords
+# @inventory Local users not using hashed password
+{
+  vars:
+    linux::
+      "inventory[$(default:parsed_etc_passwd_shadow.all_local_users)]"
+        string => "$(default:parsed_etc_passwd_shadow.all_local_users)",
+        if => not( strcmp("x", "$(default:parsed_etc_passwd_shadow._passwd_passwd[$(default:parsed_etc_passwd_shadow.all_local_users)])")),
+        meta => { "inventory", "attribute_name=Local users not using hashed password" },
+        comment => "Inventory of local user who is not using a hashed password (lacks 'x' in second field of '/etc/passwd').";
+}

@@ -88,6 +88,16 @@
         "policy_files services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf"
       ]
     },
+    "inventory-local-users-unhashed-password": {
+      "description": "Inventory local users not using hashed passwords.",
+      "dependencies": ["library-parsed-local-users"],
+      "subdirectory": "security/delete-home-dotshots/",
+      "steps": [
+        "copy policy/main.cf services/cfbs/inventory-local-users-unhashed-password/",
+        "policy_files services/cfbs/inventory-local-users-unhashed-password/",
+        "bundles inventory_local_users_unhashed_password:main"
+      ]
+    },
     "delete-home-dotshosts": {
       "description": "Ensure that ~/.shosts files are not present, as they present a security risk",
       "subdirectory": "security/delete-home-dotshots/",
