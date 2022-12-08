@@ -91,7 +91,7 @@
     "inventory-local-users-unhashed-password": {
       "description": "Inventory local users not using hashed passwords.",
       "dependencies": ["library-parsed-local-users"],
-      "subdirectory": "security/delete-home-dotshots/",
+      "subdirectory": "security/inventory-local-users-unhashed-password/",
       "steps": [
         "copy policy/main.cf services/cfbs/inventory-local-users-unhashed-password/",
         "policy_files services/cfbs/inventory-local-users-unhashed-password/",
