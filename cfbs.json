@@ -1,26 +1,26 @@
 {
   "name": "modules",
-  "description": "Repository of modules written by the CFEngine team",
+  "description": "Repository of modules written by the CFEngine team.",
   "type": "modules",
   "provides": {
     "autorun": {
-      "description": "Enable autorun functionality",
+      "description": "Enable autorun functionality.",
       "subdirectory": "management/autorun",
       "steps": ["json def.json def.json"]
     },
     "client-initiated-reporting": {
-      "description": "Enable client initiated reporting and disable pull collection",
+      "description": "Enable client initiated reporting and disable pull collection.",
       "subdirectory": "reporting/client-initiated-reporting",
       "steps": ["json def.json def.json"]
     },
     "demo": {
-      "description": "Enables convenient and insecure settings for demoing CFEngine",
+      "description": "Enables convenient and insecure settings for demoing CFEngine.",
       "subdirectory": "management/demo",
       "dependencies": ["autorun", "every-minute"],
       "steps": ["json def.json def.json"]
     },
     "enable-aslr": {
-      "description": "Ensure that Address space layout randomization (ASLR) is enabled on the system",
+      "description": "Ensure that Address space layout randomization (ASLR) is enabled on the system.",
       "subdirectory": "security/enable-aslr",
       "steps": [
         "copy enable-aslr.cf services/cfbs/modules/enable-aslr/enable-aslr.cf",
@@ -29,22 +29,22 @@
       ]
     },
     "every-minute": {
-      "description": "Make policy fetching, evaluation, and reporting happen every minute ",
+      "description": "Make policy fetching, evaluation, and reporting happen every minute.",
       "subdirectory": "management/every-minute",
       "steps": ["json def.json def.json"]
     },
     "library-for-promise-types-in-bash": {
-      "description": "Library enabling promise types implemented in bash",
+      "description": "Library enabling promise types implemented in bash.",
       "subdirectory": "libraries/bash",
       "steps": ["copy cfengine.sh modules/promises/"]
     },
     "library-for-promise-types-in-python": {
-      "description": "Library enabling promise types implemented in python",
+      "description": "Library enabling promise types implemented in python.",
       "subdirectory": "libraries/python",
       "steps": ["copy cfengine.py modules/promises/"]
     },
     "promise-type-ansible": {
-      "description": "Promise type to manage systemd services",
+      "description": "Promise type to manage systemd services.",
       "dependencies": ["library-for-promise-types-in-python"],
       "subdirectory": "promise-types/ansible",
       "steps": [
@@ -53,7 +53,7 @@
       ]
     },
     "promise-type-git": {
-      "description": "Promise type to manage git repos",
+      "description": "Promise type to manage git repos.",
       "dependencies": ["library-for-promise-types-in-python"],
       "subdirectory": "promise-types/git",
       "steps": [
@@ -62,7 +62,7 @@
       ]
     },
     "promise-type-groups": {
-      "description": "Experimental promise type to manage local user groups",
+      "description": "Experimental promise type to manage local user groups.",
       "dependencies": ["library-for-promise-types-in-python"],
       "subdirectory": "promise-types/groups",
       "steps": [
@@ -71,7 +71,7 @@
       ]
     },
     "promise-type-systemd": {
-      "description": "Promise type to manage systemd services",
+      "description": "Promise type to manage systemd services.",
       "dependencies": ["library-for-promise-types-in-python"],
       "subdirectory": "promise-types/systemd",
       "steps": [
@@ -80,7 +80,7 @@
       ]
     },
     "uninstall-rsh-server": {
-      "description": "Ensure the remote shell (rsh) server package is not installed on the system",
+      "description": "Ensure the remote shell (rsh) server package is not installed on the system.",
       "subdirectory": "security/uninstall-rsh-server",
       "steps": [
         "copy uninstall-rsh-server.cf services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf",
@@ -99,7 +99,7 @@
       ]
     },
     "delete-home-dotshosts": {
-      "description": "Ensure that ~/.shosts files are not present, as they present a security risk",
+      "description": "Ensure that ~/.shosts files are not present, as they present a security risk.",
       "subdirectory": "security/delete-home-dotshots",
       "steps": [
         "copy policy/main.cf services/cfbs/delete-home-dotshots/",
