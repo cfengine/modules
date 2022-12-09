@@ -89,7 +89,7 @@
       ]
     },
     "inventory-unshadowed-users": {
-      "description": "Inventory local users in /etc/passwd not using /etc/shadow for their password",
+      "description": "Adds reporting data (inventory) on local users in /etc/passwd not using /etc/shadow for their password.",
       "dependencies": ["library-parsed-local-users"],
       "subdirectory": "security/inventory-unshadowed-users/",
       "steps": [
