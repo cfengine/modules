@@ -35,18 +35,18 @@
     },
     "library-for-promise-types-in-bash": {
       "description": "Library enabling promise types implemented in bash",
-      "subdirectory": "libraries/bash/",
+      "subdirectory": "libraries/bash",
       "steps": ["copy cfengine.sh modules/promises/"]
     },
     "library-for-promise-types-in-python": {
       "description": "Library enabling promise types implemented in python",
-      "subdirectory": "libraries/python/",
+      "subdirectory": "libraries/python",
       "steps": ["copy cfengine.py modules/promises/"]
     },
     "promise-type-ansible": {
       "description": "Promise type to manage systemd services",
       "dependencies": ["library-for-promise-types-in-python"],
-      "subdirectory": "promise-types/ansible/",
+      "subdirectory": "promise-types/ansible",
       "steps": [
         "copy ansible_promise.py modules/promises/",
         "append enable.cf services/init.cf"
@@ -55,7 +55,7 @@
     "promise-type-git": {
       "description": "Promise type to manage git repos",
       "dependencies": ["library-for-promise-types-in-python"],
-      "subdirectory": "promise-types/git/",
+      "subdirectory": "promise-types/git",
       "steps": [
         "copy git.py modules/promises/",
         "append enable.cf services/init.cf"
@@ -64,7 +64,7 @@
     "promise-type-groups": {
       "description": "Experimental promise type to manage local user groups",
       "dependencies": ["library-for-promise-types-in-python"],
-      "subdirectory": "promise-types/groups/",
+      "subdirectory": "promise-types/groups",
       "steps": [
         "copy groups.py modules/promises/",
         "append enable.cf services/init.cf"
@@ -73,7 +73,7 @@
     "promise-type-systemd": {
       "description": "Promise type to manage systemd services",
       "dependencies": ["library-for-promise-types-in-python"],
-      "subdirectory": "promise-types/systemd/",
+      "subdirectory": "promise-types/systemd",
       "steps": [
         "copy systemd.py modules/promises/",
         "append enable.cf services/init.cf"
@@ -91,7 +91,7 @@
     "inventory-unshadowed-users": {
       "description": "Adds reporting data (inventory) on local users in /etc/passwd not using /etc/shadow for their password.",
       "dependencies": ["library-parsed-local-users"],
-      "subdirectory": "security/inventory-unshadowed-users/",
+      "subdirectory": "security/inventory-unshadowed-users",
       "steps": [
         "copy policy/main.cf services/cfbs/inventory-unshadowed-users/",
         "policy_files services/cfbs/inventory-unshadowed-users/",
@@ -100,7 +100,7 @@
     },
     "delete-home-dotshosts": {
       "description": "Ensure that ~/.shosts files are not present, as they present a security risk",
-      "subdirectory": "security/delete-home-dotshots/",
+      "subdirectory": "security/delete-home-dotshots",
       "steps": [
         "copy policy/main.cf services/cfbs/delete-home-dotshots/",
         "policy_files services/cfbs/delete-home-dotshots/",
