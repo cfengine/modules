@@ -88,14 +88,14 @@
         "policy_files services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf"
       ]
     },
-    "inventory-local-users-unhashed-password": {
-      "description": "Inventory local users not using hashed passwords.",
+    "inventory-unshadowed-users": {
+      "description": "Inventory local users in /etc/passwd not using /etc/shadow for their password",
       "dependencies": ["library-parsed-local-users"],
-      "subdirectory": "security/inventory-local-users-unhashed-password/",
+      "subdirectory": "security/inventory-unshadowed-users/",
       "steps": [
-        "copy policy/main.cf services/cfbs/inventory-local-users-unhashed-password/",
-        "policy_files services/cfbs/inventory-local-users-unhashed-password/",
-        "bundles inventory_local_users_unhashed_password:main"
+        "copy policy/main.cf services/cfbs/inventory-unshadowed-users/",
+        "policy_files services/cfbs/inventory-unshadowed-users/",
+        "bundles inventory_unshadowed_users:main"
       ]
     },
     "delete-home-dotshosts": {
