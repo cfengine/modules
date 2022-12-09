@@ -3,12 +3,12 @@ This file is readable by different users on the system to allow them to look up 
 
 Historically, this file contained passwords, in plaintext even, for early versions of UNIX.
 Passwords should never be stored in plaintext, and this security issue was addressed by
-by replacing them with encrypted / hashed passwords (different algorithms have been used).
+replacing them with encrypted / hashed passwords (different algorithms have been used).
 
 Even then, since the `/etc/passwd` file is readable by other users, an attacker could see the hashes and perform an offline brute force attack.
 To prevent this, a new file was introduced, `/etc/shadow`, containing users passwords.
 This file could have more restrictive permissions, preventing users from seeing each others password hashes.
-The passwords in the second column of the `/etc/passwd` file were replaced by `x`, indicating `/etc/passwd` is used.
+The passwords in the second column of the `/etc/passwd` file were replaced by `x`, indicating `/etc/shadow` is used.
 
 Other possible values for the password field are: empty field (user can log in without a password), `*` or `!` (account does not have a password and no password will access the account).
 Any value other than `x` is considered insecure as `/etc/shadow` is not used.
