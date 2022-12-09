@@ -39,8 +39,8 @@ starfield:*:9992:9992:testb:/home/starfield:/sbin/nologin
 EOF'
 $ sudo cf-agent -K --show-evaluated-vars=inventory_unshadowed_users:main
 Variable name                            Variable value                                               Meta tags                                Comment
-inventory_unshadowed_users:main.inventory[emptyfield] emptyfield                                                   source=promise,inventory,attribute_name=Local users not using hashed password Inventory of local user who is not using a hashed password (lacks 'x' in second field of '/etc/passwd').
-inventory_unshadowed_users:main.inventory[starfield] starfield                                                    source=promise,inventory,attribute_name=Local users not using hashed password Inventory of local user who is not using a hashed password (lacks 'x' in second field of '/etc/passwd').
+inventory_unshadowed_users:main.inventory[emptyfield] emptyfield                                                   source=promise,inventory,attribute_name=Local users not using shadowed password Inventory of local user who is not using a shadowed password (lacks 'x' in second field of '/etc/passwd').
+inventory_unshadowed_users:main.inventory[starfield] starfield                                                    source=promise,inventory,attribute_name=Local users not using shadowed password Inventory of local user who is not using a shadowed password (lacks 'x' in second field of '/etc/passwd').
 ```
 
 **Note:** We initially published this module and described it as ensuring users are not using unhashed passwords.
