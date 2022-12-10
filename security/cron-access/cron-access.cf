@@ -1,0 +1,30 @@
+body file control
+{
+  inputs => { "$(sys.libdir)/stdlib.cf" };
+}
+
+bundle agent cron_access
+# Based on the OpenSCAP Security Guide for Ubuntu 22.04::
+# https://static.open-scap.org/ssg-guides/ssg-ubuntu2204-guide-cis_level1_server.html#!
+{
+  vars:
+    "directories"
+      slist => {
+        "/etc/cron.d/.",
+        "/etc/cron.hourly/.",
+        "/etc/cron.daily/.",
+        "/etc/cron.weekly/.",
+        "/etc/cron.monthly/.",
+      };
+
+  files:
+    "$(directories)"
+      perms => mog("700", "root", "root"),
+      if => fileexists("$(this.promiser)");
+    "/etc/cron.allow"
+      perms => mog("640", "root", "root"),
+      if => fileexists("$(this.promiser)");
+    "/etc/crontab"
+      perms => mog("600", "root", "root"),
+      if => fileexists("$(this.promiser)");
+}
