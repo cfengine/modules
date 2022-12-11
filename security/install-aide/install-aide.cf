@@ -1,0 +1,22 @@
+bundle agent install_aide
+# @brief Makes sure the AIDE package is installed on the system.
+# Based on the OpenSCAP Security Guide for Ubuntu 22.04:
+# https://static.open-scap.org/ssg-guides/ssg-rhel7-guide-anssi_nt28_minimal.html
+# CFEngine policy based on this module:
+# https://build.cfengine.com/modules/uninstall-ftp/
+{
+  vars:
+    redhat|suse::
+      "pkg_name" slist => { "aide" }; # Name in yum
+    debian::
+      "pkg_name" slist => { "aide" }; # name in apt
+
+  packages:
+      "${pkg_name}" -> { "CCE-27096-7" }
+        policy => "present",
+        if => isvariable("pkg_name");
+
+  reports:
+      "warning: aide package name not known for this platform"
+        unless => isvariable("pkg_name");
+}
