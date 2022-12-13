@@ -1,0 +1,22 @@
+bundle agent maintainers_in_motd
+{
+  classes:
+    linux::
+      "has_maintainer" or => {
+        isvariable("data:variables.maintainer"),
+        isvariable("data:variables.maintainer_email")
+      };
+
+  vars:
+    has_maintainer::
+      "maintainer" string => ifelse(isvariable("data:variables.maintainer"),"${data:variables.maintainer}","");
+      "maintainer_email" string => ifelse(isvariable("data:variables.maintainer_email"),"(${data:variables.maintainer_email})", "(email missing)");
+      "purpose" string => ifelse(isvariable("data:variables.purpose"),"${data:variables.purpose}", "unspecified");
+      "message" string => "::: use this machine for ${purpose}, contact ${maintainer}${maintainer_email} with any questions/issues. :::";
+
+  files:
+    has_maintainer::
+      "/etc/motd"
+        create => "true",
+        edit_line => replace_or_add(":::.*:::", "${message}");
+}
