@@ -43,6 +43,15 @@
       "subdirectory": "libraries/python",
       "steps": ["copy cfengine.py modules/promises/"]
     },
+    "maintainers-in-motd": {
+      "description": "Add maintainer and purpose information from CMDB to /etc/motd",
+      "subdirectory": "security/maintainers-in-motd",
+      "steps": [
+        "copy ./maintainers-in-motd.cf services/cfbs/modules/maintainers-in-motd.cf",
+        "policy_files services/cfbs/modules/maintainers-in-motd.cf",
+        "bundles maintainers_in_motd"
+      ]
+    },
     "promise-type-ansible": {
       "description": "Promise type to manage systemd services.",
       "dependencies": ["library-for-promise-types-in-python"],
