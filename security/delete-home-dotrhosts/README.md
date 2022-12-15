@@ -1,4 +1,4 @@
-`~/.rhosts` (in each user's home directory) is the user equivalent of to `/etc/hosts.equiv`. it contains a list of host-user combinations.
+`~/.rhosts` (in each user's home directory) is the user equivalent of to `/etc/hosts.equiv`. It contains a list of host-user combinations.
 If a host-user combination is present in the file the listed user is authorized to log in remotely from the associated host without further authentication.
 
 The global `/etc/hosts.equiv` (controlled by an administrator) is preferable to allowing _any_ user the ability to grant access to other users.
