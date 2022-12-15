@@ -1,0 +1,75 @@
+body file control
+{
+    namespace => "delete_home_dotrhosts";
+}
+
+bundle agent main
+# @var delete_home_dotrhosts:main.exception String documenting necessary information about exception for this host.
+# @var delete_home_dotrhosts:main.home_dir_roots list of home directory roots (defaults to /home). Note: /root/.rhosts is always checked.
+# @inventory ~/.rhosts list of ~.rhosts files found.
+# @inventory ~/.rhosts Exception The string defined that records the details about why a host has an exception for this policy.
+{
+
+  classes:
+    "dotrhosts_management_disabled"
+      or => {
+        "data:exception_delete_home_dotrhosts",
+        "default:exception_delete_home_dotrhosts",
+        "delete_home_dotrhosts:exception_delete_home_dotrhosts",
+        isvariable("delete_home_dotrhosts:main.exception"),
+      };
+
+  vars:
+    dotrhosts_management_disabled::
+      "exception" # Fill in exception reason if missing (class was used)
+        string => "Unknown reason",
+        if => not(isvariable("delete_home_dotrhosts:main.exception"));
+
+    !default:windows::
+
+      # /home and /root are common default home dir roots, but it's not uncommon
+      # to have other home dir roots
+
+      "home_dir_roots"
+        slist => { "/home" },
+        meta => { "noreport" },
+        if => not( isvariable( "home_dir_roots" ));
+
+    # Find .rhosts files in the root of peoples home directories.
+      "_found[$(home_dir_roots)]"
+        slist => findfiles( "$(home_dir_roots)/*/.rhosts" ),
+        if => isdir( $(home_dir_roots) );
+      "_found[/root]"
+        slist => { "/root/.rhosts" },
+        if => fileexists( "/root/.rhosts" );
+
+      "_found"
+        slist => getvalues( _found );
+
+      # We inventory the found files so that we easily know where they are.
+      # This way, even hosts with exceptions will report the inventory, but not
+      # have them removed.
+      #
+      # Why not inventory the _found list?
+      # - Because if the list is too long (~4k) it will get truncated.
+      # - In an associative array, each key is an independent variable,
+      #   so it's much less likely to hit the truncation limit.
+      "inv_found[$(_found)]"
+        string => "$(_found)",
+        meta => { "inventory", "attribute_name=~/.rhosts files" };
+
+      "inv_exception"
+        string => "$(exception)",
+        if => isvariable( "exception" ),
+        meta => { "inventory", "attribute_name=~/.rhosts exception reason" };
+
+  files:
+    !dotrhosts_management_disabled.!default:windows::
+      "$(_found)"
+        delete => default:tidy;
+
+  reports:
+    dotrhosts_management_disabled.(default:inform_mode|default:verbose_mode)::
+      "Found $(with), but not removing because of exception: $(exception)"
+        with => join( ", ", _found );
+}

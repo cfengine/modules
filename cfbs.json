@@ -107,6 +107,15 @@
         "bundles inventory_unshadowed_users:main"
       ]
     },
+    "delete-home-dotrhosts": {
+      "description": "Ensure that ~/.rhosts files are not present, as they present a security risk.",
+      "subdirectory": "security/delete-home-dotrhosts",
+      "steps": [
+        "copy policy/main.cf services/cfbs/delete-home-dotrhosts/",
+        "policy_files services/cfbs/delete-home-dotrhosts/",
+        "bundles delete_home_dotrhosts:main"
+      ]
+    },
     "delete-home-dotshosts": {
       "description": "Ensure that ~/.shosts files are not present, as they present a security risk.",
       "subdirectory": "security/delete-home-dotshots",
