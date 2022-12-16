@@ -1,0 +1,33 @@
+bundle agent uninstall_xinetd
+# @brief Makes sure the xinetd packages are not installed on the system.
+# Based on the OpenSCAP Security Guide for RHEL 7:
+# https://static.open-scap.org/ssg-guides/ssg-rhel7-guide-anssi_nt28_minimal.html
+# CFEngine policy based on this module:
+# https://build.cfengine.com/modules/uninstall-ftp/
+{
+  vars:
+    redhat|suse::
+      "pkg_name" slist => { "xinetd" }; # Name in yum
+    debian::
+      "pkg_name" slist => { "xinetd" }; # name in apt
+
+  classes:
+      "xinetd_allowed"
+        or => {
+          "hardening_xinetd_allowed",
+          "data:hardening_xinetd_allowed",
+          "exception_uninstall_xinetd",
+          "data:exception_uninstall_xinetd",
+        };
+
+  packages:
+    !xinetd_allowed::
+      "${pkg_name}" -> { "CCE-27354-0" }
+        policy => "absent",
+        if => isvariable("pkg_name");
+
+  reports:
+    !xinetd_allowed::
+      "warning: xinetd package name not known for this platform"
+        unless => isvariable("pkg_name");
+}
