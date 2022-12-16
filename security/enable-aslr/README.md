@@ -30,5 +30,5 @@ $ cf-agent -KI
 ## Adding exceptions
 
 If ASLR cannot be enabled for some reason, you can add an exception with the `exception_enable_aslr` class.
-This class can be set from the **Host specific data** section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.
+This class can be set within `def.json` ([Augments](https://docs.cfengine.com/docs/master/reference-language-concepts-augments.html)), from policy, or in the **Host specific data** section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.
 

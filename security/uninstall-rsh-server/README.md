@@ -29,7 +29,7 @@ Run or Save the report and see which hosts in your environment have `rsh-server`
 If you try installing the package and running the agent with this module, you should see it get uninstalled:
 
 ```
-$ sudo apt install rsh-server
+$ apt install rsh-server
 $ cf-agent -KI
     info: Successfully removed package 'rsh-server'
 ```
@@ -37,4 +37,4 @@ $ cf-agent -KI
 ## Adding exceptions
 
 If this package is really needed on some hosts, you can add an exception with the `exception_uninstall_rsh_server` class.
-This class can be set from the **Host specific data** section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.
+This class can be set within `def.json` ([Augments](https://docs.cfengine.com/docs/master/reference-language-concepts-augments.html)), from policy, or in the **Host specific data** section in host info pages inside Mission Portal, the CFEngine Enterprise Web UI.

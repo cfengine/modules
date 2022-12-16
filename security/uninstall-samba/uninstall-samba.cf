@@ -1,0 +1,33 @@
+bundle agent uninstall_samba
+# @brief Makes sure the samba packages are not installed on the system.
+# Based on the OpenSCAP Security Guide for RHEL 7:
+# https://static.open-scap.org/ssg-guides/ssg-rhel7-guide-anssi_nt28_minimal.html
+# CFEngine policy based on this module:
+# https://build.cfengine.com/modules/uninstall-ftp/
+{
+  vars:
+    redhat|suse::
+      "pkg_name" slist => { "samba" }; # Name in yum
+    debian::
+      "pkg_name" slist => { "samba" }; # name in apt
+
+  classes:
+      "samba_allowed"
+        or => {
+          "hardening_samba_allowed",
+          "data:hardening_samba_allowed",
+          "exception_uninstall_samba",
+          "data:exception_uninstall_samba",
+        };
+
+  packages:
+    !samba_allowed::
+      "${pkg_name}"
+        policy => "absent",
+        if => isvariable("pkg_name");
+
+  reports:
+    !samba_allowed::
+      "warning: samba package name not known for this platform"
+        unless => isvariable("pkg_name");
+}
