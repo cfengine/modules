@@ -10,10 +10,12 @@ Explicitly define hosts which are DNS servers and thus need the `bind` package.
 If you try installing the package and running the agent with this module, you should see it get uninstalled:
 
 ```
-$ apt install bind
+$ yum install bind
 $ cf-agent -KI
     info: Successfully removed package 'bind'
 ```
+
+**Hint:** On Debian / `apt`-based machines, the package is sometimes called `bind9`.
 
 ## Adding exceptions
 
