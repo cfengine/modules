@@ -1,0 +1,33 @@
+bundle agent uninstall_dovecot
+# @brief Makes sure the dovecot packages are not installed on the system.
+# Based on the OpenSCAP Security Guide for RHEL 7:
+# https://static.open-scap.org/ssg-guides/ssg-rhel7-guide-anssi_nt28_minimal.html
+# CFEngine policy based on this module:
+# https://build.cfengine.com/modules/uninstall-ftp/
+{
+  vars:
+    redhat|suse::
+      "pkg_name" slist => { "dovecot" }; # Name in yum
+    debian::
+      "pkg_name" slist => { "dovecot-core" }; # name in apt
+
+  classes:
+      "dovecot_allowed"
+        or => {
+          "hardening_dovecot_allowed",
+          "data:hardening_dovecot_allowed",
+          "exception_uninstall_dovecot",
+          "data:exception_uninstall_dovecot",
+        };
+
+  packages:
+    !dovecot_allowed::
+      "${pkg_name}"
+        policy => "absent",
+        if => isvariable("pkg_name");
+
+  reports:
+    !dovecot_allowed::
+      "warning: dovecot package name not known for this platform"
+        unless => isvariable("pkg_name");
+}
