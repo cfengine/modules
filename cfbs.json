@@ -88,6 +88,41 @@
         "append enable.cf services/init.cf"
       ]
     },
+    "uninstall-packages": {
+      "description": "Allows you to specify a list of packages you want uninstalled on your hosts.",
+      "subdirectory": "security/uninstall-packages",
+      "input": [
+        {
+          "type": "list",
+          "variable": "package_names",
+          "namespace": "uninstall_packages",
+          "bundle": "uninstall_packages",
+          "label": "Packages to uninstall",
+          "subtype": [
+            {
+              "key": "name",
+              "type": "string",
+              "label": "Package name",
+              "question": "Package name"
+            },
+            {
+                "key": "why",
+                "type": "string",
+                "label": "Why",
+                "question": "Why should this package be uninstalled?",
+                "default": "Unknown"
+            }
+          ],
+          "while": "Do you want to specify more packages to be uninstalled?"
+        }
+      ],
+      "steps": [
+          "copy uninstall-packages.cf services/cfbs/modules/uninstall-packages/uninstall-packages.cf",
+          "input uninstall-packages/input.json def.json",
+          "bundles uninstall_packages:uninstall_packages",
+          "policy_files services/cfbs/modules/uninstall-packages/uninstall-packages.cf"
+      ]
+    },
     "uninstall-rsh-server": {
       "description": "Ensure the remote shell (rsh) server package is not installed on the system.",
       "subdirectory": "security/uninstall-rsh-server",
