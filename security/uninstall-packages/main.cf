@@ -1,0 +1,16 @@
+body file control
+{
+  namespace => "uninstall_packages";
+}
+
+bundle agent uninstall_packages
+{
+  vars:
+    "i"
+      slist => getindices(package_names);
+
+  packages:
+    "$(package_names[$(i)][name])"
+      policy => "absent",
+      comment => "$(package_names[$(i)][why])";
+}
