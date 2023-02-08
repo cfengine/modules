@@ -3,7 +3,6 @@
 ## Synopsis
 
 * *Name*: `systemd`
-* *Version*: `0.1.2`
 * *Description*: Create and manage services using systemd
 
 ## Requirements
