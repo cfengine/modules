@@ -9,7 +9,7 @@ from cfengine import PromiseModule, ValidationError, Result
 class GitPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(GitPromiseTypeModule, self).__init__(
-            "git_promise_module", "0.1.2", **kwargs
+            "git_promise_module", "0.2.2", **kwargs
         )
 
         def destination_must_be_absolute(v):
@@ -42,7 +42,7 @@ class GitPromiseTypeModule(PromiseModule):
         self.add_attribute("update", bool, default=True)
         self.add_attribute("version", str, default="HEAD")
 
-    def evaluate_promise(self, promiser: str, attributes: Dict):
+    def evaluate_promise(self, promiser: str, attributes: Dict, meta: Dict):
         safe_promiser = promiser.replace(",", "_")
         attributes.setdefault("destination", promiser)
         model = self.create_attribute_object(promiser, attributes)
