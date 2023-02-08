@@ -73,7 +73,7 @@ if ANSIBLE_AVAILABLE:
 class AnsiblePromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(AnsiblePromiseTypeModule, self).__init__(
-            "ansible_promise_module", "0.1.1", **kwargs
+            "ansible_promise_module", "0.2.1", **kwargs
         )
 
         def must_be_absolute(v):
@@ -98,12 +98,12 @@ class AnsiblePromiseTypeModule(PromiseModule):
         safe_promiser = promiser.replace(",", "_")
         return (safe_promiser, attributes)
 
-    def validate_promise(self, promiser: str, attributes: Dict):
+    def validate_promise(self, promiser: str, attributes: Dict, meta: Dict):
         if not ANSIBLE_AVAILABLE:
             raise ValidationError("Ansible Python module not available")
 
     def evaluate_promise(
-        self, safe_promiser: str, attributes: Dict
+        self, safe_promiser: str, attributes: Dict, meta: Dict
     ) -> Tuple[str, List[str]]:
         model = self.create_attribute_object(safe_promiser, attributes)
 

@@ -117,7 +117,7 @@ class IptablesPromiseTypeModule(PromiseModule):
     }
 
     def __init__(self, **kwargs):
-        super().__init__("iptables_promise_module", "0.1.2", **kwargs)
+        super().__init__("iptables_promise_module", "0.2.2", **kwargs)
 
         def must_be_one_of(items) -> Callable:
             def validator(v):
@@ -159,7 +159,7 @@ class IptablesPromiseTypeModule(PromiseModule):
         self.add_attribute("rules", dict)
         self.add_attribute("executable", str, default="iptables")
 
-    def validate_promise(self, promiser: str, attributes: dict):
+    def validate_promise(self, promiser: str, attributes: dict, meta: dict):
         command = attributes["command"]
 
         denied_attrs = self._collect_denied_attributes_of_command(command, attributes)
@@ -182,7 +182,7 @@ class IptablesPromiseTypeModule(PromiseModule):
         if command != "flush" and attributes.get("chain") == "ALL":
             raise ValidationError("Chain 'ALL' is only available for command 'flush'")
 
-    def evaluate_promise(self, promiser: str, attributes: dict):
+    def evaluate_promise(self, promiser: str, attributes: dict, meta: dict):
         safe_promiser = promiser.replace(",", "_")
 
         model = Model(

@@ -1,0 +1,7 @@
+* CFEngine Python promise types library
+
+A library for CFEngine custom promise types implemented in Python. It provides
+the =PromiseModule= base class and many helper values and mechanisms that
+facilitates creation of custom promises.
+
+See [[https://github.com/cfengine/modules/blob/master/examples/git-using-lib/git_using_lib.py][examples/git-using-lib]] for an example of how this library can be used.
