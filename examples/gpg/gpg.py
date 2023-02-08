@@ -48,7 +48,7 @@ from cfengine import PromiseModule, ValidationError, Result
 
 class GpgKeysPromiseTypeModule(PromiseModule):
     def __init__(self):
-        super().__init__("gpg_keys_promise_module", "0.0.1")
+        super().__init__("gpg_keys_promise_module", "0.0.2")
 
     def gpg_import_ascii(self, homedir, ascii):
         with Popen(
@@ -103,7 +103,7 @@ class GpgKeysPromiseTypeModule(PromiseModule):
                 proc.communicate()
                 self.log_error(f"Timed out querying for gpg key '{user_id}'")
 
-    def validate_promise(self, promiser, attributes):
+    def validate_promise(self, promiser, attributes, meta):
         if not promiser.startswith("/"):
             raise ValidationError(
                 f"Promiser '{promiser}' for 'gpg_keys' promise must be an absolute path"
@@ -113,7 +113,7 @@ class GpgKeysPromiseTypeModule(PromiseModule):
                 f"Required attribute 'keylist' missing for 'gpg_keys' promise"
             )
 
-    def evaluate_promise(self, promiser, attributes):
+    def evaluate_promise(self, promiser, attributes, meta):
         keylist_json = self.clean_storejson_output(attributes["keylist"])
         self.log_verbose(f"keylist_json is '{keylist_json}'")
 

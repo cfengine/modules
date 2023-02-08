@@ -5,10 +5,10 @@ from cfengine import PromiseModule, ValidationError, Result
 
 class RssPromiseTypeModule(PromiseModule):
     def __init__(self):
-        super().__init__("rss_promise_module", "0.0.2")
+        super().__init__("rss_promise_module", "0.0.3")
 
 
-    def validate_promise(self, promiser, attributes):
+    def validate_promise(self, promiser, attributes, meta):
         # check promiser type
         if type(promiser) is not str:
             raise ValidationError("invalid type for promiser: expected string")
@@ -43,7 +43,7 @@ class RssPromiseTypeModule(PromiseModule):
                 raise ValidationError(f"Invalid value '{select}' for attribute select: must be newest, oldest or random")
 
 
-    def evaluate_promise(self, promiser, attributes):
+    def evaluate_promise(self, promiser, attributes, meta):
         # get attriute feed
         feed = attributes['feed']
 
