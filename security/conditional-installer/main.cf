@@ -13,7 +13,7 @@ bundle agent main
     # Mock data, should be based on input:
     # "packages_to_uninstall"
     #   string => 'talk,talk-server,telnet,telnet-server';
-# 
+    # 
     # "packages_to_install"
     #   data => '[
     #     {"packages": "talk,talk-server", "condition": "any", "why": ""},
