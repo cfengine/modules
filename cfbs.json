@@ -13,6 +13,55 @@
       "subdirectory": "reporting/client-initiated-reporting",
       "steps": ["json def.json def.json"]
     },
+    "conditional-installer": {
+      "description": "Allows you to specify packages you want installed and conditions for where you want them installed, as well as a list of packages you generally want uninstalled.",
+      "subdirectory": "security/conditional-installer",
+      "input": [
+        {
+          "type": "string",
+          "variable": "packages_to_uninstall",
+          "namespace": "conditional_installer",
+          "bundle": "conditional_installer",
+          "label": "Uninstall",
+          "question": "Which package(s) would you like to be uninstalled?"
+        },
+        {
+          "type": "list",
+          "variable": "packages_to_install",
+          "namespace": "conditional_installer",
+          "bundle": "conditional_installer",
+          "label": "Install",
+          "subtype": [
+            {
+              "key": "name",
+              "type": "string",
+              "label": "Package(s)",
+              "question": "Package(s) to install"
+            },
+            {
+              "key": "condition",
+              "type": "string",
+              "label": "Condition",
+              "question": "Condition for where to install"
+            },
+            {
+              "key": "why",
+              "type": "string",
+              "label": "Why",
+              "question": "Why?",
+              "default": "Unknown"
+            }
+          ],
+          "while": "Do you want to specify more packages to be installed?"
+        }
+      ],
+      "steps": [
+        "copy main.cf services/cfbs/modules/conditional-installer/main.cf",
+        "input conditional-installer/input.json def.json",
+        "bundles conditional_installer:main",
+        "policy_files services/cfbs/modules/conditional-installer/main.cf"
+      ]
+    },
     "demo": {
       "description": "Enables convenient and insecure settings for demoing CFEngine.",
       "subdirectory": "management/demo",
@@ -106,21 +155,21 @@
               "question": "Package name"
             },
             {
-                "key": "why",
-                "type": "string",
-                "label": "Why",
-                "question": "Why should this package be uninstalled?",
-                "default": "Unknown"
+              "key": "why",
+              "type": "string",
+              "label": "Why",
+              "question": "Why should this package be uninstalled?",
+              "default": "Unknown"
             }
           ],
           "while": "Do you want to specify more packages to be uninstalled?"
         }
       ],
       "steps": [
-          "copy uninstall-packages.cf services/cfbs/modules/uninstall-packages/uninstall-packages.cf",
-          "input uninstall-packages/input.json def.json",
-          "bundles uninstall_packages:uninstall_packages",
-          "policy_files services/cfbs/modules/uninstall-packages/uninstall-packages.cf"
+        "copy uninstall-packages.cf services/cfbs/modules/uninstall-packages/uninstall-packages.cf",
+        "input uninstall-packages/input.json def.json",
+        "bundles uninstall_packages:uninstall_packages",
+        "policy_files services/cfbs/modules/uninstall-packages/uninstall-packages.cf"
       ]
     },
     "uninstall-rsh-server": {

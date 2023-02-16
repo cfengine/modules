@@ -1,0 +1,60 @@
+body file control
+{
+  namespace => "conditional_installer";
+}
+
+bundle agent main
+{
+  classes:
+    "enabled"
+      if => and(isvariable(packages_to_install), isvariable(packages_to_uninstall));
+
+  vars:
+    # Mock data, should be based on input:
+    # "packages_to_uninstall"
+    #   string => 'talk,talk-server,telnet,telnet-server';
+    # 
+    # "packages_to_install"
+    #   data => '[
+    #     {"packages": "talk,talk-server", "condition": "any", "why": ""},
+    #     {"packages": "telnet", "condition": "telnet_test_machine", "why": ""}
+    #   ]';
+    enabled::
+      # Determine packages to install:
+      "i"
+        slist => getindices(packages_to_install);
+      "_packages_to_install_lists[$(i)]"
+        slist => string_split("$(packages_to_install[$(i)][packages])", ",", 100),
+        if => "$(packages_to_install[$(i)][condition])",
+        comment => "$(packages_to_install[$(i)][why])";
+      "_packages_to_install"
+        slist => getvalues(_packages_to_install_lists);
+
+      # Determine packages to uninstall:
+      "_packages_to_uninstall_unfiltered"
+        slist => string_split("$(packages_to_uninstall)", ",", 100);
+  
+      "_packages_to_uninstall"
+        slist => difference(
+          _packages_to_uninstall_unfiltered,
+          _packages_to_install
+        );
+
+  packages:
+    enabled::
+      "$(_packages_to_uninstall)"
+        policy => "absent";
+      "$(_packages_to_install)"
+        policy => "present";
+}
+
+body file control
+{
+  namespace => "default";
+}
+
+bundle agent __main__
+{
+  methods:
+    "conditional_installer:main";
+}
