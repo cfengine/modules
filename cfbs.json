@@ -21,7 +21,7 @@
           "type": "string",
           "variable": "packages_to_uninstall",
           "namespace": "conditional_installer",
-          "bundle": "conditional_installer",
+          "bundle": "main",
           "label": "Uninstall",
           "question": "Which package(s) would you like to be uninstalled?"
         },
@@ -29,11 +29,11 @@
           "type": "list",
           "variable": "packages_to_install",
           "namespace": "conditional_installer",
-          "bundle": "conditional_installer",
+          "bundle": "main",
           "label": "Install",
           "subtype": [
             {
-              "key": "name",
+              "key": "packages",
               "type": "string",
               "label": "Package(s)",
               "question": "Package(s) to install"
