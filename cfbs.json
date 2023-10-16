@@ -57,7 +57,7 @@
       ],
       "steps": [
         "copy main.cf services/cfbs/modules/conditional-installer/main.cf",
-        "input conditional-installer/input.json def.json",
+        "input ./input.json def.json",
         "bundles conditional_installer:main",
         "policy_files services/cfbs/modules/conditional-installer/main.cf"
       ]
