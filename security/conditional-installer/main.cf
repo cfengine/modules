@@ -13,7 +13,7 @@ bundle agent main
     # Mock data, should be based on input:
     # "packages_to_uninstall"
     #   string => 'talk,talk-server,telnet,telnet-server';
-    # 
+    #
     # "packages_to_install"
     #   data => '[
     #     {"packages": "talk,talk-server", "condition": "any", "why": ""},
@@ -33,7 +33,7 @@ bundle agent main
       # Determine packages to uninstall:
       "_packages_to_uninstall_unfiltered"
         slist => string_split("$(packages_to_uninstall)", ",", 100);
-  
+
       "_packages_to_uninstall"
         slist => difference(
           _packages_to_uninstall_unfiltered,
