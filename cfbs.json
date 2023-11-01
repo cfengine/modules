@@ -8,6 +8,16 @@
       "subdirectory": "management/autorun",
       "steps": ["json def.json def.json"]
     },
+    "autorun-bundles": {
+      "description": "Enable automatic execution of bundles tagged 'autorun'.",
+      "subdirectory": "management/autorun-bundles",
+      "steps": ["json def.json def.json"]
+    },
+    "autorun-inputs": {
+      "description": "Enable automatic loading of policy files in 'services/autorun/'.",
+      "subdirectory": "management/autorun-inputs",
+      "steps": ["json def.json def.json"]
+    },
     "client-initiated-reporting": {
       "description": "Enable client initiated reporting and disable pull collection.",
       "subdirectory": "reporting/client-initiated-reporting",
