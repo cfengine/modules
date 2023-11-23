@@ -1,0 +1,6 @@
+{
+  "variables": {
+    "default:def.control_server_allowconnects": ["0.0.0.0/0", "::/0"],
+    "default:def.acl": ["0.0.0.0/0", "::/0"]
+  }
+}
