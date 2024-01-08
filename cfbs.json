@@ -31,6 +31,12 @@
     "conditional-installer": {
       "description": "Allows you to specify packages you want installed and conditions for where you want them installed, as well as a list of packages you generally want uninstalled.",
       "subdirectory": "security/conditional-installer",
+      "steps": [
+        "copy main.cf services/cfbs/modules/conditional-installer/main.cf",
+        "input ./input.json def.json",
+        "bundles conditional_installer:main",
+        "policy_files services/cfbs/modules/conditional-installer/main.cf"
+      ],
       "input": [
         {
           "type": "string",
@@ -69,12 +75,24 @@
           ],
           "while": "Do you want to specify more packages to be installed?"
         }
-      ],
+      ]
+    },
+    "delete-home-dotrhosts": {
+      "description": "Ensure that ~/.rhosts files are not present, as they present a security risk.",
+      "subdirectory": "security/delete-home-dotrhosts",
       "steps": [
-        "copy main.cf services/cfbs/modules/conditional-installer/main.cf",
-        "input ./input.json def.json",
-        "bundles conditional_installer:main",
-        "policy_files services/cfbs/modules/conditional-installer/main.cf"
+        "copy policy/main.cf services/cfbs/delete-home-dotrhosts/",
+        "policy_files services/cfbs/delete-home-dotrhosts/",
+        "bundles delete_home_dotrhosts:main"
+      ]
+    },
+    "delete-home-dotshosts": {
+      "description": "Ensure that ~/.shosts files are not present, as they present a security risk.",
+      "subdirectory": "security/delete-home-dotshots",
+      "steps": [
+        "copy policy/main.cf services/cfbs/delete-home-dotshots/",
+        "policy_files services/cfbs/delete-home-dotshots/",
+        "bundles delete_home_dotshosts:main"
       ]
     },
     "demo": {
@@ -97,6 +115,16 @@
       "subdirectory": "management/every-minute",
       "steps": ["json def.json def.json"]
     },
+    "inventory-unshadowed-users": {
+      "description": "Adds reporting data (inventory) on local users in /etc/passwd not using /etc/shadow for their password.",
+      "subdirectory": "security/inventory-unshadowed-users",
+      "dependencies": ["library-parsed-local-users"],
+      "steps": [
+        "copy policy/main.cf services/cfbs/inventory-unshadowed-users/",
+        "policy_files services/cfbs/inventory-unshadowed-users/",
+        "bundles inventory_unshadowed_users:main"
+      ]
+    },
     "library-for-promise-types-in-bash": {
       "description": "Library enabling promise types implemented in bash.",
       "subdirectory": "libraries/bash",
@@ -118,8 +146,8 @@
     },
     "promise-type-ansible": {
       "description": "Promise type to manage systemd services.",
-      "dependencies": ["library-for-promise-types-in-python"],
       "subdirectory": "promise-types/ansible",
+      "dependencies": ["library-for-promise-types-in-python"],
       "steps": [
         "copy ansible_promise.py modules/promises/",
         "append enable.cf services/init.cf"
@@ -127,8 +155,8 @@
     },
     "promise-type-git": {
       "description": "Promise type to manage git repos.",
-      "dependencies": ["library-for-promise-types-in-python"],
       "subdirectory": "promise-types/git",
+      "dependencies": ["library-for-promise-types-in-python"],
       "steps": [
         "copy git.py modules/promises/",
         "append enable.cf services/init.cf"
@@ -136,8 +164,8 @@
     },
     "promise-type-groups": {
       "description": "Experimental promise type to manage local user groups.",
-      "dependencies": ["library-for-promise-types-in-python"],
       "subdirectory": "promise-types/groups",
+      "dependencies": ["library-for-promise-types-in-python"],
       "steps": [
         "copy groups.py modules/promises/",
         "append enable.cf services/init.cf"
@@ -145,8 +173,8 @@
     },
     "promise-type-systemd": {
       "description": "Promise type to manage systemd services.",
-      "dependencies": ["library-for-promise-types-in-python"],
       "subdirectory": "promise-types/systemd",
+      "dependencies": ["library-for-promise-types-in-python"],
       "steps": [
         "copy systemd.py modules/promises/",
         "append enable.cf services/init.cf"
@@ -155,6 +183,12 @@
     "uninstall-packages": {
       "description": "Allows you to specify a list of packages you want uninstalled on your hosts.",
       "subdirectory": "security/uninstall-packages",
+      "steps": [
+        "copy uninstall-packages.cf services/cfbs/modules/uninstall-packages/uninstall-packages.cf",
+        "input uninstall-packages/input.json def.json",
+        "bundles uninstall_packages:uninstall_packages",
+        "policy_files services/cfbs/modules/uninstall-packages/uninstall-packages.cf"
+      ],
       "input": [
         {
           "type": "list",
@@ -179,12 +213,6 @@
           ],
           "while": "Do you want to specify more packages to be uninstalled?"
         }
-      ],
-      "steps": [
-        "copy uninstall-packages.cf services/cfbs/modules/uninstall-packages/uninstall-packages.cf",
-        "input uninstall-packages/input.json def.json",
-        "bundles uninstall_packages:uninstall_packages",
-        "policy_files services/cfbs/modules/uninstall-packages/uninstall-packages.cf"
       ]
     },
     "uninstall-rsh-server": {
@@ -194,34 +222,6 @@
         "copy uninstall-rsh-server.cf services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf",
         "bundles uninstall_rsh_server",
         "policy_files services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf"
-      ]
-    },
-    "inventory-unshadowed-users": {
-      "description": "Adds reporting data (inventory) on local users in /etc/passwd not using /etc/shadow for their password.",
-      "dependencies": ["library-parsed-local-users"],
-      "subdirectory": "security/inventory-unshadowed-users",
-      "steps": [
-        "copy policy/main.cf services/cfbs/inventory-unshadowed-users/",
-        "policy_files services/cfbs/inventory-unshadowed-users/",
-        "bundles inventory_unshadowed_users:main"
-      ]
-    },
-    "delete-home-dotrhosts": {
-      "description": "Ensure that ~/.rhosts files are not present, as they present a security risk.",
-      "subdirectory": "security/delete-home-dotrhosts",
-      "steps": [
-        "copy policy/main.cf services/cfbs/delete-home-dotrhosts/",
-        "policy_files services/cfbs/delete-home-dotrhosts/",
-        "bundles delete_home_dotrhosts:main"
-      ]
-    },
-    "delete-home-dotshosts": {
-      "description": "Ensure that ~/.shosts files are not present, as they present a security risk.",
-      "subdirectory": "security/delete-home-dotshots",
-      "steps": [
-        "copy policy/main.cf services/cfbs/delete-home-dotshots/",
-        "policy_files services/cfbs/delete-home-dotshots/",
-        "bundles delete_home_dotshosts:main"
       ]
     }
   }
