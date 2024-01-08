@@ -1,0 +1,24 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  unit_tests:
+    name: Run Unit Tests
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - name: Install dependencies
+      run: sudo apt-get update -y && sudo apt-get install -y python
+    - name: Install cfbs
+      run: pip install cfbs
+    - name: Check the status with cfbs
+      run: cfbs status
+    - name: Validate with cfbs
+      run: cfbs validate
+    - name: Check the formatting
+      run: cfbs --check pretty ./cfbs.json
