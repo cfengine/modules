@@ -1,7 +1,7 @@
 {
   "name": "modules",
   "description": "Repository of modules written by the CFEngine team.",
-  "type": "modules",
+  "type": "module",
   "provides": {
     "allow-all-hosts": {
       "description": "Allows all hosts / IP addresses to connect and fetch policy.",
