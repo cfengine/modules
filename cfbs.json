@@ -1,5 +1,5 @@
 {
-  "name": "modules",
+  "name": "modules test",
   "description": "Repository of modules written by the CFEngine team.",
   "type": "module",
   "provides": {
