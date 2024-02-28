@@ -1,22 +1,24 @@
-* http promise type
+The =http= promise type lets you perform HTTP(S) requests from policy.
 
-** Synopsis
+** Example
 
-- /Name/: =http=
-- /Version/: =1.0.0=
-- /Description/: Perform HTTP(S) requests from policy.
+Here is a simple example of downloading an SVG file (with a HTTP GET request):
 
-** Promiser and attributes
-
-The promiser can either be a URL of the request or, if the /url/ attribute is
-used (see below), it can be an arbitrary string. All attributes are optional if
-the URL is specified in the promiser.
+#+BEGIN_SRC cfengine3
+bundle agent __main__
+{
+  http:
+    "https://cfengine.com/images/cfengine-logo.svg"
+      file => "/var/cfengine/cfengine-logo.svg",
+      if => not(fileexists("/var/cfengine/cfengine-logo.svg"));
+}
+#+END_SRC
 
 *** Attributes
 
 | Name       | Type                        | Description                                                                                                                                                      | Mandatory | Default    |
 |------------+-----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------+------------|
-| =url=      | =string=                    | URL or the request (starting with "http://" or "https://")                                                                                                       | No        | /promiser/ |
+| =url=      | =string=                    | URL of the request (starting with "http://" or "https://")                                                                                                       | No        | /promiser/ |
 | =file=     | =string=                    | File system path for where to save the response (body).                                                                                                          | No        | -          |
 | =method=   | =string=                    | HTTP method of the request (GET, POST, PUT, DELETE or PATCH)                                                                                                     | No        | -          |
 | =headers=  | =string=, =slist= or =data= | headers to send with the request (=data= with key-value pairs, =slist= with colon-separated key-value pairs, or =string= with key:value pairs) on separate lines | No        | -          |
@@ -24,6 +26,10 @@ the URL is specified in the promiser.
 | =insecure= | =string=                    | Whether to skip TLS validation of the server's certificate (/"true"/) or not (/"false"/)                                                                         | No        | /"false"/  |
 
 *Note:* if no =file= attribute is provided the request will be sent to =/dev/null=. This is useful for something like a REST API endpoint where all you care about is an OK response (http code between 200 and 300) that results in the promise being =KEPT=
+
+*Note:* The promiser can either be a URL of the request or, if the /url/ attribute is
+used, it can be an arbitrary string. All attributes are optional if
+the URL is specified in the promiser.
 
 ** Result classes
    :PROPERTIES:
@@ -45,24 +51,10 @@ defined in case the response code is not an OK code.
 
 *The promiser is canonified in all the above classes.*
 
-** Examples
-
-#+BEGIN_SRC cfengine3
-bundle agent __main__
-{
-  http:
-    "https://cfengine.com/images/cfengine-logo.svg"
-      file => "/var/cfengine/cfengine-logo.svg",
-      if => not(fileexists("/var/cfengine/cfengine-logo.svg"));
-}
-#+END_SRC
-
 ** Authors
 
-This software was created by the team at [[https://northern.tech][Northern.tech AS]], with many
+This software was created by the team at [[https://northern.tech][Northern.tech]], with many
 contributions from the community. Thanks everyone!
-
-[[https://cfengine.com][CFEngine]] is sponsored by [[https://northern.tech][Northern.tech AS]]
 
 ** Contribute
 

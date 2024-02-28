@@ -1,9 +1,4 @@
-# git promise type
-
-## Synopsis
-
-* *Name*: `git`
-* *Description*: Manage git checkouts of repositories to deploy files or software.
+The `git` promise type enables writing concise policy for cloning a git repo and keeping it updated.
 
 ## Requirements
 
@@ -67,9 +62,8 @@ bundle agent main
 
 ## Authors
 
-This software was created by the team at [Northern.tech AS](https://northern.tech), with many contributions from the community. Thanks everyone!
-
-[CFEngine](https://cfengine.com) is sponsored by [Northern.tech AS](https://northern.tech)
+This software was created by the team at [Northern.tech](https://northern.tech), with many contributions from the community.
+Thanks everyone!
 
 ## Contribute
 

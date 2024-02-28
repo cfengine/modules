@@ -1,9 +1,4 @@
-# Iptables Promise Module
-
-## Synopsis
-- *Name*: `iptables`
-- *Version*: `0.1.2`
-- *Description*: Manage network packet filter rules
+Promise type for managing `iptables` firewall rules.
 
 ## Requirements
 - [`iptables`](https://manpages.ubuntu.com/manpages/precise/en/man8/iptables.8.html) (command line tool)
@@ -221,9 +216,8 @@ All rules added by the iptables custom promise will have a comment  signifing it
 
 ## Authors
 
-This software was created by the team at [Northern.tech AS](https://northern.tech), with many contributions from the community. Thanks everyone!
-
-[CFEngine](https://cfengine.com) is sponsored by [Northern.tech AS](https://northern.tech)
+This software was created by the team at [Northern.tech](https://northern.tech), with many contributions from the community.
+Thanks everyone!
 
 ## Contribute
 
