@@ -20,7 +20,7 @@ class FileInfo:
 
 
 class HTTPPromiseModule(PromiseModule):
-    def __init__(self, name="http_promise_module", version="2.0.0", **kwargs):
+    def __init__(self, name="http_promise_module", version="2.0.1", **kwargs):
         super().__init__(name, version, **kwargs)
 
     def validate_promise(self, promiser, attributes, metadata):

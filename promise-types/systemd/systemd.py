@@ -22,7 +22,7 @@ class SystemdPromiseTypeStates(Enum):
 class SystemdPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(SystemdPromiseTypeModule, self).__init__(
-            "systemd_promise_module", "0.2.2", **kwargs
+            "systemd_promise_module", "0.2.3", **kwargs
         )
 
         def state_must_be_valid(v):
