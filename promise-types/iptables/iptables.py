@@ -281,7 +281,7 @@ class IptablesPromiseTypeModule(PromiseModule):
 
     def _iptables_flush(self, executable, table, chain):
         args = [executable, "-t", table, "-F"]
-        if chain != 'ALL':
+        if chain != "ALL":
             args.append(chain)
         self._run(args)
 
@@ -290,7 +290,7 @@ class IptablesPromiseTypeModule(PromiseModule):
         If chain is specified then only _one_ policy rule will be on top.
         """
         args = [executable, "-t", table, "-S"]
-        if chain != 'ALL':
+        if chain != "ALL":
             args.append(chain)
         return self._run(args)
 
