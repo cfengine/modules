@@ -81,7 +81,7 @@ class SystemdPromiseTypeModule(PromiseModule):
         return (safe_promiser, attributes)
 
     def evaluate_promise(
-        self, safe_promiser: str, attributes: Dict, meta: Dict
+        self, safe_promiser: str, attributes: Dict, metadata: Dict
     ) -> Tuple[str, List[str]]:
         model = self.create_attribute_object(safe_promiser, attributes)
         # get the status of the service

@@ -42,7 +42,7 @@ class GitPromiseTypeModule(PromiseModule):
         self.add_attribute("update", bool, default=True)
         self.add_attribute("version", str, default="HEAD")
 
-    def evaluate_promise(self, promiser: str, attributes: Dict, meta: Dict):
+    def evaluate_promise(self, promiser: str, attributes: Dict, metadata: Dict):
         safe_promiser = promiser.replace(",", "_")
         attributes.setdefault("destination", promiser)
         model = self.create_attribute_object(promiser, attributes)

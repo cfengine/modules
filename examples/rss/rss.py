@@ -8,7 +8,7 @@ class RssPromiseTypeModule(PromiseModule):
         super().__init__("rss_promise_module", "0.0.3")
 
 
-    def validate_promise(self, promiser, attributes, meta):
+    def validate_promise(self, promiser, attributes, metadata):
         # check promiser type
         if type(promiser) is not str:
             raise ValidationError("invalid type for promiser: expected string")
@@ -43,7 +43,7 @@ class RssPromiseTypeModule(PromiseModule):
                 raise ValidationError(f"Invalid value '{select}' for attribute select: must be newest, oldest or random")
 
 
-    def evaluate_promise(self, promiser, attributes, meta):
+    def evaluate_promise(self, promiser, attributes, metadata):
         # get attriute feed
         feed = attributes['feed']
 

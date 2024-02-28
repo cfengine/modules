@@ -23,7 +23,7 @@ class HTTPPromiseModule(PromiseModule):
     def __init__(self, name="http_promise_module", version="2.0.0", **kwargs):
         super().__init__(name, version, **kwargs)
 
-    def validate_promise(self, promiser, attributes, meta):
+    def validate_promise(self, promiser, attributes, metadata):
         if "url" in attributes:
             url = attributes["url"]
             if type(url) != str:
@@ -91,7 +91,7 @@ class HTTPPromiseModule(PromiseModule):
             yield open(os.devnull, "wb")
 
 
-    def evaluate_promise(self, promiser, attributes, meta):
+    def evaluate_promise(self, promiser, attributes, metadata):
         url = attributes.get("url", promiser)
         method = attributes.get("method", "GET")
         headers = attributes.get("headers", dict())

@@ -98,12 +98,12 @@ class AnsiblePromiseTypeModule(PromiseModule):
         safe_promiser = promiser.replace(",", "_")
         return (safe_promiser, attributes)
 
-    def validate_promise(self, promiser: str, attributes: Dict, meta: Dict):
+    def validate_promise(self, promiser: str, attributes: Dict, metadata: Dict):
         if not ANSIBLE_AVAILABLE:
             raise ValidationError("Ansible Python module not available")
 
     def evaluate_promise(
-        self, safe_promiser: str, attributes: Dict, meta: Dict
+        self, safe_promiser: str, attributes: Dict, metadata: Dict
     ) -> Tuple[str, List[str]]:
         model = self.create_attribute_object(safe_promiser, attributes)
 
