@@ -1,11 +1,6 @@
-# groups promise type
+The `groups` promise type helps managing local groups, letting you ensure some users are a part of a group, or excluded from a group, etc.
 
-## Synopsis
-
-* *Name*: `groups`
-* *Version*: `0.1.3`
-* *Description*: Manage local groups.
-* *Note*: This is an experimental version of a promise type, and may be changed in the future.
+**Note**: This is an experimental version of a promise type, and may be changed in the future.
 
 ## Requirements
 
@@ -82,9 +77,8 @@ bundle agent main
 
 ## Authors
 
-This software was created by the team at [Northern.tech AS](https://northern.tech), with many contributions from the community. Thanks everyone!
-
-[CFEngine](https://cfengine.com) is sponsored by [Northern.tech AS](https://northern.tech)
+This software was created by the team at [Northern.tech](https://northern.tech), with many contributions from the community.
+Thanks everyone!
 
 ## Contribute
 

@@ -1,35 +1,6 @@
-# ansible promise module
+The `ansible` promise type allows you to run Ansible playbooks from within CFEngine policy.
 
-## Synopsis
-
-* *Name*: `ansible`
-* *Version*: `0.1.1`
-* *Description*: Run Ansible playbooks
-
-## Requirements
-
-* Ansible >= 2.8.0
-
-## Attributes
-
-| Name | Type | Description| Mandatory | Default |
-| --- | --- | --- | --- | --- |
-| `playbook` | `string` | Absolute path of the Ansible playbook | No | Promiser |
-| `inventory` | `string` | Absolute path of the inventory file | No | - |
-| `limit` | `slist` | List of host names to target | No | `{"localhost"}` |
-| `tags` | `slist` | List of tags to play | No | `{}` |
-| `become` | `boolean` | Set the `become` option | No | `False` |
-| `become_method` | `string` | Set the `become_method` option | No | `"sudo"` |
-| `become_user` | `string` | Set the `become_user` option | No | `root` |
-| `connection` | `string` | Set the `connection` option; possible values: `local`, `ssh` | No | `local` |
-| `forks` | `int` | Set the `forks` option | No | `1` |
-| `private_key_file` | `string` | Absolute path of the SSH private key to use | No | - |
-| `remote_user` | `string` | Set the `remote_user` option | No | `root` |
-
-## Examples
-
-Play the `/northern.tech/playbook.yaml` playbook locally, using `/northern.tech/inventory.yaml`, and limiting
-the execution to the `helloworld` tag:
+For example, you can play the `/northern.tech/playbook.yaml` playbook locally, using `/northern.tech/inventory.yaml`, and limiting the execution to the `helloworld` tag:
 
 ```cfengine3
 bundle agent main
@@ -41,6 +12,28 @@ bundle agent main
       tags       => {"helloworld"};
 }
 ```
+
+## Requirements
+
+* Ansible >= 2.8.0
+
+## Attributes
+
+| Name               | Type      | Description                                                  | Mandatory | Default         |
+| ------------------ | --------- | ------------------------------------------------------------ | --------- | --------------- |
+| `playbook`         | `string`  | Absolute path of the Ansible playbook                        | No        | Promiser        |
+| `inventory`        | `string`  | Absolute path of the inventory file                          | No        | -               |
+| `limit`            | `slist`   | List of host names to target                                 | No        | `{"localhost"}` |
+| `tags`             | `slist`   | List of tags to play                                         | No        | `{}`            |
+| `become`           | `boolean` | Set the `become` option                                      | No        | `False`         |
+| `become_method`    | `string`  | Set the `become_method` option                               | No        | `"sudo"`        |
+| `become_user`      | `string`  | Set the `become_user` option                                 | No        | `root`          |
+| `connection`       | `string`  | Set the `connection` option; possible values: `local`, `ssh` | No        | `local`         |
+| `forks`            | `int`     | Set the `forks` option                                       | No        | `1`             |
+| `private_key_file` | `string`  | Absolute path of the SSH private key to use                  | No        | -               |
+| `remote_user`      | `string`  | Set the `remote_user` option                                 | No        | `root`          |
+
+## Examples
 
 This promise can run ansible over ssh targeting multiple hosts, for example:
 
@@ -64,9 +57,8 @@ bundle agent main
 
 ## Authors
 
-This software was created by the team at [Northern.tech AS](https://northern.tech), with many contributions from the community. Thanks everyone!
-
-[CFEngine](https://cfengine.com) is sponsored by [Northern.tech AS](https://northern.tech)
+This software was created by the team at [Northern.tech](https://northern.tech), with many contributions from the community.
+Thanks everyone!
 
 ## Contribute
 

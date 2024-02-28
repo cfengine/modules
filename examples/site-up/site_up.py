@@ -9,11 +9,11 @@ class SiteUpPromiseTypeModule(PromiseModule):
     def __init__(self):
         super().__init__("site_up_promise_module", "0.0.2")
 
-    def validate_promise(self, promiser, attributes, meta):
+    def validate_promise(self, promiser, attributes, metadata):
         if not self.is_url_valid(promiser):
             raise ValidationError(f"URL '{promiser}' is invalid")
 
-    def evaluate_promise(self, url, attributes, meta):
+    def evaluate_promise(self, url, attributes, metadata):
         ssl_ctx = ssl.create_default_context()
         if (
             "skip_ssl_verification" in attributes

@@ -326,10 +326,10 @@ class PromiseModule:
         _put_response(self._response, self._out, self._record_file)
 
     def _handle_validate(self, promiser, attributes, request):
-        meta = {"promise_type": request.get("promise_type")}
+        metadata = {"promise_type": request.get("promise_type")}
         try:
-            self.validate_attributes(promiser, attributes, meta)
-            returned = self.validate_promise(promiser, attributes, meta)
+            self.validate_attributes(promiser, attributes, metadata)
+            returned = self.validate_promise(promiser, attributes, metadata)
             if returned is None:
                 # Good, expected
                 self._result = Result.VALID
@@ -370,9 +370,9 @@ class PromiseModule:
 
     def _handle_evaluate(self, promiser, attributes, request):
         self._result_classes = None
-        meta = {"promise_type": request.get("promise_type")}
+        metadata = {"promise_type": request.get("promise_type")}
         try:
-            results = self.evaluate_promise(promiser, attributes, meta)
+            results = self.evaluate_promise(promiser, attributes, metadata)
 
             # evaluate_promise should return either a result or a (result, result_classes) pair
             if type(results) == str:
@@ -448,16 +448,16 @@ class PromiseModule:
         """Override if you want to modify promiser or attributes before validate or evaluate"""
         return (promiser, attributes)
 
-    def validate_attributes(self, promiser, attributes, meta):
+    def validate_attributes(self, promiser, attributes, metadata):
         """Override this if you want to prevent automatic validation"""
         return self._validate_attributes(promiser, attributes)
 
-    def validate_promise(self, promiser, attributes, meta):
+    def validate_promise(self, promiser, attributes, metadata):
         """Must override this or use validation through self.add_attribute()"""
         if not self._has_validation_attributes:
             raise NotImplementedError("Promise module must implement validate_promise")
 
-    def evaluate_promise(self, promiser, attributes, meta):
+    def evaluate_promise(self, promiser, attributes, metadata):
         raise NotImplementedError("Promise module must implement evaluate_promise")
 
     def protocol_terminate(self):

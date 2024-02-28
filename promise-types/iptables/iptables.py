@@ -159,7 +159,7 @@ class IptablesPromiseTypeModule(PromiseModule):
         self.add_attribute("rules", dict)
         self.add_attribute("executable", str, default="iptables")
 
-    def validate_promise(self, promiser: str, attributes: dict, meta: dict):
+    def validate_promise(self, promiser: str, attributes: dict, metadata: dict):
         command = attributes["command"]
 
         denied_attrs = self._collect_denied_attributes_of_command(command, attributes)
@@ -182,7 +182,7 @@ class IptablesPromiseTypeModule(PromiseModule):
         if command != "flush" and attributes.get("chain") == "ALL":
             raise ValidationError("Chain 'ALL' is only available for command 'flush'")
 
-    def evaluate_promise(self, promiser: str, attributes: dict, meta: dict):
+    def evaluate_promise(self, promiser: str, attributes: Dict, metadata: Dict):
         safe_promiser = promiser.replace(",", "_")
 
         model = Model(
@@ -281,7 +281,7 @@ class IptablesPromiseTypeModule(PromiseModule):
 
     def _iptables_flush(self, executable, table, chain):
         args = [executable, "-t", table, "-F"]
-        if chain != 'ALL':
+        if chain != "ALL":
             args.append(chain)
         self._run(args)
 
@@ -290,7 +290,7 @@ class IptablesPromiseTypeModule(PromiseModule):
         If chain is specified then only _one_ policy rule will be on top.
         """
         args = [executable, "-t", table, "-S"]
-        if chain != 'ALL':
+        if chain != "ALL":
             args.append(chain)
         return self._run(args)
 

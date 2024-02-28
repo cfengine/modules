@@ -6,11 +6,11 @@ from cfengine import PromiseModule, ValidationError, Result
 
 class GroupsPromiseTypeModule(PromiseModule):
     def __init__(self):
-        super().__init__("groups_promise_module", "0.2.3")
+        super().__init__("groups_promise_module", "0.2.4")
         self._name_regex = re.compile(r"^[a-z_][a-z0-9_-]*[$]?$")
         self._name_maxlen = 32
 
-    def validate_promise(self, promiser, attributes, meta):
+    def validate_promise(self, promiser, attributes, metadata):
         # check promiser value
         if self._name_regex.match(promiser) is None:
             self.log_warning(
@@ -115,7 +115,7 @@ class GroupsPromiseTypeModule(PromiseModule):
                         % (duplicates, promiser)
                     )
 
-    def evaluate_promise(self, promiser, attributes, meta):
+    def evaluate_promise(self, promiser, attributes, metadata):
         # keep track of any repairs or failed repairs
         failed_repairs = 0
         repairs = 0
