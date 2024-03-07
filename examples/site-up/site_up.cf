@@ -1,8 +1,8 @@
 promise agent site_up
 # @brief Define site_up promise type
 {
-        path => "/var/cfengine/modules/promises/site_up.py";
-        interpreter => "/usr/bin/python3.8";
+  path => "/var/cfengine/modules/promises/site_up.py";
+  interpreter => "/usr/bin/python3.8";
 }
 
 bundle agent site_up_autorun
