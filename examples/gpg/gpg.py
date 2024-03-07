@@ -1,4 +1,4 @@
-"""Custom Promise Type module for adding missing gpg keys
+"""Custom promise type module for adding missing gpg keys
 
 Given some GPG user id values (see man page for all possiblities, there are many)
 and the ascii value of a key, ensure that the key is present in the given GPG homedir.
