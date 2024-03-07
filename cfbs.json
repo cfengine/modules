@@ -101,6 +101,11 @@
       "dependencies": ["autorun", "every-minute"],
       "steps": ["json def.json def.json"]
     },
+    "disable-automatic-key-trust": {
+      "description": "Makes the hub / policy server stop accepting new keys automatically.",
+      "subdirectory": "management/disable-automatic-key-trust",
+      "steps": ["json def.json def.json"]
+    },
     "enable-aslr": {
       "description": "Ensure that Address space layout randomization (ASLR) is enabled on the system.",
       "subdirectory": "security/enable-aslr",
