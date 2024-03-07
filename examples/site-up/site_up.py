@@ -7,7 +7,14 @@ from cfengine import PromiseModule, ValidationError, Result
 
 class SiteUpPromiseTypeModule(PromiseModule):
     def __init__(self):
-        super().__init__("site_up_promise_module", "0.0.2")
+        super().__init__("site_up_promise_module", "0.0.3")
+
+    def is_url_valid(self, url):
+        regex = re.compile(
+            r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()!@:%_\+.~#?&\/\/=]*)",
+            re.IGNORECASE,
+        )
+        return re.match(regex, url) is not None
 
     def validate_promise(self, promiser, attributes, metadata):
         if not self.is_url_valid(promiser):
@@ -24,7 +31,7 @@ class SiteUpPromiseTypeModule(PromiseModule):
         error = None
         try:
             code = urllib.request.urlopen(url, context=ssl_ctx).getcode()
-            self.log_info(f"Site '{url}' is UP!")
+            self.log_verbose(f"Site '{url}' is UP!")
             return Result.KEPT
         except urllib.error.HTTPError as e:
             # HTTPError exception returns response code and useful when handling exotic HTTP errors
@@ -38,13 +45,6 @@ class SiteUpPromiseTypeModule(PromiseModule):
         assert error is not None
         self.log_error(error)
         return Result.NOT_KEPT
-
-    def is_url_valid(self, url):
-        regex = re.compile(
-            r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()!@:%_\+.~#?&\/\/=]*)",
-            re.IGNORECASE,
-        )
-        return re.match(regex, url) is not None
 
 
 if __name__ == "__main__":
