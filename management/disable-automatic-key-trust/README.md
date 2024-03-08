@@ -79,7 +79,7 @@ Because of the defaults mentioned above, this is equivalent to:
 }
 ```
 
-Finally, if you want those only those 2 hosts to communicate, and only with those keys they already have, you can do this:
+Finally, if you want only those 2 hosts to communicate, and only with those keys they already have, you can do this:
 
 ```json
 {
