@@ -6,7 +6,7 @@ For example, when federated reporting is enabled on an Enterprise hub, there is 
 R: CFEngine recommends installing gnu parallel on federated reporting superhubs.
 ```
 
-These can be useful, but you may want to disable the functionality to quiet your policy runs. This module facilitates disabling all recommendations by defining `default:cfengine_recommendations_disabled`, it is equivalent to editing the augments file (`/var/cfengine/masterfiles/def.json`) to:
+These can be useful, but you may want to disable the functionality to quiet your policy runs. This module facilitates disabling all recommendations by defining the `default:cfengine_recommendations_disabled` class. Thus it is an equivalent to editing the augments file (`/var/cfengine/masterfiles/def.json`) to:
 
 ```json
 {
