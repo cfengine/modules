@@ -23,6 +23,11 @@
       "subdirectory": "management/autorun-inputs",
       "steps": ["json def.json def.json"]
     },
+    "disable-recommendations": {
+      "description": "Disable all recommendations emitted from the Masterfiles Policy Framework (MPF).",
+      "subdirectory": "management/disable-recommendations",
+      "steps": ["json def.json def.json"]
+    },
     "client-initiated-reporting": {
       "description": "Enable client initiated reporting and disable pull collection.",
       "subdirectory": "reporting/client-initiated-reporting",

@@ -1,0 +1,8 @@
+{
+    "classes": {
+        "default:cfengine_recommendations_disabled": {
+            "class_expressions": [ "any::" ],
+            "comment": "We disabled all recommendations emitted by the MPF to quiet policy output."
+        }
+    }
+}
