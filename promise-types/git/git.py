@@ -160,7 +160,7 @@ class GitPromiseTypeModule(PromiseModule):
                     # checkout the branch, if different from the current one
                     output = self._git(
                         model,
-                        [model.executable, "rev-parse", "--abbrev-re", "HEAD".format()],
+                        [model.executable, "rev-parse", "--abbrev-ref", "HEAD".format()],
                         cwd=model.destination,
                     )
                     detached = False
