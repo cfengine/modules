@@ -39,7 +39,7 @@ def _put_response(data, file, record_file=None):
         record_file.write("> \n")
 
 
-def _would_log(level_set, msg_level):
+def _should_send_log(level_set, msg_level):
     if msg_level not in _LOG_LEVELS:
         # uknown level, assume it would be logged
         return True
@@ -404,7 +404,7 @@ class PromiseModule:
         sys.exit(0)
 
     def _log(self, level, message):
-        if self._log_level is not None and not _would_log(self._log_level, level):
+        if self._log_level is not None and not _should_send_log(self._log_level, level):
             return
 
         # Message can be str or an object which implements __str__()
