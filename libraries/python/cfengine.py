@@ -44,7 +44,13 @@ def _would_log(level_set, msg_level):
         # uknown level, assume it would be logged
         return True
 
-    return _LOG_LEVELS[msg_level] <= _LOG_LEVELS[level_set]
+    # info: log messages are special because they report changes done in promise
+    # evaluation which is important not only for showing to the user, but also
+    # for auditing/changelog and all modules are required to send info: messages
+    # for all REPAIRED promises. A similar logic applies to errors and warnings,
+    # IOW, anything at or above the info level.
+    return ((_LOG_LEVELS[msg_level] <= _LOG_LEVELS["info"]) or
+            (_LOG_LEVELS[msg_level] <= _LOG_LEVELS[level_set]))
 
 
 def _cfengine_type(typing):
