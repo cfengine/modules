@@ -236,16 +236,21 @@ class GitPromiseTypeModule(PromiseModule):
 
     def _git(self, model: object, args: List[str], cwd: Optional[str] = None) -> str:
         self.log_verbose("Run: {cmd}".format(cmd=" ".join(args)))
-        output = (
-            subprocess.check_output(
-                args,
-                env=self._git_envvars(model),
-                cwd=cwd,
-                stderr=subprocess.PIPE,
+        try:
+            output = (
+                subprocess.check_output(
+                    args,
+                    env=self._git_envvars(model),
+                    cwd=cwd,
+                    stderr=subprocess.PIPE,
+                )
+                .strip()
+                .decode("utf-8")
             )
-            .strip()
-            .decode("utf-8")
-        )
+        except UnicodeDecodeError:
+            output = "Could not decode output, just continue"
+            pass
+
         output != "" and self.log_verbose(output)
         return output
 
