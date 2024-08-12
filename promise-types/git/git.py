@@ -192,6 +192,7 @@ class GitPromiseTypeModule(PromiseModule):
                             [
                                 model.executable,
                                 "diff",
+                                "--shortstat",
                                 "..{remote}/{version}".format(
                                     remote=model.remote, version=model.version
                                 ),
@@ -236,21 +237,16 @@ class GitPromiseTypeModule(PromiseModule):
 
     def _git(self, model: object, args: List[str], cwd: Optional[str] = None) -> str:
         self.log_verbose("Run: {cmd}".format(cmd=" ".join(args)))
-        try:
-            output = (
-                subprocess.check_output(
-                    args,
-                    env=self._git_envvars(model),
-                    cwd=cwd,
-                    stderr=subprocess.PIPE,
-                )
-                .strip()
-                .decode("utf-8")
+        output = (
+            subprocess.check_output(
+                args,
+                env=self._git_envvars(model),
+                cwd=cwd,
+                stderr=subprocess.PIPE,
             )
-        except UnicodeDecodeError:
-            output = "Could not decode output, just continue"
-            pass
-
+            .strip()
+            .decode("utf-8")
+        )
         output != "" and self.log_verbose(output)
         return output
 
