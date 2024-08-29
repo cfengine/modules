@@ -1,0 +1,32 @@
+# Technically this is PowerShell Execution Policy, not Windows specific (TODO: s/windows/powershell/)
+# https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.4
+bundle agent powershell_execution_policy_inventory
+{
+  vars:
+    windows::
+      "execution_policy_csv_file" string => "${sys.statedir}${const.dirsep}powershell_execution_policy_list_cache.csv";
+      "execution_policy_list_cache_command" string => "Get-ExecutionPolicy -list | ConvertTo-Csv -notypeinformation | select-object -skip 1 | Set-Content -Path '${execution_policy_csv_file}'";
+      "csv" data => readcsv("${execution_policy_csv_file}");
+      "i" slist => getindices("csv");
+      "execution_policy_${csv[${i}][0]}" string => "${csv[${i}][0]}:${csv[${i}][1]}",
+        meta => { "inventory", "attribute_name=PowerShell Execution Policy" };
+
+  commands:
+    windows::
+      "${execution_policy_list_cache_command}"
+        contain => powershell;
+}
+
+# see link below for valid values for scope and policy
+# https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.4
+# This bundle runs a powershell command: Set-ExecutionPolicy -ExecutionPolicy <policy> -Scope <scope>
+bundle agent powershell_execution_policy_set(scope, desired_policy)
+{
+  classes:
+    "policy_not_ok" expression => returnszero("if((Get-ExecutionPolicy ${scope}) -ne '${desired_policy}'){exit 0}else{exit 1}", "powershell");
+
+  commands:
+    windows.policy_not_ok::
+      "Set-ExecutionPolicy -ExecutionPolicy ${desired_policy} -Scope ${scope}"
+      contain => powershell;
+}

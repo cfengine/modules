@@ -1,0 +1,55 @@
+# NOTE: CASE MATTERS in package names, e.g. Docker.DockerDesktop will match but docker.dockerdesktop won't and so will re-install each agent run!
+# TODO: fix case sensitive package names? ^^^
+body package_method winget
+{
+      package_changes => "bulk";
+      package_name_convention   => "$(name)";
+      package_delete_convention => "$(name)";
+
+      package_installed_regex => ".*";
+      # Note that package_list_name_regex does not allow for commas inside of package names as parsing that from ConvertTo-Csv below would be too complex
+      # an example of output of the package_list_command below is
+      #
+      # "Microsoft.WindowsTerminal","1.21.2361.0"
+      #
+      # so the matches below simply grab the thing before or after the comma separating Id and InstalledVersion fields.
+      package_list_name_regex => '^"([^"]*)",.*';
+      package_list_version_regex => '.*,"([^"]*)".*';
+
+
+      # Here we use the Get-WinGetPackage Cmdlet because it is easier to produce easily parsed information that way
+      package_list_command   => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"Get-WinGetPackage | Select Id,InstalledVersion | ConvertTo-Csv ";
+      package_delete_command => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"Uninstall-WinGetPackage ";
+
+      # Here we use winget instead of PowerShell Cmdlets because we can provide the --accept-source-agreements and --accept-package-agreements this way which gets around dialog prompts
+      package_method_winget:accept_source_agreements.package_method_winget:accept_package_agreements::
+        package_add_command    => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"winget install --accept-source-agreements --accept-package-agreements ";
+      !package_method_winget:accept_source_agreements|!package_method_winget:accept_package_agreements::
+        # the package name is appended to the end of this command, so we try here to make a command which conveys information only
+        package_add_command => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"Write-Host You must set some vars for package-method-winget to work;exit 1; rem Trying to add package:";
+}
+
+# switch to module specific namespace to avoid name collisions
+body file control
+{
+  namespace => "package_method_winget";
+}
+
+# package_method_winget bundle's purpose is to look at inputs/data for acceptance of source and package agreements
+# these MUST be agreed to in order for this package method to work properly.
+bundle agent package_method_winget
+{
+  classes:
+    "accept_source_agreements" expression => regcmp("^[yY][eE]?[sS]?", "${data:package_method_winget.accept_source_agreements}"),
+      scope => "namespace";
+    "accept_package_agreements" expression => regcmp("^[yY][eE]?[sS]?", "${data:package_method_winget.accept_package_agreements}"),
+      scope => "namespace";
+
+  reports:
+    windows::
+      "Please specify if you wish to --accept-source-agreements when using winget package method promises with the cfbs inputs or the variable data:package_method_winget.accept_source_agreements having the value yes or no"
+        if => "!accept_source_agreements";
+      "Please specify if you wish to --accept-package-agreements when using winget package method promises with cfbs inputs or the variable data:package_method_winget.accept_package_agreements having the value yes or no"
+        if => "!accept_package_agreements";
+}
+

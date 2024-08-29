@@ -154,6 +154,52 @@
         "bundles maintainers_in_motd"
       ]
     },
+    "powershell-execution-policy": {
+      "description": "Inventory and bundle for PowerShell Execution Policy",
+      "subdirectory": "management/powershell-execution-policy",
+      "steps": [
+        "directory ./ services/cfbs/powershell-execution-policy/",
+        "policy_files services/cfbs/powershell-execution-policy/",
+        "bundles powershell_execution_policy_inventory"
+      ]
+    },
+    "package-method-winget": {
+      "description": "Package method for Windows winget package manager.",
+      "subdirectory": "management/package-method-winget",
+      "dependencies": ["powershell-execution-policy"],
+      "steps": [
+        "input ./input.json def.json",
+        "directory ./ services/cfbs/modules/package-method-winget/",
+        "policy_files services/cfbs/modules/package-method-winget/",
+        "bundles package_method_winget:package_method_winget winget_installed:winget_installed"
+      ],
+      "input": [
+        {
+          "type": "string",
+          "variable": "accept_source_agreements",
+          "namespace": "data",
+          "bundle": "package_method_winget",
+          "label": "Accept Source Agreements",
+          "question": "Would you like to accept source agreements for winget packages promises? [yes|no]"
+        },
+        {
+          "type": "string",
+          "variable": "accept_package_agreements",
+          "namespace": "data",
+          "bundle": "package_method_winget",
+          "label": "Accept Package Agreements",
+          "question": "Would you like to accept package agreements for winget packages promises? [yes|no]"
+        },
+        {
+          "type": "string",
+          "variable": "allow_powershell_execution_policy_change",
+          "namespace": "data",
+          "bundle": "winget_installed",
+          "label": "Allow necessary PowerShell Execution Policy change: LocalMachine set to Unrestricted in order to install winget and cmdlets",
+          "question": "Would you like to allow this module to change PowerShell Execution Policy to LocalMachine:Unrestricted? [yes|no]"
+        }
+      ]
+    },
     "promise-type-ansible": {
       "description": "Promise type to manage systemd services.",
       "subdirectory": "promise-types/ansible",
