@@ -192,6 +192,7 @@ class GitPromiseTypeModule(PromiseModule):
                             [
                                 model.executable,
                                 "diff",
+                                "--shortstat",
                                 "..{remote}/{version}".format(
                                     remote=model.remote, version=model.version
                                 ),
