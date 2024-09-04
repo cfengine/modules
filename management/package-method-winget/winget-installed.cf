@@ -1,0 +1,35 @@
+body file control
+{
+  namespace => "winget_installed";
+}
+
+bundle agent winget_installed
+{
+  classes:
+    windows::
+      "winget_not_installed" expression => not(returnszero("winget -v | out-null", "powershell"));
+      "winget_cli_not_installed" expression => not(returnszero("Get-WinGetPackage | out-null", "powershell"));
+      "allow_powershell_execution_policy_change" expression => regcmp("^[yY][eE]?[sS]?", "${data:winget_installed.allow_powershell_execution_policy_change}"),
+        scope => "namespace";
+
+  commands:
+    windows.!winget_installed.execution_policy_ok::
+      "powershell.exe -File '${this.promise_dirname}/install-winget.ps1'"
+        contain => default:powershell;
+    windows.!winget_cli_installed.execution_policy_ok::
+      "powershell.exe -File '${this.promise_dirname}/install-winget-cli.ps1'"
+        contain => default:powershell;
+
+  methods:
+    windows.(winget_not_installed|winget_cli_not_installed).allow_powershell_execution_policy_change::
+      "powershell_execution_policy_set" usebundle => default:powershell_execution_policy_set("LocalMachine", "Unrestricted"),
+        classes => default:if_ok("execution_policy_ok");
+
+  reports:
+    windows.winget_not_installed::
+      "In order for package-module-winget to function properly, winget must be installed.";
+    windows.winget_cli_not_installed::
+      "In order for package-module-winget to function properly, winget-cli must be installed and imported.";
+    windows.(winget_not_installed|winget_cli_not_installed).!allow_powershell_execution_policy_change::
+      "package-module-winget needs winget and/or winget-cli installed. Opt-in for this to be automated by this policy by setting the variable data:winget_installed.allow_powershell_execution_policy_change to 'yes'. This can be accomplished via cfbs inputs, group/host data or augments.";
+}
