@@ -288,6 +288,15 @@
         "policy_files services/cfbs/windows-capability/",
         "bundles windows_capability"
       ]
+    },
+    "windows-optional-feature": {
+      "description": "Manage and inventory Windows Optional Features.",
+      "subdirectory": "management/windows-optional-feature",
+      "steps": [
+        "directory ./ services/cfbs/windows-optional-feature/",
+        "policy_files services/cfbs/windows-optional-feature/",
+        "bundles windows_optional_feature"
+      ]
     }
   }
 }
