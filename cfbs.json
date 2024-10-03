@@ -289,6 +289,15 @@
         "bundles windows_capability"
       ]
     },
+    "windows-openssh-server": {
+      "description": "Optionally install Windows OpenSSH Server.",
+      "subdirectory": "software/windows",
+      "steps": [
+        "copy windows-openssh-server.cf services/cfbs/software/windows/windows-openssh-server.cf",
+        "policy_files services/cfbs/software/windows/windows-openssh-server.cf",
+        "bundles windows_openssh_server"
+      ]
+    },
     "windows-optional-feature": {
       "description": "Manage and inventory Windows Optional Features.",
       "subdirectory": "management/windows-optional-feature",
