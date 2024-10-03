@@ -279,6 +279,15 @@
         "bundles uninstall_rsh_server",
         "policy_files services/cfbs/modules/uninstall-rsh-server/uninstall-rsh-server.cf"
       ]
+    },
+    "windows-capability": {
+      "description": "Manage and inventory Windows Capabilities.",
+      "subdirectory": "management/windows-capability",
+      "steps": [
+        "directory ./ services/cfbs/windows-capability/",
+        "policy_files services/cfbs/windows-capability/",
+        "bundles windows_capability"
+      ]
     }
   }
 }
