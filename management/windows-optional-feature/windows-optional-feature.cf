@@ -1,0 +1,73 @@
+# https://learn.microsoft.com/en-us/powershell/module/dism/get-windowsoptionalfeature?view=windowsserver2022-ps
+# https://learn.microsoft.com/en-us/powershell/module/dism/disable-windowsoptionalfeature?view=windowsserver2022-ps
+# https://learn.microsoft.com/en-us/powershell/module/dism/enable-windowsoptionalfeature?view=windowsserver2022-ps
+# https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v#enable-hyper-v-using-powershell
+
+bundle agent windows_optional_feature_enabled( feature_name )
+{
+  methods:
+    "Enabled" usebundle => windows_optional_feature:_promise_state("${feature_name}", "Enabled");
+}
+
+bundle agent windows_optional_feature_disabled( feature_name )
+{
+  methods:
+    "Disabled" usebundle => windows_optional_feature:_promise_state("${feature_name}", "Disabled");
+}
+
+bundle agent windows_optional_feature
+{
+  methods:
+    windows.!data:disable_windows_optional_feature_inventory::
+      "windows_optional_feature:_inventory";
+}
+
+body file control
+{
+  namespace => "windows_optional_feature";
+}
+
+bundle agent _inventory
+{
+  vars:
+    windows::
+      "cache_file" string => "${sys.statedir}${const.dirsep}${this.namespace}_cache.csv";
+      "command" string => "Get-WindowsOptionalFeature -Online | ConvertTo-Csv -notypeinformation | select-object -skip 1 | Set-Content -Path '${cache_file}'";
+      "csv" data => readcsv("${cache_file}");
+      "i" slist => getindices("csv");
+      "${this.namespace}[${i}]" string => "${csv[${i}][0]}:${csv[${i}][1]}",
+        meta => { "inventory", "attribute_name=Windows Optional Features" };
+
+  files:
+    "${cache_file}"
+      file_select => default:days_old(1),
+      delete => default:tidy;
+
+  commands:
+    windows::
+     "${command}"
+       if => not(fileexists("${cache_file}")),
+       contain => default:powershell;
+}
+
+bundle agent _promise_state(feature_name, desired_state)
+{
+  vars:
+    "operation" string => ifelse(strcmp("${desired_state}", "Enabled"), "Enable", "Disable");
+  classes:
+    windows::
+      "state_not_ok" expression => returnszero(      "if((Get-WindowsOptionalFeature -Online -FeatureName ${feature_name} | select-object -expandproperty state) -ne '${state_name}'){exit 0}else{exit 1}", "powershell");
+  commands:
+    windows.state_not_ok::
+# -All enables parent features if need be
+      "${operation}-WindowsOptionalFeature -Online -FeatureName ${feature_name} -NoRestart -All"
+        contain => default:powershell,
+        classes => default:results("bundle", "state");
+# -NoRestart so that we don't wait forever for a Yes reply from a user
+# then if we ran this command due to needing to, restart below.
+
+  files:
+    windows.state_repaired::
+      "${_inventory.cache_file}"
+        delete => default:tidy;
+}

@@ -1,0 +1,29 @@
+bundle agent windows_openssh_server
+{
+  methods:
+    data:openssh_server_installed::
+      "openssh_server_installed";
+}
+
+bundle agent windows_openssh_server_installed
+{
+  methods:
+    windows::
+      "Add OpenSSH.Server Capability"
+                # NOTE: this version "0.0.1.0" is not the actual version but rather a static number that is mysterious to me.
+                # the actual installed version will be the "latest"
+                usebundle => windows_capability_installed("OpenSSH.Server~~~~0.0.1.0"),
+                classes => classes_generic("openssh");
+
+  services:
+    windows.openssh_ok::
+      "sshd"
+        service_policy => "start",
+        service_method => windows_openssh_service_method;
+}
+
+body service_method windows_openssh_service_method
+{
+  service_type => "windows";
+  service_autostart_policy => "boot_time";
+}
