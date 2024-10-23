@@ -1,5 +1,6 @@
 import os
 import subprocess
+from pathlib import Path
 
 from typing import Dict, List, Optional
 
@@ -255,6 +256,9 @@ class GitPromiseTypeModule(PromiseModule):
         env["GIT_SSH_COMMAND"] = model.ssh_executable
         if model.ssh_options:
             env["GIT_SSH_COMMAND"] += " " + model.ssh_options
+        if not 'HOME' in env:
+            # git should have a HOME env var to retrieve .gitconfig, .git-credentials, etc
+            env["HOME"] = str(Path.home())
         return env
 
 
