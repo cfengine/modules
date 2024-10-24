@@ -60,6 +60,33 @@ bundle agent main
 }
 ```
 
+## Authentication
+
+This module will set the `HOME` environment variable if it is not set already based on the user running `cf-agent`, typically `root`.
+
+In order to add authentication you can use [gitcredentials](https://git-scm.com/docs/gitcredentials).
+
+An example of this usage would be to have two files in `$HOME`: `.gitconfig` and `.git-credentials`.
+
+- `.gitconfig`
+```sh
+[credential]
+    helper = store
+```
+
+- `.git-credentials`
+
+Using the `store` helper places the username and password in plaintext in `$HOME/.git-credentials`.
+
+Here is an explanation of that file [storage format](https://git-scm.com/docs/git-credential-store#_storage_format):
+
+> The `.git-credentials` file is stored in plaintext. Each credential is stored on its own line as a URL like:
+
+```text
+https://user:pass@example.com
+```
+> No other kinds of lines (e.g. empty lines or comment lines) are allowed in the file, even though some may be silently ignored. Do not view or edit the file with editors.
+
 ## Authors
 
 This software was created by the team at [Northern.tech](https://northern.tech), with many contributions from the community.
