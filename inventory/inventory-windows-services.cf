@@ -1,0 +1,28 @@
+bundle agent inventory_windows_services_running
+# @brief Inventory Windows services that are running
+# @inventory Windows services running
+{
+  vars:
+    windows::
+      "_cache" string => "$(sys.statedir)/windows-services-running.json";
+
+      "_data" data => readjson("$(_cache)");
+      "_indices" slist => getindices(_data);
+
+      "i[$(_indices)]"
+        string => "$(_data[$(_indices)][DisplayName])",
+        meta => { "inventory", "attribute_name=Windows services running"};
+
+
+  commands:
+    windows::
+      "Get-Service | Where-Object {$_.Status -eq 'Running'} | ConvertTo-Json | Set-Content -Path '${_cache}'"
+        contain => powershell;
+
+}
+
+bundle agent __main__
+{
+  methods:
+      "inventory_windows_services_running";
+}
