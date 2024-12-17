@@ -135,6 +135,15 @@
         "bundles inventory_unshadowed_users:main"
       ]
     },
+    "inventory-windows-services": {
+      "description": "Inventory running Windows services.",
+      "subdirectory": "inventory",
+      "steps": [
+        "copy inventory-windows-services.cf services/cfbs/inventory-windows-services/",
+        "policy_files services/cfbs/inventory-windows-services/",
+        "bundles inventory_windows_services_running"
+      ]
+    },
     "library-for-promise-types-in-bash": {
       "description": "Library enabling promise types implemented in bash.",
       "subdirectory": "libraries/bash",
