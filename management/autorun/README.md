@@ -13,7 +13,7 @@ bundle agent my_example
 }
 ```
 
-With autorun enabled, the policy file would be parsed and the bundle evaluated without editing any of your existing files / policy.
+With autorun enabled, the policy file would be parsed, and the bundle evaluated without editing any of your existing files / policy.
 
 It uses the augments file to achieve this, it is the same as editing your `def.json` file like this:
 
