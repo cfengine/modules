@@ -2,7 +2,7 @@ bundle agent windows_openssh_server
 {
   methods:
     data:openssh_server_installed::
-      "openssh_server_installed";
+      "windows_openssh_server_installed";
 }
 
 bundle agent windows_openssh_server_installed
