@@ -1,0 +1,20 @@
+promise agent ini
+# @brief Define ini promise type
+{
+  path        => "$(sys.workdir)/modules/promises/ini.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent main
+{
+
+  meta:
+    "bundle_version" string => "0.0.1";
+    "promise_type"   string => "ini";
+
+  ini:
+    "/tmp/ini/test.ini"
+      section => "foo",
+      option  => "bar",
+      value   => "baz";
+}
