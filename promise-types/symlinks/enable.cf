@@ -1,0 +1,6 @@
+promise agent symlinks
+# @brief Define symlinks promise type
+{
+  path => "$(sys.workdir)/modules/promises/symlinks.py";
+  interpreter => "/usr/bin/python3";
+}
