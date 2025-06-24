@@ -1,0 +1,161 @@
+body common control
+{
+  inputs => { "$(sys.libdir)/stdlib.cf" };
+  version => "1.0";
+  bundlesequence => { "init", "test", "check", "cleanup"};
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "to_overwrite"
+      data => readjson("$(this.promise_dirname)/tests/to_overwrite.start.json", 100k);
+    "to_modify" 
+      data => readjson("$(this.promise_dirname)/tests/to_modify.start.json", 100k);
+
+  files:
+  "$(this.promise_dirname)/tests/to_overwrite.json"
+    create => "true",
+    content => "$(to_overwrite)";
+  "$(this.promise_dirname)/tests/to_modify.json"
+    create => "true",
+    content => "$(to_modify)";
+  "$(this.promise_dirname)/tests/to_append_1.json"
+    create => "true";
+}
+
+#######################################################
+
+promise agent json
+{
+  path => "$(this.promise_dirname)/json_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent test
+{
+  vars:
+    "objects"
+      data => '{ "bar": [1, 2, 3] }'; 
+    "int_arrays"
+      data => '[1,2,3]';
+    "arrays"
+      ilist => { "1", "2" }; # slist == rlist == ilist -> lists of string
+    "numbers"
+      int => "1";
+    "strings"
+      string => "hello";
+    "bools"
+      string => "true";
+    "nulls"
+      string => "null";
+
+
+  json:
+    "$(this.promise_dirname)/tests/to_overwrite.json"
+      object => "@(objects)";
+
+    "$(this.promise_dirname)/tests/to_modify.json:Hello"
+      string => "$(strings)";
+
+    "$(this.promise_dirname)/tests/to_append_1.json:a"
+      object => "@(objects)";
+    "$(this.promise_dirname)/tests/to_append_1.json:b"
+      object => "@(int_arrays)";
+    "$(this.promise_dirname)/tests/to_append_1.json:c"
+      array => "@(int_arrays)";
+    "$(this.promise_dirname)/tests/to_append_1.json:d"
+      string => "$(strings)";
+    "$(this.promise_dirname)/tests/to_append_1.json:e"
+      number => "$(numbers)";
+    "$(this.promise_dirname)/tests/to_append_1.json:f"
+      primitive => "$(bools)";
+    "$(this.promise_dirname)/tests/to_append_1.json:g"
+      primitive => "$(nulls)";
+
+    "$(this.promise_dirname)/tests/to_append_2.json:a"
+      object => '{ "bar": [1, 2, 3] }';
+    "$(this.promise_dirname)/tests/to_append_2.json:b"
+      object => '[1,2,3]';
+    "$(this.promise_dirname)/tests/to_append_2.json:c"
+      array => '[1,2,3]';
+    "$(this.promise_dirname)/tests/to_append_2.json:d"
+      string => "hello";
+    "$(this.promise_dirname)/tests/to_append_2.json:e"
+      number => "1";
+    "$(this.promise_dirname)/tests/to_append_2.json:f"
+      primitive => "true";
+    "$(this.promise_dirname)/tests/to_append_2.json:g"
+      primitive => "null";
+
+}
+
+#######################################################
+
+bundle agent check
+{
+  vars:
+    "to_overwrite_content"
+      data => readjson("$(this.promise_dirname)/tests/to_overwrite.json", 100k);
+    "to_modify_content"
+      data => readjson("$(this.promise_dirname)/tests/to_modify.json", 100k);
+    "to_append_1_content"
+      data => readjson("$(this.promise_dirname)/tests/to_append_1.json", 100k);
+    "to_append_2_content"
+      data => readjson("$(this.promise_dirname)/tests/to_append_2.json", 100k);
+
+    "to_overwrite_content_true"
+      data => readjson("$(this.promise_dirname)/tests/to_overwrite.expected.json", 100k);
+    "to_modify_content_true"
+      data => readjson("$(this.promise_dirname)/tests/to_modify.expected.json", 100k);
+    "to_append_content_true"
+      data => readjson("$(this.promise_dirname)/tests/to_append.expected.json", 100k);
+
+    "to_overwrite_content_indices"
+      slist => getindices("to_overwrite_content");
+    "to_modify_content_indices"
+      slist => getindices("to_modify_content");
+    "to_append_1_content_indices"
+      slist => getindices("to_append_1_content");
+    "to_append_2_content_indices"
+      slist => getindices("to_append_2_content");
+
+    "to_overwrite_content_true_indices"
+      slist => getindices("to_overwrite_content_true");
+    "to_modify_content_true_indices"
+      slist => getindices("to_modify_content_true");
+    "to_append_content_true_indices"
+      slist => getindices("to_append_content_true");
+
+  classes:
+    "ok"
+      expression => and (
+        strcmp("$(to_overwrite_content[$(to_overwrite_content_indices)])", "$(to_overwrite_content_true[$(to_overwrite_content_true_indices)])"),
+        strcmp("$(to_modify_content[$(to_modify_content_indices)])", "$(to_modify_content_true[$(to_modify_content_true_indices)])"),
+        strcmp("$(to_append_1_content[$(to_append_1_content_indices)])", "$(to_append_2_content[$(to_append_2_content_indices)])"),
+        strcmp("$(to_append_1_content[$(to_append_1_content_indices)])", "$(to_append_content_true[$(to_append_content_true_indices)])")
+      );
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
+
+# #######################################################
+
+bundle agent cleanup
+{
+  files:
+    "$(this.promise_dirname)/tests/to_overwrite.json"
+      delete => tidy;
+    "$(this.promise_dirname)/tests/to_modify.json" 
+      delete => tidy;
+    "$(this.promise_dirname)/tests/to_append_1.json"
+      delete => tidy;
+    "$(this.promise_dirname)/tests/to_append_2.json"
+      delete => tidy;
+}
