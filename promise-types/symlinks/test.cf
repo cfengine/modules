@@ -1,0 +1,116 @@
+body common control
+{
+  inputs => { "$(sys.libdir)/stdlib.cf" };
+  version => "1.0";
+  bundlesequence => { "init", "test", "check", "cleanup"};
+}
+
+#######################################################
+
+bundle agent init
+{
+  files:
+    "/tmp/my-file"
+      create => "true";
+    "/tmp/my-dir/."
+      create => "true";
+    "/tmp/other-dir/."
+      create => "true";
+    "/tmp/replaced-link"
+      link_from => ln_s("/tmp/other-dir");
+    "/tmp/already-existing-link"
+      link_from => ln_s("/tmp/other-dir");
+}
+
+#######################################################
+
+promise agent symlinks
+{
+  path => "$(this.promise_dirname)/symlinks.py";
+  interpreter => "/usr/bin/python3";
+}
+
+body classes outcome(arg)
+{
+  promise_kept => { "$(arg)_kept" };
+  promise_repaired => { "$(arg)_repaired" };
+}
+
+bundle agent test
+{
+  meta:
+    "description" -> { "CFE-4541" }
+      string => "Test the symlinks promise module";
+
+  symlinks:
+    "/tmp/file-link"
+      file => "/tmp/my-file",
+      classes => outcome("created_file");
+    "/tmp/dir-link"
+      directory => "/tmp/my-dir",
+      classes => outcome("created_dir");
+    "/tmp/replaced-link"
+      directory => "/tmp/my-dir",
+      classes => outcome("corrected");
+    "/tmp/already-existing-link"
+      directory => "/tmp/other-dir",
+      classes => outcome("didnothing");
+
+}
+
+#######################################################
+
+bundle agent check
+{
+
+  vars:
+    "my_file_stat"
+      string => filestat("/tmp/file-link", "linktarget");
+    "my_dir_stat"
+      string => filestat("/tmp/dir-link", "linktarget");
+    "replaced_link_stat"
+      string => filestat("/tmp/replaced-link", "linktarget");
+    "already_existing_link_stat"
+      string => filestat("/tmp/already-existing-link", "linktarget");
+
+  classes:
+    "ok"
+      expression => and (
+        strcmp("$(my_file_stat)", "/tmp/my-file"),
+        strcmp("$(my_dir_stat)", "/tmp/my-dir"),
+        strcmp("$(replaced_link_stat)", "/tmp/my-dir"),
+        strcmp("$(already_existing_link_stat)", "/tmp/other-dir"),
+        "created_file_repaired",
+        "created_dir_repaired",
+        "corrected_repaired",
+        "didnothing_kept"
+      );
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+
+}
+
+# #######################################################
+
+bundle agent cleanup
+{
+  files:
+    "/tmp/file-link"
+      delete => tidy;
+    "/tmp/dir-link"
+      delete => tidy;
+    "/tmp/my-file"
+      delete => tidy;
+    "/tmp/my-dir/."
+      delete => tidy;
+    "/tmp/other-dir/."
+      delete => tidy;
+    "/tmp/replaced-link"
+      delete => tidy;
+    "/tmp/already-existing-link"
+      delete => tidy;
+}
