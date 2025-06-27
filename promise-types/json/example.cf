@@ -1,0 +1,13 @@
+promise agent json
+# @brief Define json promise type
+{
+  path => "$(sys.workdir)/modules/promises/json_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent main
+{
+  json:
+    "/tmp/myusers.json:name"
+      string => "John"
+}
