@@ -5,7 +5,7 @@ Promise type for manipulating `json` files
 | Name          | Type                                    | Description                                                                                                                        |
 |---------------|-----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
 | `object`      | `data container`                        | json object type. It can also be json arrays                                                                                       |
-| `array`       | `slist`, `rlist`, `ilist`, `data array` | json array type. `slist`, `rlist` and `ilist` will only create string arrays. To create array of other types, use `data array`     |
+| `array`       | `data array`                            | json array type                                                                                                                    |
 | `string`      | `string`                                | json string type                                                                                                                   |
 | `number`      | `real`, `int`                           | json number type                                                                                                                   |
 | `primitive`   | `string`                                | Primitives are values that are either `"true"`, `"false"` or `"null"` in json                                                      |
@@ -64,9 +64,9 @@ And the content of `/tmp/oldfile.json` will become:
 
 If the field doesn't exist, it is appended. If it already exists, its data will be overwritten.
 
-### Writing types
+### Writing arrays
 
-In order to write compound type such as arrays containg booleans, numbers, etc... One has to use the `data container` type in the policy.
+In order to write compound type such as arrays containg booleans, numbers, etc... One has to use the `data` type in the policy.
 
 To see what happens if we use 
 
@@ -84,12 +84,12 @@ bundle agent main
 
   json:
     "/tmp/example_1.json:json_data"
-      array => "$(json_data)";
+      array => "@(json_data)";
   
     "/tmp/example_2.json:real_list"
-      array => "$(real_list)";
+      array => "@(real_list)";
     "/tmp/example_2.json:bool_list"
-      array => "$(bool_list)";
+      array => "@(bool_list)";
 }
 ```
 

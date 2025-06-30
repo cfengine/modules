@@ -1,5 +1,7 @@
 import os
 import json
+import tempfile
+import shutil
 
 from cfengine import PromiseModule, ValidationError, Result, AttributeObject
 
@@ -48,22 +50,23 @@ class JsonPromiseTypeModule(PromiseModule):
         if present_types == 0:
             raise ValidationError(
                 "The promiser '{}' is missing a type attribute. The possible types are {}".format(
-                    promiser, str(self.types)
+                    promiser, ", ".join(["'{}'".format(t) for t in self.types])
                 )
             )
         elif len(present_types) > 1:
             raise ValidationError(
-                "The attributes {} cannot be together".format(str(self.types))
+                "The attributes {} cannot be together".format(
+                    ", ".join(["'{}'".format(t) for t in self.types])
+                )
             )
 
-        filename, _, _ = promiser.partition(":")
-        if os.path.exists(filename) and not os.path.isfile(filename):
-            raise ValidationError(
-                "'{}' already exists and is not a file".format(filename)
-            )
+        filename, colon, field = promiser.partition(":")
 
-        if not filename.endswith(".json"):
-            raise ValidationError("'{}' is not a json file")
+        if not filename:
+            raise ValidationError("Invalid syntax: missing file name")
+
+        if colon and not field:
+            raise ValidationError("Invalid syntax: field specified but empty")
 
         model = self.create_attribute_object(attributes)
         if (
@@ -77,14 +80,16 @@ class JsonPromiseTypeModule(PromiseModule):
 
         if model.array:
             if isinstance(model.array, str):
-                if not is_json_serializable(model.array):
-                    raise ValidationError(
-                        "'{}' is not a valid list".format(model.array)
-                    )
+                try:
+                    array = json.loads(model.array)
 
-                if not isinstance(json.loads(model.array), list):
+                except:
                     raise ValidationError(
-                        "'{}' is not a valid data".format(model.array)
+                        "'{}' cannot be serialized to a json array".format(model.array)
+                    )
+                if not isinstance(array, list):
+                    raise ValidationError(
+                        "'{}' is not a valid data array".format(model.array)
                     )
 
             elif not isinstance(model.array, list):
@@ -106,23 +111,18 @@ class JsonPromiseTypeModule(PromiseModule):
         model = self.create_attribute_object(attributes)
         filename, _, field = promiser.partition(":")
 
+        if os.path.exists(filename) and not os.path.isfile(filename):
+            self.log_error("'{}' already exists and is not a regular file".format(filename))
+            return Result.NOT_KEPT
+
         # type conversion
 
         datatype = next(t for t in self.types if t in attributes)
 
-        match datatype:
-            case "object" | "array":
-                data = (
-                    json.loads(attributes[datatype])
-                    if isinstance(attributes[datatype], str)
-                    else attributes[datatype]
-                )
-            case "number":
-                data = float(model.number) if "." in model.number else int(model.number)
-            case "primitive":
-                data = None if model.primitive == "null" else model.primitive == "true"
-            case _:  # strings
-                data = attributes[datatype]
+        if isinstance(attributes[datatype], str) and not model.string:
+            data = json.loads(attributes[datatype])
+        else:
+            data = attributes[datatype]
 
         # json manipulation
 
@@ -131,21 +131,41 @@ class JsonPromiseTypeModule(PromiseModule):
                 content = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             content = {}
+        except Exception as e:
+            self.log_error("Failed to read '{}': {}".format(filename, e))
+            return Result.NOT_KEPT
 
         if field:
+            if not isinstance(content, dict):
+                content = {}
+                self.log_warning(
+                    "Tried to access '{}' in '{}' when the content is not subscriptable. Overwriting the file...".format(
+                        field, filename
+                    )
+                )
+
             if field in content and content[field] == data:
-                Result.KEPT
+                self.log_info("'{}' is already up to date")
+                return Result.KEPT
             content[field] = data
         else:
             if content == data:
-                Result.KEPT
+                self.log_info("'{}' is already up to date")
+                return Result.KEPT
             content = data
 
-        with open(filename, "w") as f:
-            json.dump(content, f, indent=4)
+        fd, tmp = tempfile.mkstemp()
+        json_bytes = json.dumps(content, indent=4).encode("utf-8")
+        written = os.write(fd, json_bytes)
+        os.close(fd)
+        shutil.move(tmp, filename)
+
+        if (written != len(json_bytes)):
+            self.log_error("Couldn't write all the data to the file '{}'. Wrote {} out of {} bytes".format(filename, written, len(json_bytes)))
+            return Result.NOT_KEPT
 
         self.log_info("Updated '{}'".format(filename))
-        Result.REPAIRED
+        return Result.REPAIRED
 
 
 if __name__ == "__main__":
