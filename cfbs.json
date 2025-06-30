@@ -245,6 +245,15 @@
         "append enable.cf services/init.cf"
       ]
     },
+    "promise-type-ini": {
+      "description": "A Custom CFEngine promise module, installing, and using the Ansible INI module to provide an INI promise type for INI files",
+      "subdirectory": "promise-types/ini",
+      "dependencies": ["library-for-promise-types-in-python"],
+      "steps": [
+        "copy ini.py modules/promises/",
+        "append enable.cf services/init.cf"
+      ]
+    },
     "uninstall-packages": {
       "description": "Allows you to specify a list of packages you want uninstalled on your hosts.",
       "subdirectory": "security/uninstall-packages",

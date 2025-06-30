@@ -390,6 +390,9 @@ class PromiseModule:
         except Exception as e:
             self.log_critical(
                 "{error_type}: {error}".format(error_type=type(e).__name__, error=e)
+                + e.message
+                if hasattr(e, "message")
+                else ""
             )
             self._add_traceback_to_response()
             self._result = Result.ERROR

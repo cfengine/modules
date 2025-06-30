@@ -1,0 +1,6 @@
+promise agent ini
+# @brief Define ini promise type
+{
+  path        => "$(sys.workdir)/modules/promises/ini.py";
+  interpreter => "/usr/bin/python3";
+}
