@@ -2,13 +2,13 @@ Promise type for manipulating `json` files
 
 ## Attributes
 
-| Name          | Type                                    | Description                                                                                                                        |
-|---------------|-----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| `object`      | `data container`                        | json object type. It can also be json arrays                                                                                       |
-| `array`       | `data array`                            | json array type                                                                                                                    |
-| `string`      | `string`                                | json string type                                                                                                                   |
-| `number`      | `real`, `int`                           | json number type                                                                                                                   |
-| `primitive`   | `string`                                | Primitives are values that are either `"true"`, `"false"` or `"null"` in json                                                      |
+| Name        | Type             | Description                                                                   |
+| ----------- | ---------------- | ----------------------------------------------------------------------------- |
+| `object`    | `data container` | json object type. It can also be json arrays                                  |
+| `array`     | `data array`     | json array type                                                               |
+| `string`    | `string`         | json string type                                                              |
+| `number`    | `real`, `int`    | json number type                                                              |
+| `primitive` | `string`         | Primitives are values that are either `"true"`, `"false"` or `"null"` in json |
 
 ## Examples
 
@@ -35,7 +35,8 @@ If the `/tmp/newfile.json` doesn't exist, it will be created. If it exists and c
 
 ### Write to a specific field
 
-Given a json file `/tmp/oldfile.json`, 
+Given a json file `/tmp/oldfile.json`,
+
 ```json
 {
   "foo": "bar"
@@ -68,15 +69,15 @@ If the field doesn't exist, it is appended. If it already exists, its data will 
 
 In order to write compound type such as arrays containg booleans, numbers, etc... One has to use the `data` type in the policy.
 
-To see what happens if we use 
+To see what happens if we use
 
 ```cfengine3
 bundle agent main
 {
-  vars: 
+  vars:
     "json_data"
       data => '[1.2, true, "hello!"]';
-    
+
     "real_list"
       rlist => {"1.2", "2.3"};
     "bool_list"
@@ -85,7 +86,7 @@ bundle agent main
   json:
     "/tmp/example_1.json:json_data"
       array => "@(json_data)";
-  
+
     "/tmp/example_2.json:real_list"
       array => "@(real_list)";
     "/tmp/example_2.json:bool_list"
@@ -116,7 +117,7 @@ The copy attribute allows to copy the content of a json file into another json f
 
 ```json
 {
- "hello": "world"
+  "hello": "world"
 }
 ```
 
@@ -138,7 +139,6 @@ bundle agent main
   }
 }
 ```
-
 
 ## Authors
 
