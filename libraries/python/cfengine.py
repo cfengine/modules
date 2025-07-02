@@ -380,6 +380,8 @@ class PromiseModule:
         try:
             results = self.evaluate_promise(promiser, attributes, metadata)
 
+            assert results is not None  # Most likely someone forgot to return something
+
             # evaluate_promise should return either a result or a (result, result_classes) pair
             if type(results) == str:
                 self._result = results
@@ -389,7 +391,9 @@ class PromiseModule:
                 self._result_classes = results[1]
         except Exception as e:
             self.log_critical(
-                "{error_type}: {error}".format(error_type=type(e).__name__, error=e)
+                "{error_type}: {error} (Bug in python promise type module, run with --debug for traceback)".format(
+                    error_type=type(e).__name__, error=e
+                )
             )
             self._add_traceback_to_response()
             self._result = Result.ERROR
