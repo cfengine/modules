@@ -147,12 +147,12 @@ class JsonPromiseTypeModule(PromiseModule):
                 )
 
             if field in content and content[field] == data:
-                self.log_info("'{}' is already up to date")
+                self.log_info("'{}' is already up to date".format(promiser))
                 return Result.KEPT
             content[field] = data
         else:
             if content == data:
-                self.log_info("'{}' is already up to date")
+                self.log_info("'{}' is already up to date".format(promiser))
                 return Result.KEPT
             content = data
 
