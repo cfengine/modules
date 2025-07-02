@@ -73,7 +73,7 @@ if ANSIBLE_AVAILABLE:
 class AnsiblePromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(AnsiblePromiseTypeModule, self).__init__(
-            "ansible_promise_module", "0.2.2", **kwargs
+            "ansible_promise_module", "0.0.0", **kwargs
         )
 
         def must_be_absolute(v):

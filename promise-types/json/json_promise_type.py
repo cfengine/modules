@@ -31,7 +31,7 @@ class JsonPromiseTypeModule(PromiseModule):
 
     def __init__(self, **kwargs):
         super(JsonPromiseTypeModule, self).__init__(
-            name="json_promise_module", version="0.0.1", **kwargs
+            name="json_promise_module", version="0.0.0", **kwargs
         )
 
         self.types = ["object", "array", "string", "number", "primitive"]
