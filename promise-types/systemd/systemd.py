@@ -5,7 +5,7 @@ import subprocess
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
 SYSTEMD_LIB_PATH = "/lib/systemd/system"

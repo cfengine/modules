@@ -1,6 +1,6 @@
 import requests, html, re, os, random
 import xml.etree.ElementTree as ET
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
 class RssPromiseTypeModule(PromiseModule):

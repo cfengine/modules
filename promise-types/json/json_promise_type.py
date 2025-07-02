@@ -3,7 +3,7 @@ import json
 import tempfile
 import shutil
 
-from cfengine import PromiseModule, ValidationError, Result, AttributeObject
+from cfengine_module_library import PromiseModule, ValidationError, Result, AttributeObject
 
 
 def is_number(num):

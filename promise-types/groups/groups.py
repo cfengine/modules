@@ -1,7 +1,7 @@
 import re
 import json
 from subprocess import Popen, PIPE
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
 class GroupsPromiseTypeModule(PromiseModule):

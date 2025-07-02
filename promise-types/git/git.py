@@ -4,7 +4,7 @@ from pathlib import Path
 
 from typing import Dict, List, Optional
 
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
 class GitPromiseTypeModule(PromiseModule):

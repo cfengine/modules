@@ -2,7 +2,7 @@ import os
 
 from typing import Dict, Tuple, List
 
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 try:
     from ansible import context
