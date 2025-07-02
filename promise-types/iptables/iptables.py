@@ -3,7 +3,12 @@ This module attempts to follow the naming conventions of iptables
 as they are in `man iptables`
 """
 
-from cfengine_module_library import PromiseModule, ValidationError, Result, AttributeObject
+from cfengine_module_library import (
+    PromiseModule,
+    ValidationError,
+    Result,
+    AttributeObject,
+)
 from typing import Callable, List, Dict, Tuple
 from collections import namedtuple
 from itertools import takewhile, dropwhile
