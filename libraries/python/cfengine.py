@@ -49,8 +49,9 @@ def _should_send_log(level_set, msg_level):
     # for auditing/changelog and all modules are required to send info: messages
     # for all REPAIRED promises. A similar logic applies to errors and warnings,
     # IOW, anything at or above the info level.
-    return ((_LOG_LEVELS[msg_level] <= _LOG_LEVELS["info"]) or
-            (_LOG_LEVELS[msg_level] <= _LOG_LEVELS[level_set]))
+    return (_LOG_LEVELS[msg_level] <= _LOG_LEVELS["info"]) or (
+        _LOG_LEVELS[msg_level] <= _LOG_LEVELS[level_set]
+    )
 
 
 def _cfengine_type(typing):
@@ -71,11 +72,13 @@ class AttributeObject(object):
     def __init__(self, d):
         for key, value in d.items():
             setattr(self, key, value)
+
     def __repr__(self):
         return "{}({})".format(
             self.__class__.__qualname__,
-            ", ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items())
+            ", ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items()),
         )
+
 
 class ValidationError(Exception):
     def __init__(self, message):
