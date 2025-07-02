@@ -3,7 +3,12 @@ import json
 import tempfile
 import shutil
 
-from cfengine import PromiseModule, ValidationError, Result, AttributeObject
+from cfengine_module_library import (
+    PromiseModule,
+    ValidationError,
+    Result,
+    AttributeObject,
+)
 
 
 def is_number(num):
@@ -26,7 +31,7 @@ class JsonPromiseTypeModule(PromiseModule):
 
     def __init__(self, **kwargs):
         super(JsonPromiseTypeModule, self).__init__(
-            name="json_promise_module", version="0.0.1", **kwargs
+            name="json_promise_module", version="0.0.0", **kwargs
         )
 
         self.types = ["object", "array", "string", "number", "primitive"]
@@ -112,7 +117,9 @@ class JsonPromiseTypeModule(PromiseModule):
         filename, _, field = promiser.partition(":")
 
         if os.path.exists(filename) and not os.path.isfile(filename):
-            self.log_error("'{}' already exists and is not a regular file".format(filename))
+            self.log_error(
+                "'{}' already exists and is not a regular file".format(filename)
+            )
             return Result.NOT_KEPT
 
         # type conversion
@@ -145,12 +152,12 @@ class JsonPromiseTypeModule(PromiseModule):
                 )
 
             if field in content and content[field] == data:
-                self.log_info("'{}' is already up to date")
+                self.log_info("'{}' is already up to date".format(promiser))
                 return Result.KEPT
             content[field] = data
         else:
             if content == data:
-                self.log_info("'{}' is already up to date")
+                self.log_info("'{}' is already up to date".format(promiser))
                 return Result.KEPT
             content = data
 
@@ -160,8 +167,12 @@ class JsonPromiseTypeModule(PromiseModule):
         os.close(fd)
         shutil.move(tmp, filename)
 
-        if (written != len(json_bytes)):
-            self.log_error("Couldn't write all the data to the file '{}'. Wrote {} out of {} bytes".format(filename, written, len(json_bytes)))
+        if written != len(json_bytes):
+            self.log_error(
+                "Couldn't write all the data to the file '{}'. Wrote {} out of {} bytes".format(
+                    filename, written, len(json_bytes)
+                )
+            )
             return Result.NOT_KEPT
 
         self.log_info("Updated '{}'".format(filename))

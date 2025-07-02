@@ -152,7 +152,10 @@
     "library-for-promise-types-in-python": {
       "description": "Library enabling promise types implemented in python.",
       "subdirectory": "libraries/python",
-      "steps": ["copy cfengine.py modules/promises/"]
+      "steps": [
+        "copy cfengine_module_library.py modules/promises/cfengine_module_library.py",
+        "copy cfengine_module_library.py modules/promises/cfengine.py"
+      ]
     },
     "maintainers-in-motd": {
       "description": "Add maintainer and purpose information from CMDB to /etc/motd",

@@ -3,7 +3,12 @@ This module attempts to follow the naming conventions of iptables
 as they are in `man iptables`
 """
 
-from cfengine import PromiseModule, ValidationError, Result, AttributeObject
+from cfengine_module_library import (
+    PromiseModule,
+    ValidationError,
+    Result,
+    AttributeObject,
+)
 from typing import Callable, List, Dict, Tuple
 from collections import namedtuple
 from itertools import takewhile, dropwhile
@@ -117,7 +122,7 @@ class IptablesPromiseTypeModule(PromiseModule):
     }
 
     def __init__(self, **kwargs):
-        super().__init__("iptables_promise_module", "0.2.2", **kwargs)
+        super().__init__("iptables_promise_module", "0.0.0", **kwargs)
 
         def must_be_one_of(items) -> Callable:
             def validator(v):

@@ -1,12 +1,12 @@
 import re
 import json
 from subprocess import Popen, PIPE
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
 class GroupsPromiseTypeModule(PromiseModule):
     def __init__(self):
-        super().__init__("groups_promise_module", "0.2.4")
+        super().__init__("groups_promise_module", "0.0.0")
         self._name_regex = re.compile(r"^[a-z_][a-z0-9_-]*[$]?$")
         self._name_maxlen = 32
 

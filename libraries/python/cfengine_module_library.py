@@ -1,3 +1,12 @@
+"""
+CFEngine module library
+
+This library can be used to implement CFEngine modules in python.
+Currently, this is for implementing custom promise types,
+but it might be expanded to other types of modules in the future,
+for example custom functions.
+"""
+
 import sys
 import json
 import traceback
@@ -49,8 +58,9 @@ def _should_send_log(level_set, msg_level):
     # for auditing/changelog and all modules are required to send info: messages
     # for all REPAIRED promises. A similar logic applies to errors and warnings,
     # IOW, anything at or above the info level.
-    return ((_LOG_LEVELS[msg_level] <= _LOG_LEVELS["info"]) or
-            (_LOG_LEVELS[msg_level] <= _LOG_LEVELS[level_set]))
+    return (_LOG_LEVELS[msg_level] <= _LOG_LEVELS["info"]) or (
+        _LOG_LEVELS[msg_level] <= _LOG_LEVELS[level_set]
+    )
 
 
 def _cfengine_type(typing):
@@ -71,11 +81,13 @@ class AttributeObject(object):
     def __init__(self, d):
         for key, value in d.items():
             setattr(self, key, value)
+
     def __repr__(self):
         return "{}({})".format(
             self.__class__.__qualname__,
-            ", ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items())
+            ", ".join("{}={!r}".format(k, v) for k, v in self.__dict__.items()),
         )
+
 
 class ValidationError(Exception):
     def __init__(self, message):
@@ -380,6 +392,8 @@ class PromiseModule:
         try:
             results = self.evaluate_promise(promiser, attributes, metadata)
 
+            assert results is not None  # Most likely someone forgot to return something
+
             # evaluate_promise should return either a result or a (result, result_classes) pair
             if type(results) == str:
                 self._result = results
@@ -389,7 +403,9 @@ class PromiseModule:
                 self._result_classes = results[1]
         except Exception as e:
             self.log_critical(
-                "{error_type}: {error}".format(error_type=type(e).__name__, error=e)
+                "{error_type}: {error} (Bug in python promise type module, run with --debug for traceback)".format(
+                    error_type=type(e).__name__, error=e
+                )
             )
             self._add_traceback_to_response()
             self._result = Result.ERROR

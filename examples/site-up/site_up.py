@@ -2,7 +2,7 @@ import re
 import ssl
 import urllib.request
 import urllib.error
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
 class SiteUpPromiseTypeModule(PromiseModule):

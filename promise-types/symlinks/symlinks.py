@@ -1,5 +1,5 @@
 import os
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
 class SymlinksPromiseTypeModule(PromiseModule):
@@ -7,7 +7,7 @@ class SymlinksPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(SymlinksPromiseTypeModule, self).__init__(
             name="symlinks_promise_module",
-            version="0.0.1",
+            version="0.0.0",
             **kwargs,
         )
 

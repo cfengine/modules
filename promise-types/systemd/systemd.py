@@ -5,7 +5,7 @@ import subprocess
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
 SYSTEMD_LIB_PATH = "/lib/systemd/system"
@@ -22,7 +22,7 @@ class SystemdPromiseTypeStates(Enum):
 class SystemdPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(SystemdPromiseTypeModule, self).__init__(
-            "systemd_promise_module", "0.2.3", **kwargs
+            "systemd_promise_module", "0.0.0", **kwargs
         )
 
         def state_must_be_valid(v):

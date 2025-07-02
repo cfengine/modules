@@ -4,13 +4,13 @@ from pathlib import Path
 
 from typing import Dict, List, Optional
 
-from cfengine import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
 class GitPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
         super(GitPromiseTypeModule, self).__init__(
-            "git_promise_module", "0.2.5", **kwargs
+            "git_promise_module", "0.0.0", **kwargs
         )
 
         def destination_must_be_absolute(v):
@@ -161,7 +161,12 @@ class GitPromiseTypeModule(PromiseModule):
                     # checkout the branch, if different from the current one
                     output = self._git(
                         model,
-                        [model.executable, "rev-parse", "--abbrev-ref", "HEAD".format()],
+                        [
+                            model.executable,
+                            "rev-parse",
+                            "--abbrev-ref",
+                            "HEAD".format(),
+                        ],
                         cwd=model.destination,
                     )
                     detached = False
@@ -256,7 +261,7 @@ class GitPromiseTypeModule(PromiseModule):
         env["GIT_SSH_COMMAND"] = model.ssh_executable
         if model.ssh_options:
             env["GIT_SSH_COMMAND"] += " " + model.ssh_options
-        if not 'HOME' in env:
+        if not "HOME" in env:
             # git should have a HOME env var to retrieve .gitconfig, .git-credentials, etc
             env["HOME"] = str(Path.home())
         return env
