@@ -1,3 +1,12 @@
+"""
+CFEngine module library
+
+This library can be used to implement CFEngine modules in python.
+Currently, this is for implementing custom promise types,
+but it might be expanded to other types of modules in the future,
+for example custom functions.
+"""
+
 import sys
 import json
 import traceback
