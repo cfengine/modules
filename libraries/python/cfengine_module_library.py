@@ -5,6 +5,15 @@ This library can be used to implement CFEngine modules in python.
 Currently, this is for implementing custom promise types,
 but it might be expanded to other types of modules in the future,
 for example custom functions.
+
+This library is available as a module in CFEngine Build:
+
+https://build.cfengine.com/modules/library-for-promise-types-in-python/
+
+CFEngine Build version: 0.0.0
+
+(If the version number is all zeroes, you are looking at the source. It will
+be replaced in a build step when you run cfbs build).
 """
 
 import sys
@@ -119,7 +128,7 @@ class Result:
 
 class PromiseModule:
     def __init__(
-        self, name="default_module_name", version="0.0.1", record_file_path=None
+        self, name="default_module_name", version="0.0.0", record_file_path=None
     ):
         self.name = name
         self.version = version
