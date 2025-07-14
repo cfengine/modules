@@ -154,7 +154,9 @@
       "subdirectory": "libraries/python",
       "steps": [
         "copy cfengine_module_library.py modules/promises/cfengine_module_library.py",
-        "copy cfengine_module_library.py modules/promises/cfengine.py"
+        "replace_version 2 0.0.0 modules/promises/cfengine_module_library.py",
+        "copy cfengine_module_library.py modules/promises/cfengine.py",
+        "replace_version 2 0.0.0 modules/promises/cfengine.py"
       ]
     },
     "maintainers-in-motd": {
