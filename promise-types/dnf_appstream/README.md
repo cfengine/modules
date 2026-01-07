@@ -180,7 +180,7 @@ bundle agent setup_web_server
         # These packages will be installed from the enabled AppStream modules
         "nodejs" package_method => dnf;
         "postgresql-server" package_method => dnf;
-        
+
         # Standard packages
         "nginx" package_method => dnf;
 }

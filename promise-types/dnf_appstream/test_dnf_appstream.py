@@ -17,9 +17,9 @@ except ImportError as e:
 def test_validation():
     """Test validation of module attributes"""
     print("Testing validation...")
-    
+
     module = DnfAppStreamPromiseTypeModule()
-    
+
     # Test valid attributes
     try:
         module.validate_promise("nodejs", {
@@ -29,7 +29,7 @@ def test_validation():
         print("  ✓ Valid attributes validation passed")
     except Exception as e:
         print(f"  ✗ Valid attributes validation failed: {e}")
-    
+
     # Test invalid module name
     try:
         module.validate_promise("nodejs; rm -rf /", {
@@ -40,7 +40,7 @@ def test_validation():
         print(f"  ✓ Invalid module name validation passed: {e}")
     except Exception as e:
         print(f"  ? Unexpected exception for invalid module name: {e}")
-    
+
     # Note: Stream and State validation have been moved to attribute validators
     # which are handled by the library, not inside validate_promise directly.
     # Therefore we don't test them here via validate_promise, but in their specific test functions below.
@@ -48,9 +48,9 @@ def test_validation():
 def test_module_name_validation():
     """Test module name validation"""
     print("\nTesting module name validation...")
-    
+
     module = DnfAppStreamPromiseTypeModule()
-    
+
     # Test valid names
     valid_names = ["nodejs", "python3.6", "python36", "postgresql", "maven", "httpd"]
     for name in valid_names:
@@ -59,7 +59,7 @@ def test_module_name_validation():
             print(f"  ✓ Valid name '{name}' passed validation")
         except Exception as e:
             print(f"  ✗ Valid name '{name}' failed validation: {e}")
-    
+
     # Test invalid names
     invalid_names = ["nodejs;rm", "python36&&", "postgresql|", "maven>", "httpd<"]
     for name in invalid_names:
@@ -72,9 +72,9 @@ def test_module_name_validation():
 def test_stream_name_validation():
     """Test stream name validation"""
     print("\nTesting stream name validation...")
-    
+
     module = DnfAppStreamPromiseTypeModule()
-    
+
     # Test valid stream names
     valid_streams = ["12", "14", "3.6", "1.14", "latest", "stable"]
     for stream in valid_streams:
@@ -83,7 +83,7 @@ def test_stream_name_validation():
             print(f"  ✓ Valid stream '{stream}' passed validation")
         except Exception as e:
             print(f"  ✗ Valid stream '{stream}' failed validation: {e}")
-    
+
     # Test invalid stream names
     invalid_streams = ["12;rm", "14&&", "3.6|", "latest>", "stable<"]
     for stream in invalid_streams:
@@ -96,9 +96,9 @@ def test_stream_name_validation():
 def test_state_validation():
     """Test state validation"""
     print("\nTesting state validation...")
-    
+
     module = DnfAppStreamPromiseTypeModule()
-    
+
     # Test valid states
     valid_states = ["enabled", "disabled", "installed", "removed"]
     for state in valid_states:
@@ -107,7 +107,7 @@ def test_state_validation():
             print(f"  ✓ Valid state '{state}' passed validation")
         except Exception as e:
             print(f"  ✗ Valid state '{state}' failed validation: {e}")
-    
+
     # Test invalid states
     invalid_states = ["active", "inactive", "present", "absent", "enable", "disable"]
     for state in invalid_states:
@@ -122,9 +122,9 @@ def test_state_validation():
 def test_state_parsing():
     """Test parsing of module states from dnf output"""
     print("\nTesting state parsing...")
-    
+
     module = DnfAppStreamPromiseTypeModule()
-    
+
     # Test that the method exists and can be called
     try:
         # We can't easily test the actual parsing without mocking dnf,
@@ -136,11 +136,11 @@ def test_state_parsing():
 
 if __name__ == "__main__":
     print("Running tests for dnf_appstream promise type...")
-    
+
     test_validation()
     test_module_name_validation()
     test_stream_name_validation()
     test_state_validation()
     test_state_parsing()
-    
+
     print("\nAll tests completed.")

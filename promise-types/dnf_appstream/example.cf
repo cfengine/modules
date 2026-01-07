@@ -47,21 +47,21 @@ bundle agent main
     # Install packages that are part of AppStream modules
     packages:
         # Node.js packages from the enabled stream
-        "nodejs" 
+        "nodejs"
             package_method => dnf_with_modules;
-        
+
         # Python 3.6 packages from the installed stream
-        "python36" 
+        "python36"
             package_method => dnf_with_modules;
-        
+
         # PostgreSQL packages from the enabled stream
-        "postgresql-server" 
+        "postgresql-server"
             package_method => dnf_with_modules;
-        
+
         # Other packages from standard repositories
-        "nginx" 
+        "nginx"
             package_method => dnf_with_modules;
-        "git" 
+        "git"
             package_method => dnf_with_modules;
 }
 
@@ -84,20 +84,20 @@ bundle agent setup_development_environment
 
     packages:
         # Install packages from the enabled modules
-        "nodejs" 
+        "nodejs"
             package_method => dnf_with_modules;
-        
-        "python36" 
+
+        "python36"
             package_method => dnf_with_modules;
-        
-        "maven" 
+
+        "maven"
             package_method => dnf_with_modules;
-        
+
         # Additional development tools
-        "gcc" 
+        "gcc"
             package_method => dnf_with_modules;
-        "make" 
+        "make"
             package_method => dnf_with_modules;
-        "vim-enhanced" 
+        "vim-enhanced"
             package_method => dnf_with_modules;
 }
