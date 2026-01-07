@@ -1,0 +1,103 @@
+# Example policy using the dnf_appstream promise type and packages with AppStream info
+
+promise agent dnf_appstream
+{
+    interpreter => "/usr/bin/python3";
+    path => "$(sys.inputdir)/promise-types/dnf_appstream/dnf_appstream.py";
+}
+
+promise agent rpm_repo
+{
+    interpreter => "/usr/bin/python3";
+    path => "$(sys.inputdir)/promise-types/rpm_repo/rpm_repo.py";
+}
+
+body package_method dnf_with_modules
+{
+    package_module => "dnf";
+    package_policy => "present";
+}
+
+bundle agent main
+{
+    # Configure repositories first
+    rpm_repo:
+        "epel"
+            name => "Extra Packages for Enterprise Linux",
+            baseurl => "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/",
+            enabled => "1",
+            gpgcheck => "1",
+            gpgkey => "https://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-$releasever";
+
+    # Configure AppStream modules before installing packages
+    dnf_appstream:
+        "nodejs"
+            state => "enabled",
+            stream => "14";
+
+        "python36"
+            state => "installed",
+            stream => "3.6",
+            profile => "minimal";
+
+        "postgresql"
+            state => "enabled",
+            stream => "12";
+
+    # Install packages that are part of AppStream modules
+    packages:
+        # Node.js packages from the enabled stream
+        "nodejs" 
+            package_method => dnf_with_modules;
+        
+        # Python 3.6 packages from the installed stream
+        "python36" 
+            package_method => dnf_with_modules;
+        
+        # PostgreSQL packages from the enabled stream
+        "postgresql-server" 
+            package_method => dnf_with_modules;
+        
+        # Other packages from standard repositories
+        "nginx" 
+            package_method => dnf_with_modules;
+        "git" 
+            package_method => dnf_with_modules;
+}
+
+bundle agent setup_development_environment
+{
+    # Enable development-related modules
+    dnf_appstream:
+        "nodejs"
+            state => "enabled",
+            stream => "16";
+
+        "python36"
+            state => "installed",
+            stream => "3.6",
+            profile => "development";
+
+        "maven"
+            state => "enabled",
+            stream => "3.6";
+
+    packages:
+        # Install packages from the enabled modules
+        "nodejs" 
+            package_method => dnf_with_modules;
+        
+        "python36" 
+            package_method => dnf_with_modules;
+        
+        "maven" 
+            package_method => dnf_with_modules;
+        
+        # Additional development tools
+        "gcc" 
+            package_method => dnf_with_modules;
+        "make" 
+            package_method => dnf_with_modules;
+        "vim-enhanced" 
+            package_method => dnf_with_modules;
+}

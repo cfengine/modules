@@ -1,0 +1,21 @@
+{
+  "name": "dnf_appstream",
+  "type": "promise-type",
+  "description": "A custom promise type to manage DNF AppStream modules",
+  "tags": ["dnf", "appstream", "modules", "package management", "redhat", "fedora", "centos"],
+  "files": [
+    {
+      "path": "promise-types/dnf_appstream/dnf_appstream.py",
+      "type": "source",
+      "permissions": "644"
+    },
+    {
+      "path": "promise-types/dnf_appstream/README.md",
+      "type": "documentation",
+      "permissions": "644"
+    }
+  ],
+  "dependencies": [],
+  "test_command": "python3 test_dnf_appstream.py",
+  "version": "0.0.1"
+}

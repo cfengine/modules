@@ -31,12 +31,13 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
         # Define all expected attributes with their types and validation
         self.add_attribute("state", str, required=True, default="enabled",
                           validator=lambda x: self._validate_state(x))
-        self.add_attribute("stream", str, required=False)
+        self.add_attribute("stream", str, required=False,
+                          validator=lambda x: self._validate_stream_name(x))
         self.add_attribute("profile", str, required=False)
 
     def _validate_state(self, value):
         if value not in ("enabled", "disabled", "installed", "removed"):
-            raise ValidationError("state attribute must be 'enabled', 'disabled', 'installed', or 'removed'")
+            raise ValidationError("State attribute must be 'enabled', 'disabled', 'installed', or 'removed'")
 
     def _validate_module_name(self, name):
         # Validate module name to prevent injection
@@ -55,10 +56,6 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
 
         self._validate_module_name(promiser)
 
-        # Validate stream if provided
-        if "stream" in attributes:
-            self._validate_stream_name(attributes["stream"])
-
     def evaluate_promise(self, promiser, attributes, meta):
         module_name = promiser
         state = attributes.get("state", "enabled")
@@ -72,65 +69,60 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
         if profile:
             module_spec += "/" + profile
 
-        try:
-            # Create a DNF base object
-            base = dnf.Base()
+        # Create a DNF base object
+        base = dnf.Base()
 
-            # Read configuration
-            base.conf.assumeyes = True
+        # Read configuration
+        base.conf.assumeyes = True
 
-            # Read repository information
-            base.read_all_repos()
+        # Read repository information
+        base.read_all_repos()
 
-            # Fill the sack (package database)
-            base.fill_sack(load_system_repo='auto')
+        # Fill the sack (package database)
+        base.fill_sack(load_system_repo='auto')
 
-            # Access the module base
-            module_base = base.module_base
-            if module_base is None:
-                self.log_error("DNF modules are not available")
-                return Result.NOT_KEPT
-
-            # Check current state of the module
-            current_state = self._get_module_state(module_base, module_name, stream)
-
-            # Determine what action to take based on desired state
-            if state == "enabled":
-                if current_state == "enabled":
-                    self.log_verbose(f"Module {module_name} is already enabled")
-                    return Result.KEPT
-                else:
-                    return self._enable_module(module_base, module_spec)
-            elif state == "disabled":
-                if current_state == "disabled":
-                    self.log_verbose(f"Module {module_name} is already disabled")
-                    return Result.KEPT
-                else:
-                    return self._disable_module(module_base, module_spec)
-            elif state == "installed":
-                if current_state in ["installed", "enabled"]:
-                    # For "installed" state, if it's already installed or enabled,
-                    # we need to install packages from it
-                    # But if it's already installed with packages, we're done
-                    if self._is_module_installed_with_packages(base, module_name, stream):
-                        self.log_verbose(f"Module {module_name} is already installed with packages")
-                        return Result.KEPT
-                    else:
-                        # Module is enabled but packages are not installed
-                        return self._install_module(module_base, module_spec)
-                else:
-                    # Module is not enabled, need to install (which will enable and install packages)
-                    return self._install_module(module_base, module_spec)
-            elif state == "removed":
-                if current_state == "removed" or current_state == "disabled":
-                    self.log_verbose(f"Module {module_name} is already removed or disabled")
-                    return Result.KEPT
-                else:
-                    return self._remove_module(module_base, module_spec)
-
-        except Exception as e:
-            self.log_error(f"Error managing module {module_name}: {str(e)}")
+        # Access the module base
+        module_base = base.module_base
+        if module_base is None:
+            self.log_error("DNF modules are not available")
             return Result.NOT_KEPT
+
+        # Check current state of the module
+        current_state = self._get_module_state(module_base, module_name, stream)
+
+        # Determine what action to take based on desired state
+        if state == "enabled":
+            if current_state == "enabled":
+                self.log_verbose(f"Module {module_name} is already enabled")
+                return Result.KEPT
+            else:
+                return self._enable_module(module_base, module_spec)
+        elif state == "disabled":
+            if current_state == "disabled":
+                self.log_verbose(f"Module {module_name} is already disabled")
+                return Result.KEPT
+            else:
+                return self._disable_module(module_base, module_spec)
+        elif state == "installed":
+            if current_state in ["installed", "enabled"]:
+                # For "installed" state, if it's already installed or enabled,
+                # we need to install packages from it
+                # But if it's already installed with packages, we're done
+                if self._is_module_installed_with_packages(base, module_name, stream):
+                    self.log_verbose(f"Module {module_name} is already installed with packages")
+                    return Result.KEPT
+                else:
+                    # Module is enabled but packages are not installed
+                    return self._install_module(module_base, module_spec)
+            else:
+                # Module is not enabled, need to install (which will enable and install packages)
+                return self._install_module(module_base, module_spec)
+        elif state == "removed":
+            if current_state == "removed" or current_state == "disabled":
+                self.log_verbose(f"Module {module_name} is already removed or disabled")
+                return Result.KEPT
+            else:
+                return self._remove_module(module_base, module_spec)
 
     def _get_module_state(self, module_base, module_name, stream):
         """Get the current state of a module using DNF Python API"""
@@ -144,12 +136,8 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
                     continue
 
                 # Check the module state
-                if module.status == "enabled":
-                    return "enabled"
-                elif module.status == "disabled":
-                    return "disabled"
-                elif module.status == "installed":
-                    return "installed"
+                if module.status in ("enabled", "disabled", "installed"):
+                    return module.status
 
             # If we get here, module is not found or not in the specified stream
             return "removed"
@@ -174,7 +162,7 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
             module_base.enable([module_spec])
             module_base.base.resolve()
             module_base.base.do_transaction()
-            self.log_verbose(f"Module {module_spec} enabled successfully")
+            self.log_info(f"Module {module_spec} enabled successfully")
             return Result.REPAIRED
         except Exception as e:
             self.log_error(f"Failed to enable module {module_spec}: {str(e)}")
@@ -186,7 +174,7 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
             module_base.disable([module_spec])
             module_base.base.resolve()
             module_base.base.do_transaction()
-            self.log_verbose(f"Module {module_spec} disabled successfully")
+            self.log_info(f"Module {module_spec} disabled successfully")
             return Result.REPAIRED
         except Exception as e:
             self.log_error(f"Failed to disable module {module_spec}: {str(e)}")
@@ -199,7 +187,7 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
             module_base.install([module_spec])
             module_base.base.resolve()
             module_base.base.do_transaction()
-            self.log_verbose(f"Module {module_spec} installed successfully")
+            self.log_info(f"Module {module_spec} installed successfully")
             return Result.REPAIRED
         except Exception as e:
             self.log_error(f"Failed to install module {module_spec}: {str(e)}")
@@ -212,7 +200,7 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
             module_base.remove([module_spec])
             module_base.base.resolve()
             module_base.base.do_transaction()
-            self.log_verbose(f"Module {module_spec} removed successfully")
+            self.log_info(f"Module {module_spec} removed successfully")
             return Result.REPAIRED
         except Exception as e:
             self.log_error(f"Failed to remove module {module_spec}: {str(e)}")
