@@ -13,8 +13,11 @@
 # {
 #   dnf_appstream:
 #       "nodejs"
-#         state => "enabled",
+#         state => "present",
 #         stream => "12";
+#
+#       "postgresql"
+#         state => "default";
 # }
 
 import dnf
@@ -36,18 +39,30 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
         self.add_attribute("profile", str, required=False)
 
     def _validate_state(self, value):
-        if value not in ("enabled", "disabled", "installed", "removed"):
-            raise ValidationError("State attribute must be 'enabled', 'disabled', 'installed', or 'removed'")
+        if value not in (
+            "enabled", "disabled", "install", "remove", "default", "reset",
+            "present", "absent"
+        ):
+            raise ValidationError(
+                "State attribute must be 'enabled', 'disabled', 'install', "
+                "'remove', 'default', 'reset', 'present', or 'absent'"
+            )
 
     def _validate_module_name(self, name):
         # Validate module name to prevent injection
         if not re.match(r'^[a-zA-Z0-9_.-]+$', name):
-            raise ValidationError(f"Invalid module name: {name}. Only alphanumeric, underscore, dot, and dash characters are allowed.")
+            raise ValidationError(
+                f"Invalid module name: {name}. Only alphanumeric, underscore, "
+                f"dot, and dash characters are allowed."
+            )
 
     def _validate_stream_name(self, stream):
         # Validate stream name to prevent injection
         if stream and not re.match(r'^[a-zA-Z0-9_.-]+$', stream):
-            raise ValidationError(f"Invalid stream name: {stream}. Only alphanumeric, underscore, dot, and dash characters are allowed.")
+            raise ValidationError(
+                f"Invalid stream name: {stream}. Only alphanumeric, underscore, "
+                f"dot, and dash characters are allowed."
+            )
 
     def validate_promise(self, promiser, attributes, meta):
         # Validate promiser (module name)
@@ -87,6 +102,39 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
             self.log_error("DNF modules are not available")
             return Result.NOT_KEPT
 
+        # Handle stream => "default"
+        if stream == "default":
+            stream = self._get_default_stream(module_base, module_name)
+            if not stream:
+                self.log_error(
+                    f"No default stream found for module {module_name}"
+                )
+                return Result.NOT_KEPT
+            self.log_verbose(f"Resolved 'default' stream to '{stream}'")
+
+        # Handle profile => "default"
+        if profile == "default":
+            # We need the stream to check for default profile
+            # If stream is None, DNF might pick default stream, but safer to have it resolved
+            resolved_stream = stream
+            if not resolved_stream:
+                 resolved_stream = self._get_default_stream(module_base, module_name)
+            
+            profile = self._get_default_profile(module_base, module_name, resolved_stream)
+            if not profile:
+                self.log_error(
+                    f"No default profile found for module {module_name}"
+                )
+                return Result.NOT_KEPT
+            self.log_verbose(f"Resolved 'default' profile to '{profile}'")
+
+        # Re-construct the module specification with resolved values
+        module_spec = module_name
+        if stream:
+            module_spec += ":" + stream
+        if profile:
+            module_spec += "/" + profile
+
         # Check current state of the module
         current_state = self._get_module_state(module_base, module_name, stream)
 
@@ -103,26 +151,36 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
                 return Result.KEPT
             else:
                 return self._disable_module(module_base, module_spec)
-        elif state == "installed":
+        elif state == "install" or state == "present":
             if current_state in ["installed", "enabled"]:
-                # For "installed" state, if it's already installed or enabled,
-                # we need to install packages from it
-                # But if it's already installed with packages, we're done
-                if self._is_module_installed_with_packages(base, module_name, stream):
-                    self.log_verbose(f"Module {module_name} is already installed with packages")
+                # For "present" state, if it's already installed or enabled,
+                # we need to check if the specific profile is installed
+                if self._is_module_installed_with_packages(
+                    module_base, module_name, stream, profile
+                ):
+                    self.log_verbose(
+                        f"Module {module_name} (stream: {stream}, "
+                        f"profile: {profile}) is already present"
+                    )
                     return Result.KEPT
                 else:
-                    # Module is enabled but packages are not installed
                     return self._install_module(module_base, module_spec)
             else:
-                # Module is not enabled, need to install (which will enable and install packages)
+                # Module is not enabled, need to install
+                # (which will enable and install packages)
                 return self._install_module(module_base, module_spec)
-        elif state == "removed":
+        elif state == "remove" or state == "absent":
             if current_state == "removed" or current_state == "disabled":
-                self.log_verbose(f"Module {module_name} is already removed or disabled")
+                self.log_verbose(
+                    f"Module {module_name} is already absent or disabled"
+                )
                 return Result.KEPT
             else:
                 return self._remove_module(module_base, module_spec)
+        elif state == "default" or state == "reset":
+            return self._reset_module(
+                module_base, module_name, stream, module_spec
+            )
 
     def _get_module_state(self, module_base, module_name, stream):
         """Get the current state of a module using DNF Python API"""
@@ -146,14 +204,63 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
             self.log_error(f"Error getting module state for {module_name}: {str(e)}")
             return "unknown"
 
-    def _is_module_installed_with_packages(self, base, module_name, stream):
-        """Check if the module packages are actually installed on the system"""
+    def _get_default_stream(self, module_base, module_name):
+        """Find the default stream for a module"""
         try:
-            # Check if packages from the module are installed
-            # This is a more complex check that requires examining installed packages
-            # to see if they are from the specified module
-            return False  # Simplified for now - would need more complex logic
-        except Exception:
+            module_list, _ = module_base._get_modules(module_name)
+            for module in module_list:
+                # DNF API: module.is_default is usually a boolean
+                if getattr(module, "is_default", False):
+                    return module.stream
+            return None
+        except Exception as e:
+            self.log_debug(f"Error finding default stream for {module_name}: {e}")
+            return None
+
+    def _get_default_profile(self, module_base, module_name, stream):
+        """Find the default profile for a module stream"""
+        try:
+            module_list, _ = module_base._get_modules(module_name)
+            for module in module_list:
+                if stream and module.stream != stream:
+                    continue
+                
+                # If finding for specific stream (or default stream found)
+                for profile in module.profiles:
+                    if getattr(profile, "is_default", False):
+                        return profile.name
+            return None
+        except Exception as e:
+            self.log_debug(f"Error finding default profile for {module_name}: {e}")
+            return None
+
+    def _is_module_installed_with_packages(
+        self, module_base, module_name, stream, profile_name
+    ):
+        """Check if the module packages/profiles are installed on the system"""
+        try:
+            module_list, _ = module_base._get_modules(module_name)
+            for module in module_list:
+                if stream and module.stream != stream:
+                    continue
+
+                if module.status != "installed":
+                    continue
+
+                # If no profile is specified, 'installed' status is enough
+                if not profile_name:
+                    return True
+
+                # If profile is specified, check if it's installed
+                for profile in module.profiles:
+                    if profile.name == profile_name:
+                        return profile.status == "installed"
+
+            return False
+        except Exception as e:
+            self.log_debug(
+                f"Error checking if module packages are installed: {e}"
+            )
             return False
 
     def _enable_module(self, module_base, module_spec):
@@ -204,6 +311,34 @@ class DnfAppStreamPromiseTypeModule(PromiseModule):
             return Result.REPAIRED
         except Exception as e:
             self.log_error(f"Failed to remove module {module_spec}: {str(e)}")
+            return Result.NOT_KEPT
+
+    def _reset_module(self, module_base, module_name, stream, module_spec):
+        """Reset a module using DNF Python API"""
+        try:
+            # First check if anything is enabled/installed for this module
+            module_list, _ = module_base._get_modules(module_name)
+            needs_reset = False
+            for module in module_list:
+                if stream and module.stream != stream:
+                    continue
+                if module.status in ("enabled", "disabled", "installed"):
+                    needs_reset = True
+                    break
+            
+            if not needs_reset:
+                self.log_verbose(
+                    f"Module {module_name} is already in default (reset) state"
+                )
+                return Result.KEPT
+
+            module_base.reset([module_spec])
+            module_base.base.resolve()
+            module_base.base.do_transaction()
+            self.log_info(f"Module {module_spec} reset successfully")
+            return Result.REPAIRED
+        except Exception as e:
+            self.log_error(f"Failed to reset module {module_spec}: {str(e)}")
             return Result.NOT_KEPT
 
 

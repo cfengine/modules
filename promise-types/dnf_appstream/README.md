@@ -29,7 +29,7 @@ promise agent dnf_appstream
 
 ## Usage
 
-### Enable a Module
+### Ensure a module is enabled
 
 ```
 bundle agent main
@@ -41,7 +41,7 @@ bundle agent main
 }
 ```
 
-### Disable a Module
+### Ensure a module is disabled
 
 ```
 bundle agent main
@@ -52,27 +52,38 @@ bundle agent main
 }
 ```
 
-### Install a Module with Profile
+### Ensure a module is installed with a specific profile
 
 ```
 bundle agent main
 {
   dnf_appstream:
       "python36"
-        state => "installed",
+        state => "present",
         stream => "3.6",
         profile => "minimal";
 }
 ```
 
-### Remove a Module
+### Ensure a module is absent
 
 ```
 bundle agent main
 {
   dnf_appstream:
       "postgresql"
-        state => "removed";
+        state => "absent";
+}
+```
+
+### Reset a module to default
+
+```
+bundle agent main
+{
+  dnf_appstream:
+      "nodejs"
+        state => "default";
 }
 ```
 
@@ -80,26 +91,19 @@ bundle agent main
 
 The promise type supports the following attributes:
 
-- `state` (required) - Desired state of the module: `enabled`, `disabled`, `installed`, or `removed` (default: `enabled`)
-- `stream` (optional) - Specific stream of the module to use
-- `profile` (optional) - Specific profile of the module to install
+- `state` (required) - Desired state of the module: `present`, `absent`, `enabled`, `disabled`, or `default` (default: `present`)
+- `stream` (optional) - Specific stream of the module to use. Set to `"default"` to use the module's default stream.
+- `profile` (optional) - Specific profile of the module to install. Set to `"default"` to use the module stream's default profile.
 
 ## Module States
 
-- `enabled` - The module is enabled and available for installation
-- `disabled` - The module is disabled and not available for installation
-- `installed` - The module is installed with its default profile (implies enabled)
-- `removed` - The module is removed or not installed
+- `present` - The module and its packages (profile) are present on the system (implies enabled). Alias: `install`.
+- `absent` - The module is not present or is disabled. Alias: `remove`.
+- `enabled` - The module is enabled and available for installation.
+- `disabled` - The module is explicitly disabled.
+- `default` - The module is in its default state (neither enabled nor disabled, no profiles installed). Alias: `reset`.
 
-Note: The `installed` state implies `enabled` because in DNF's module system, installing a module automatically enables it first.
-
-## Security Features
-
-- Input validation and sanitization
-- Module name validation (alphanumeric, underscore, dot, and dash only)
-- Stream name validation (alphanumeric, underscore, dot, and dash only)
-- Uses DNF Python API for secure operations instead of subprocess calls
-- Proper error handling and timeout management
+Note: The `present` state implies `enabled` because in DNF's module system, installing a module automatically enables it first.
 
 ## Requirements
 
@@ -108,80 +112,3 @@ Note: The `installed` state implies `enabled` because in DNF's module system, in
 - DNF Python API (python3-dnf package)
 - DNF package manager (RHEL 8+, Fedora, CentOS 8+)
 - AppStream repositories configured
-
-## Examples
-
-### Enable Multiple Modules
-
-```
-bundle agent enable_development_stack
-{
-  dnf_appstream:
-      "nodejs"
-        state => "enabled",
-        stream => "14";
-
-      "python36"
-        state => "enabled",
-        stream => "3.6";
-
-      "postgresql"
-        state => "enabled",
-        stream => "12";
-}
-```
-
-### Configure Web Server Stack
-
-```
-bundle agent configure_web_server
-{
-  dnf_appstream:
-      "nginx"
-        state => "installed",
-        stream => "1.14";
-
-      "php"
-        state => "installed",
-        stream => "7.4",
-        profile => "minimal";
-}
-```
-
-### Complete Example with Package Installation
-
-```
-promise agent dnf_appstream
-{
-    interpreter => "/usr/bin/python3";
-    path => "$(sys.inputdir)/modules/promises/dnf_appstream.py";
-}
-
-body package_method dnf
-{
-    package_module => "dnf";
-    package_policy => "present";
-}
-
-bundle agent setup_web_server
-{
-    # Enable AppStream modules
-    dnf_appstream:
-        "nodejs"
-            state => "enabled",
-            stream => "14";
-
-        "postgresql"
-            state => "installed",
-            stream => "12";
-
-    # Install packages from the enabled modules
-    packages:
-        # These packages will be installed from the enabled AppStream modules
-        "nodejs" package_method => dnf;
-        "postgresql-server" package_method => dnf;
-
-        # Standard packages
-        "nginx" package_method => dnf;
-}
-```

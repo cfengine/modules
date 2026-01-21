@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 
 import os
+
 import sys
 
-# Add the libraries directory to the Python path so we can import cfengine_module_library
+from unittest.mock import MagicMock
+
+
+
+# Mock dnf module before importing the promise module
+mock_dnf = MagicMock()
+sys.modules["dnf"] = mock_dnf
+
+# Add the libraries directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "libraries", "python"))
 
 try:
@@ -100,7 +109,10 @@ def test_state_validation():
     module = DnfAppStreamPromiseTypeModule()
 
     # Test valid states
-    valid_states = ["enabled", "disabled", "installed", "removed"]
+    valid_states = [
+        "enabled", "disabled", "install", "remove", 
+        "present", "absent", "default", "reset"
+    ]
     for state in valid_states:
         try:
             module._validate_state(state)
@@ -109,7 +121,9 @@ def test_state_validation():
             print(f"  ✗ Valid state '{state}' failed validation: {e}")
 
     # Test invalid states
-    invalid_states = ["active", "inactive", "present", "absent", "enable", "disable"]
+    invalid_states = [
+        "active", "inactive", "enable", "disable", "installed", "removed"
+    ]
     for state in invalid_states:
         try:
             module._validate_state(state)
