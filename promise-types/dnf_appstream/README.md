@@ -1,6 +1,6 @@
 # DNF AppStream Promise Type
 
-A CFEngine custom promise type for managing DNF AppStream modules on RHEL 8+ and compatible systems.
+A CFEngine custom promise type for managing DNF AppStream modules on compatible systems.
 
 ## Overview
 
@@ -10,10 +10,6 @@ The `dnf_appstream` promise type allows you to manage DNF AppStream modules, whi
 
 - Enable, disable, install, and remove DNF AppStream modules
 - Support for specifying streams and profiles
-- Input validation and sanitization for security
-- Proper error handling and logging
-- Module state checking to avoid unnecessary operations
-- Uses DNF Python API for efficient and secure operations
 
 ## Installation
 
@@ -23,7 +19,7 @@ To install this promise type, copy the `dnf_appstream.py` file to your CFEngine 
 promise agent dnf_appstream
 {
   interpreter => "/usr/bin/python3";
-  path => "$(sys.inputdir)/dnf_appstream.py";
+  path => "$(sys.workdir)/modules/promises/dnf_appstream.py";
 }
 ```
 
@@ -59,20 +55,20 @@ bundle agent main
 {
   dnf_appstream:
       "python36"
-        state => "present",
+        state => "installed",
         stream => "3.6",
         profile => "minimal";
 }
 ```
 
-### Ensure a module is absent
+### Ensure a module is removed
 
 ```
 bundle agent main
 {
   dnf_appstream:
       "postgresql"
-        state => "absent";
+        state => "removed";
 }
 ```
 
@@ -91,19 +87,9 @@ bundle agent main
 
 The promise type supports the following attributes:
 
-- `state` (required) - Desired state of the module: `present`, `absent`, `enabled`, `disabled`, or `default` (default: `present`)
-- `stream` (optional) - Specific stream of the module to use. Set to `"default"` to use the module's default stream.
-- `profile` (optional) - Specific profile of the module to install. Set to `"default"` to use the module stream's default profile.
-
-## Module States
-
-- `present` - The module and its packages (profile) are present on the system (implies enabled). Alias: `install`.
-- `absent` - The module is not present or is disabled. Alias: `remove`.
-- `enabled` - The module is enabled and available for installation.
-- `disabled` - The module is explicitly disabled.
-- `default` - The module is in its default state (neither enabled nor disabled, no profiles installed). Alias: `reset`.
-
-Note: The `present` state implies `enabled` because in DNF's module system, installing a module automatically enables it first.
+- `state` (optional) - Desired state of the module: `enabled`, `disabled`, `installed`, `removed`, `default`, or `reset` (default: `enabled`)
+- `stream` (optional) - Specific stream of the module to use. Set to `default` to use the module's default stream.
+- `profile` (optional) - Specific profile of the module to install. Set to `default` to use the module stream's default profile.
 
 ## Requirements
 

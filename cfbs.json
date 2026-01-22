@@ -223,6 +223,15 @@
         "append enable.cf services/init.cf"
       ]
     },
+    "promise-type-dnf_appstream": {
+      "description": "Promise type to manage dnf appstream modules.",
+      "subdirectory": "promise-types/dnf_appstream",
+      "dependencies": ["library-for-promise-types-in-python"],
+      "steps": [
+        "copy dnf_appstream.py modules/promises/",
+        "append enable.cf services/init.cf"
+      ]
+    },
     "promise-type-git": {
       "description": "Promise type to manage git repos.",
       "subdirectory": "promise-types/git",
