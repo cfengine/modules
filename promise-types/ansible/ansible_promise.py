@@ -13,6 +13,7 @@ try:
     from ansible.parsing.dataloader import DataLoader
     from ansible.plugins.callback import CallbackBase
     from ansible.vars.manager import VariableManager
+    from ansible.plugins.loader import init_plugin_loader
 
     ANSIBLE_AVAILABLE = True
 except ImportError:
@@ -165,4 +166,5 @@ class AnsiblePromiseTypeModule(PromiseModule):
 
 
 if __name__ == "__main__":
+    init_plugin_loader()
     AnsiblePromiseTypeModule().start()
