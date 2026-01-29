@@ -177,6 +177,15 @@
         "bundles powershell_execution_policy_inventory"
       ]
     },
+    "package-method-ansible-galaxy-collection": {
+      "description": "Package method for installing Ansible Galaxy Collections.",
+      "subdirectory": "management/package-method-ansible-galaxy-collection",
+      "dependencies": [],
+      "steps": [
+        "directory ./ services/cfbs/modules/package-method-ansible-galaxy-collection/",
+        "policy_files services/cfbs/modules/package-method-ansible-galaxy-collection/"
+      ]
+    },
     "package-method-winget": {
       "description": "Package method for Windows winget package manager.",
       "subdirectory": "management/package-method-winget",
