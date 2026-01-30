@@ -1,0 +1,15 @@
+body package_method ansible_galaxy_collection
+{
+      package_changes => "bulk";
+      package_name_convention   => "$(name)";
+      package_delete_convention => "$(name)";
+
+      package_installed_regex => ".*";
+      package_list_name_regex => '^"([^"]*)",.*';
+      package_list_version_regex => '.*,"([^"]*)".*';
+
+
+      package_list_command => "ansible-galaxy collection list";
+      package_delete_command => 'echo "Deleting an Ansible Galaxy Collection is not supported"';
+      package_add_command => "ansible-galaxy collection install ";
+}
