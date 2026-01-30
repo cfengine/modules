@@ -10,7 +10,7 @@ packages:
     package_policy => "add";
 ```
 
-Note that there is not a command option in ansible-galaxy to uninstall collections so that will result in no changes being made and a warning message.
+Note that there is not a command option in ansible-galaxy to uninstall collections so that will result in no changes being made and a warning message. Ansible documentation suggests [removing collections with rm](https://docs.ansible.com/projects/ansible/latest/collections_guide/collections_installing.html#removing-a-collection)
 
 ## Installation
 
