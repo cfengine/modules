@@ -137,11 +137,21 @@
     },
     "inventory-windows-services": {
       "description": "Inventory running Windows services.",
-      "subdirectory": "inventory",
+      "subdirectory": "inventory/inventory-windows-services",
       "steps": [
         "copy inventory-windows-services.cf services/cfbs/inventory-windows-services/",
         "policy_files services/cfbs/inventory-windows-services/",
         "bundles inventory_windows_services_running"
+      ]
+    },
+    "inventory-fde": {
+      "description": "Inventory full disk encryption status (LUKS, FileVault, BitLocker).",
+      "tags": ["inventory", "security"],
+      "subdirectory": "inventory/inventory-fde",
+      "steps": [
+        "copy inventory-fde.cf services/cfbs/inventory-fde/",
+        "policy_files services/cfbs/inventory-fde/",
+        "bundles inventory_fde:main"
       ]
     },
     "library-for-promise-types-in-bash": {
