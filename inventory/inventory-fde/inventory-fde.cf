@@ -1,0 +1,143 @@
+body file control
+{
+      namespace => "inventory_fde";
+}
+
+bundle agent main
+# @brief Inventory full disk encryption status
+# @inventory Full disk encryption enabled - Whether all non-virtual mounted filesystems use dm-crypt encryption (yes, partial, or no).
+# @inventory Full disk encryption method - The encryption type(s) in use, e.g. LUKS2, LUKS1, PLAIN, or none.
+# @inventory Full disk encryption volumes - List of mountpoints backed by encrypted devices, e.g. /.
+# @inventory Unencrypted volumes - List of mountpoints on non-virtual block devices that are not encrypted, e.g. /boot, /boot/efi.
+{
+  classes:
+    linux::
+      # Flag each dm device that has a CRYPT uuid
+      "_dm_is_crypt_${_dm_devices}"
+        expression => regcmp("CRYPT-.*", "${_dm_uuid[${_dm_devices}]}");
+
+      # Classify each mount: real block device? (starts with /dev/, not a loop device)
+      "_is_real_block_${_mnt_idx}"
+        expression => regcmp("/dev/(?!loop)\S+", "${_mnt_data[${_mnt_idx}][0]}");
+
+      # Classify each real block mount: is device in the crypt paths list?
+      "_is_encrypted_${_mnt_idx}"
+        expression => regcmp("(${_crypt_paths_regex})", "${_mnt_data[${_mnt_idx}][0]}"),
+        if => canonify("_is_real_block_${_mnt_idx}");
+
+      # Summary classes
+      "_has_encrypted"
+        expression => isgreaterthan(length(_encrypted_mountpoints), 0);
+      "_has_unencrypted"
+        expression => isgreaterthan(length(_unencrypted_mountpoints), 0);
+
+  vars:
+    linux::
+      # Enumerate all device-mapper block devices
+      "_dm_devices" slist => lsdir("/sys/block", "dm-\d+", false);
+
+      # Read the DM subsystem uuid and name for each dm device
+      "_dm_uuid[${_dm_devices}]"
+        string => readfile("/sys/block/${_dm_devices}/dm/uuid"),
+        if => fileexists("/sys/block/${_dm_devices}/dm/uuid");
+      "_dm_name[${_dm_devices}]"
+        string => readfile("/sys/block/${_dm_devices}/dm/name"),
+        if => fileexists("/sys/block/${_dm_devices}/dm/name");
+
+      # Build list of crypt device paths (both /dev/mapper/<name> and /dev/<dm-N>)
+      "_crypt_mapper_path[${_dm_devices}]"
+        string => "/dev/mapper/${_dm_name[${_dm_devices}]}",
+        if => canonify("_dm_is_crypt_${_dm_devices}");
+      "_crypt_dm_path[${_dm_devices}]"
+        string => "/dev/${_dm_devices}",
+        if => canonify("_dm_is_crypt_${_dm_devices}");
+      "_all_crypt_paths"
+        slist => { getvalues(_crypt_mapper_path), getvalues(_crypt_dm_path) };
+
+      # Build a regex alternation of all crypt device paths for matching
+      "_crypt_paths_regex"
+        string => join("|", maplist(regex_replace("$(this)", "([./])", "\\\1", "g"), _all_crypt_paths));
+
+      # Extract the encryption type for crypt devices
+      # UUID format: CRYPT-<TYPE>-<uuid>-<name>
+      "_dm_crypt_type[${_dm_devices}]"
+        string => regex_replace("${_dm_uuid[${_dm_devices}]}", "^CRYPT-([^-]+)-.*", "\1", ""),
+        if => canonify("_dm_is_crypt_${_dm_devices}");
+
+      # Parse /proc/mounts into indexed array
+      # Columns: 0=device, 1=mountpoint, 2=fstype, 3=options, 4=dump, 5=pass
+      "_n_mnt_lines"
+        int => readstringarrayidx("_mnt_data", "/proc/mounts", "\s*#[^\n]*", "\s+", inf, inf);
+      "_mnt_idx" slist => getindices(_mnt_data);
+
+      # Collect all real block device mountpoints
+      "_all_real_mountpoint[${_mnt_idx}]"
+        string => "${_mnt_data[${_mnt_idx}][1]}",
+        if => canonify("_is_real_block_${_mnt_idx}");
+
+      # Collect encrypted mountpoints (subset of real block mounts)
+      "_encrypted_mountpoint[${_mnt_idx}]"
+        string => "${_mnt_data[${_mnt_idx}][1]}",
+        if => and(
+          canonify("_is_real_block_${_mnt_idx}"),
+          canonify("_is_encrypted_${_mnt_idx}")
+        );
+
+      # Derive unencrypted mountpoints as the difference
+      "_all_real_mountpoints" slist => getvalues(_all_real_mountpoint);
+      "_encrypted_mountpoints" slist => getvalues(_encrypted_mountpoint);
+      "_unencrypted_mountpoints"
+        slist => difference(_all_real_mountpoints, _encrypted_mountpoints);
+
+    # Inventory: full encryption (encrypted volumes exist, no unencrypted ones)
+    _has_encrypted.!_has_unencrypted::
+      "fde_enabled"
+        string => "yes",
+        meta => { "inventory", "attribute_name=Full disk encryption enabled" };
+
+    # Inventory: partial encryption
+    _has_encrypted._has_unencrypted::
+      "fde_enabled"
+        string => "partial",
+        meta => { "inventory", "attribute_name=Full disk encryption enabled" };
+
+    # Inventory: no encryption
+    linux.!_has_encrypted::
+      "fde_enabled"
+        string => "no",
+        meta => { "inventory", "attribute_name=Full disk encryption enabled" };
+
+    # Method and volume details
+    _has_encrypted::
+      "fde_method"
+        string => join(", ", unique(getvalues(_dm_crypt_type))),
+        meta => { "inventory", "attribute_name=Full disk encryption method" };
+      "fde_volumes"
+        slist => unique(_encrypted_mountpoints),
+        meta => { "inventory", "attribute_name=Full disk encryption volumes" };
+
+    linux.!_has_encrypted::
+      "fde_method"
+        string => "none",
+        meta => { "inventory", "attribute_name=Full disk encryption method" };
+
+    _has_unencrypted::
+      "unencrypted_volumes"
+        slist => unique(_unencrypted_mountpoints),
+        meta => { "inventory", "attribute_name=Unencrypted volumes" };
+
+  reports:
+      !linux.verbose_mode::
+        "$(this.promise_filename): $(this.namespace):$(this.bundle) is currently only instrumented for Linux. Please consider making a pull request or filing a ticket to request your specific platform.";
+}
+
+body file control
+{
+      namespace => "default";
+}
+
+bundle agent __main__
+{
+  methods:
+    "inventory_fde:main";
+}
