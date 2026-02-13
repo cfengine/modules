@@ -149,8 +149,8 @@
       "tags": ["inventory", "security"],
       "subdirectory": "inventory/inventory-fde",
       "steps": [
-        "copy inventory-fde.cf services/cfbs/inventory-fde/",
-        "policy_files services/cfbs/inventory-fde/",
+        "copy inventory-fde.cf services/cfbs/modules/inventory-fde/inventory-fde.cf",
+        "policy_files services/cfbs/modules/inventory-fde/inventory-fde.cf",
         "bundles inventory_fde:main"
       ]
     },
