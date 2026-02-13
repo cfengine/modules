@@ -3,18 +3,52 @@ body file control
       namespace => "inventory_fde";
 }
 
+# Duplicated from the CFEngine standard library so this module can be parsed
+# and tested standalone without loading the full masterfiles.
+# _tidy: lib/files.cf body delete tidy
+# _in_shell: lib/commands.cf body contain in_shell
+
+body delete _tidy
+{
+      dirlinks => "delete";
+      rmdirs   => "true";
+}
+
+body contain _in_shell
+{
+      useshell => "useshell";
+}
+
 bundle agent main
 # @brief Inventory full disk encryption status
 # @inventory Full disk encryption enabled - Whether all non-virtual mounted filesystems use dm-crypt encryption (yes, partial, or no).
-# @inventory Full disk encryption method - The encryption type(s) in use, e.g. LUKS2, LUKS1, PLAIN, or none.
+# @inventory Full disk encryption methods - The encryption type(s) in use, e.g. LUKS2, LUKS1, PLAIN.
 # @inventory Full disk encryption volumes - List of mountpoints backed by encrypted devices, e.g. /.
 # @inventory Unencrypted volumes - List of mountpoints on non-virtual block devices that are not encrypted, e.g. /boot, /boot/efi.
+# @inventory Full disk encryption volume ciphers - The active dm-crypt cipher per volume, e.g. / : aes-xts-plain64.
+# @inventory Full disk encryption keyslot info - LUKS keyslot cipher and PBKDF per volume, e.g. / : 0:aes-xts-plain64/argon2id.
 {
+  vars:
+    linux::
+      "_dmsetup"    string => "/sbin/dmsetup";
+      "_cryptsetup" string => "/sbin/cryptsetup";
+
   classes:
     linux::
+      "_have_dmsetup"
+        expression => isexecutable("${_dmsetup}");
+      "_have_cryptsetup"
+        expression => isexecutable("${_cryptsetup}");
+
       # Flag each dm device that has a CRYPT uuid
       "_dm_is_crypt_${_dm_devices}"
         expression => regcmp("CRYPT-.*", "${_dm_uuid[${_dm_devices}]}");
+
+      # Classify crypt type per device
+      "_dm_is_luks2_${_dm_devices}"
+        expression => strcmp("LUKS2", "${_dm_crypt_type[${_dm_devices}]}");
+      "_dm_is_luks1_${_dm_devices}"
+        expression => strcmp("LUKS1", "${_dm_crypt_type[${_dm_devices}]}");
 
       # Classify each mount: real block device? (starts with /dev/, not a loop device)
       "_is_real_block_${_mnt_idx}"
@@ -24,6 +58,11 @@ bundle agent main
       "_is_encrypted_${_mnt_idx}"
         expression => regcmp("(${_crypt_paths_regex})", "${_mnt_data[${_mnt_idx}][0]}"),
         if => canonify("_is_real_block_${_mnt_idx}");
+
+      # LUKS1: flag enabled keyslots (slots 0-7, all share global cipher, all use PBKDF2)
+      "_luks1_slot_enabled_${_dm_devices}_${_luks1_slots}"
+        expression => regcmp("(?s).*Key Slot ${_luks1_slots}: ENABLED.*", "${_luks1_dump[${_dm_devices}]}"),
+        if => canonify("_dm_is_luks1_${_dm_devices}");
 
       # Summary classes
       "_has_encrypted"
@@ -64,6 +103,14 @@ bundle agent main
         string => regex_replace("${_dm_uuid[${_dm_devices}]}", "^CRYPT-([^-]+)-.*", "\1", ""),
         if => canonify("_dm_is_crypt_${_dm_devices}");
 
+      # Underlying block device for each crypt device (for cryptsetup luksDump)
+      "_dm_slaves[${_dm_devices}]"
+        slist => lsdir("/sys/block/${_dm_devices}/slaves", "[a-z].*", false),
+        if => canonify("_dm_is_crypt_${_dm_devices}");
+      "_dm_slave_dev[${_dm_devices}]"
+        string => "/dev/${_dm_slaves[${_dm_devices}]}",
+        if => canonify("_dm_is_crypt_${_dm_devices}");
+
       # Parse /proc/mounts into indexed array
       # Columns: 0=device, 1=mountpoint, 2=fstype, 3=options, 4=dump, 5=pass
       "_n_mnt_lines"
@@ -83,52 +130,189 @@ bundle agent main
           canonify("_is_encrypted_${_mnt_idx}")
         );
 
+      # Map dm device to its mountpoint via cross-iteration
+      "_dm_mountpoint[${_dm_devices}]"
+        string => "${_mnt_data[${_mnt_idx}][1]}",
+        if => and(
+          canonify("_dm_is_crypt_${_dm_devices}"),
+          regcmp("(/dev/mapper/${_dm_name[${_dm_devices}]}|/dev/${_dm_devices})",
+                 "${_mnt_data[${_mnt_idx}][0]}"));
+
       # Derive unencrypted mountpoints as the difference
       "_all_real_mountpoints" slist => getvalues(_all_real_mountpoint);
       "_encrypted_mountpoints" slist => getvalues(_encrypted_mountpoint);
       "_unencrypted_mountpoints"
         slist => difference(_all_real_mountpoints, _encrypted_mountpoints);
 
-    # Inventory: full encryption (encrypted volumes exist, no unencrypted ones)
-    _has_encrypted.!_has_unencrypted::
+    # --- Active cipher via dmsetup table ---
+    _have_dmsetup::
+      # dmsetup table format: "0 <size> crypt <cipher> <key> <iv_offset> <dev> <offset>"
+      "_dm_active_cipher[${_dm_devices}]"
+        string => regex_replace(
+          execresult("${_dmsetup} table ${_dm_name[${_dm_devices}]}", "noshell"),
+          "^\d+\s+\d+\s+crypt\s+(\S+)\s+.*$", "\1", ""),
+        if => canonify("_dm_is_crypt_${_dm_devices}");
+
+    # --- LUKS2 keyslot info via cached JSON metadata ---
+    _have_cryptsetup::
+      "_luks2_cache[${_dm_devices}]"
+        string => "$(sys.statedir)/inventory_fde_luks2_${_dm_devices}.json",
+        if => canonify("_dm_is_luks2_${_dm_devices}");
+
+      "_luks2_cache_mtime[${_dm_devices}]"
+        string => filestat("${_luks2_cache[${_dm_devices}]}", "mtime"),
+        if => and(
+          canonify("_dm_is_luks2_${_dm_devices}"),
+          fileexists("${_luks2_cache[${_dm_devices}]}"));
+
+    # --- LUKS1 keyslot info via text parsing ---
+    _have_cryptsetup::
+      "_luks1_slots" slist => { "0", "1", "2", "3", "4", "5", "6", "7" };
+
+      "_luks1_dump[${_dm_devices}]"
+        string => execresult("${_cryptsetup} luksDump ${_dm_slave_dev[${_dm_devices}]}", "noshell"),
+        if => canonify("_dm_is_luks1_${_dm_devices}");
+
+      # LUKS1 global cipher: "Cipher name" + "Cipher mode"
+      "_luks1_cipher_name[${_dm_devices}]"
+        string => regex_replace("${_luks1_dump[${_dm_devices}]}", "(?s).*Cipher name:\s+(\S+).*", "\1", ""),
+        if => canonify("_dm_is_luks1_${_dm_devices}");
+      "_luks1_cipher_mode[${_dm_devices}]"
+        string => regex_replace("${_luks1_dump[${_dm_devices}]}", "(?s).*Cipher mode:\s+(\S+).*", "\1", ""),
+        if => canonify("_dm_is_luks1_${_dm_devices}");
+
+      # Build per-keyslot summary for each ENABLED slot
+      "_luks1_ks_entry[${_dm_devices}][${_luks1_slots}]"
+        string => "${_luks1_slots}:${_luks1_cipher_name[${_dm_devices}]}-${_luks1_cipher_mode[${_dm_devices}]}/pbkdf2",
+        if => and(
+          canonify("_dm_is_luks1_${_dm_devices}"),
+          canonify("_luks1_slot_enabled_${_dm_devices}_${_luks1_slots}"));
+
+      "_luks1_ks_entries[${_dm_devices}]"
+        slist => getvalues("_luks1_ks_entry[${_dm_devices}]"),
+        if => canonify("_dm_is_luks1_${_dm_devices}");
+
+      "_dm_keyslot_info[${_dm_devices}]"
+        string => join(", ", sort("_luks1_ks_entries[${_dm_devices}]", "lex")),
+        if => canonify("_dm_is_luks1_${_dm_devices}");
+
+    # --- Inventory attributes ---
+
+    linux::
       "fde_enabled"
-        string => "yes",
+        string => ifelse("_has_encrypted.!_has_unencrypted", "yes",
+                         "_has_encrypted._has_unencrypted", "partial",
+                         "no"),
         meta => { "inventory", "attribute_name=Full disk encryption enabled" };
 
-    # Inventory: partial encryption
-    _has_encrypted._has_unencrypted::
-      "fde_enabled"
-        string => "partial",
-        meta => { "inventory", "attribute_name=Full disk encryption enabled" };
-
-    # Inventory: no encryption
-    linux.!_has_encrypted::
-      "fde_enabled"
-        string => "no",
-        meta => { "inventory", "attribute_name=Full disk encryption enabled" };
-
-    # Method and volume details
-    _has_encrypted::
       "fde_method"
-        string => join(", ", unique(getvalues(_dm_crypt_type))),
-        meta => { "inventory", "attribute_name=Full disk encryption method" };
+        slist => unique(getvalues(_dm_crypt_type)),
+        meta => { "inventory", "attribute_name=Full disk encryption methods" };
+
+    _has_encrypted::
       "fde_volumes"
         slist => unique(_encrypted_mountpoints),
         meta => { "inventory", "attribute_name=Full disk encryption volumes" };
-
-    linux.!_has_encrypted::
-      "fde_method"
-        string => "none",
-        meta => { "inventory", "attribute_name=Full disk encryption method" };
 
     _has_unencrypted::
       "unencrypted_volumes"
         slist => unique(_unencrypted_mountpoints),
         meta => { "inventory", "attribute_name=Unencrypted volumes" };
 
+    # Build per-volume cipher and keyslot strings with mountpoint prefix
+    _have_dmsetup::
+      "_volume_cipher_entry[${_dm_devices}]"
+        string => "${_dm_mountpoint[${_dm_devices}]} : ${_dm_active_cipher[${_dm_devices}]}",
+        if => and(
+          canonify("_dm_is_crypt_${_dm_devices}"),
+          isvariable("_dm_mountpoint[${_dm_devices}]"));
+
+    _have_cryptsetup::
+      "_keyslot_info_entry[${_dm_devices}]"
+        string => "${_dm_mountpoint[${_dm_devices}]} : ${_luks2_ks_${_dm_devices}[keyslots]}",
+        if => and(
+          canonify("_dm_is_luks2_${_dm_devices}"),
+          isvariable("_dm_mountpoint[${_dm_devices}]"),
+          isvariable("_luks2_ks_${_dm_devices}[keyslots]"));
+
+      "_keyslot_info_entry[${_dm_devices}]"
+        string => "${_dm_mountpoint[${_dm_devices}]} : ${_dm_keyslot_info[${_dm_devices}]}",
+        if => and(
+          canonify("_dm_is_luks1_${_dm_devices}"),
+          isvariable("_dm_mountpoint[${_dm_devices}]"));
+
+    _has_encrypted._have_dmsetup::
+      "fde_volume_cipher"
+        slist => getvalues(_volume_cipher_entry),
+        meta => { "inventory", "attribute_name=Full disk encryption volume ciphers" };
+
+    _has_encrypted._have_cryptsetup::
+      "fde_keyslot_info"
+        slist => getvalues(_keyslot_info_entry),
+        meta => { "inventory", "attribute_name=Full disk encryption keyslot info" };
+
+  files:
+    _have_cryptsetup::
+      # Delete LUKS2 JSON cache if older than 24 hours
+      "${_luks2_cache[${_dm_devices}]}"
+        delete => _tidy,
+        if => and(
+          canonify("_dm_is_luks2_${_dm_devices}"),
+          fileexists("${_luks2_cache[${_dm_devices}]}"),
+          isgreaterthan(
+            format("%d", eval("$(sys.systime) - ${_luks2_cache_mtime[${_dm_devices}]}")),
+            "86400"));
+
+  commands:
+    _have_cryptsetup::
+      "${_cryptsetup}"
+        arglist => { "luksDump",
+                     "--dump-json-metadata",
+                     "${_dm_slave_dev[${_dm_devices}]}",
+                     ">", "${_luks2_cache[${_dm_devices}]}" },
+        contain => _in_shell,
+        if => and(
+          canonify("_dm_is_luks2_${_dm_devices}"),
+          not(fileexists("${_luks2_cache[${_dm_devices}]}")));
+
+  methods:
+    _have_cryptsetup::
+      # Parse LUKS2 JSON and return keyslot summary via bundle_return_value_index
+      "luks2_${_dm_devices}"
+        usebundle => luks2_keyslot_info("${_luks2_cache[${_dm_devices}]}"),
+        useresult => "_luks2_ks_${_dm_devices}",
+        if => and(
+          canonify("_dm_is_luks2_${_dm_devices}"),
+          fileexists("${_luks2_cache[${_dm_devices}]}"));
+
   reports:
       !linux.verbose_mode::
         "$(this.promise_filename): $(this.namespace):$(this.bundle) is currently only instrumented for Linux. Please consider making a pull request or filing a ticket to request your specific platform.";
+}
+
+bundle agent luks2_keyslot_info(cache_file)
+# @brief Parse LUKS2 JSON metadata and return keyslot summary
+{
+  vars:
+      "_json"
+        data => readjson("${cache_file}");
+
+      "_ks_idx"
+        slist => getindices("_json[keyslots]");
+
+      # Build per-keyslot summary: "<slot>:<cipher>/<kdf>"
+      "_ks_entry[${_ks_idx}]"
+        string => "${_ks_idx}:${_json[keyslots][${_ks_idx}][area][encryption]}/${_json[keyslots][${_ks_idx}][kdf][type]}";
+
+      "_ks_entries"
+        slist => getvalues(_ks_entry);
+
+      "_keyslots"
+        string => join(", ", sort(_ks_entries, "lex"));
+
+  reports:
+      "${_keyslots}"
+        bundle_return_value_index => "keyslots";
 }
 
 body file control
