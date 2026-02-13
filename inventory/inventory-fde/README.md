@@ -23,7 +23,7 @@ When `dmsetup` and `cryptsetup` are available, the module additionally reports t
 - **Full disk encryption volume ciphers** - The active dm-crypt cipher per volume, e.g. `/ : aes-xts-plain64`. Requires `dmsetup`.
 - **Full disk encryption keyslot info** - LUKS keyslot cipher and PBKDF per volume, e.g. `/ : 0:aes-xts-plain64/argon2id`. Requires `cryptsetup`. Not available for plain dm-crypt (no keyslots).
 
-[![Inventory in Mission Portal](inventory-fde-mission-portal.png)](inventory-fde-mission-portal.png)
+[![Inventory in Mission Portal](https://raw.githubusercontent.com/cfengine/modules/master/inventory/inventory-fde/inventory-fde-mission-portal.png)](https://raw.githubusercontent.com/cfengine/modules/master/inventory/inventory-fde/inventory-fde-mission-portal.png)
 
 ## Example
 
