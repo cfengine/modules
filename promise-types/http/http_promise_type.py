@@ -27,14 +27,14 @@ class HTTPPromiseModule(PromiseModule):
     def validate_promise(self, promiser, attributes, metadata):
         if "url" in attributes:
             url = attributes["url"]
-            if type(url) != str:
+            if not isinstance(url, str):
                 raise ValidationError("'url' must be a string")
             if not url.startswith(("https://", "http://")):
                 raise ValidationError("Only HTTP(S) requests are supported")
 
         if "method" in attributes:
             method = attributes["method"]
-            if type(method) != str:
+            if not isinstance(method, str):
                 raise ValidationError("'method' must be a string")
             if method not in _SUPPORTED_METHODS:
                 raise ValidationError(
@@ -44,18 +44,18 @@ class HTTPPromiseModule(PromiseModule):
         if "headers" in attributes:
             headers = attributes["headers"]
             headers_type = type(headers)
-            if headers_type == str:
+            if headers_type is str:
                 headers_lines = headers.splitlines()
                 if any(line.count(":") != 1 for line in headers_lines):
                     raise ValidationError(
                         "'headers' must be string with 'name: value' pairs on separate lines"
                     )
-            elif headers_type == list:
+            elif headers_type is list:
                 if any(line.count(":") != 1 for line in headers):
                     raise ValidationError(
                         "'headers' must be a list of 'name: value' pairs"
                     )
-            elif headers_type == dict:
+            elif headers_type is dict:
                 # nothing to check for dict?
                 pass
             else:
@@ -72,7 +72,7 @@ class HTTPPromiseModule(PromiseModule):
                 )
 
             if (
-                type(payload) == str
+                isinstance(payload, str)
                 and payload.startswith("@")
                 and not os.path.isabs(payload[1:])
             ):
@@ -80,12 +80,12 @@ class HTTPPromiseModule(PromiseModule):
 
         if "file" in attributes:
             file_ = attributes["file"]
-            if type(file_) != str or not os.path.isabs(file_):
+            if not isinstance(file_, str) or not os.path.isabs(file_):
                 raise ValidationError("'file' must be an absolute path to a file")
 
         if "insecure" in attributes:
             insecure = attributes["insecure"]
-            if type(insecure) != str or insecure not in (
+            if not isinstance(insecure, str) or insecure not in (
                 "true",
                 "True",
                 "false",
@@ -125,19 +125,19 @@ class HTTPPromiseModule(PromiseModule):
             str.maketrans({char: "_" for char in ("@", "/", ":", "?", "&", "%")})
         )
 
-        if headers and type(headers) != dict:
-            if type(headers) == str:
+        if headers and not isinstance(headers, dict):
+            if isinstance(headers, str):
                 headers = {
                     key: value
                     for key, value in (line.split(":") for line in headers.splitlines())
                 }
-            elif type(headers) == list:
+            elif isinstance(headers, list):
                 headers = {
                     key: value for key, value in (line.split(":") for line in headers)
                 }
 
         if payload:
-            if type(payload) == dict:
+            if isinstance(payload, dict):
                 try:
                     payload = json.dumps(payload)
                 except TypeError:
@@ -182,7 +182,7 @@ class HTTPPromiseModule(PromiseModule):
                     headers["Content-Length"] = os.path.getsize(path)
 
             # must be 'None' or bytes or file object
-            if type(payload) == str:
+            if isinstance(payload, str):
                 payload = payload.encode("utf-8")
 
         request = urllib.request.Request(

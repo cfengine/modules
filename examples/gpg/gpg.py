@@ -42,8 +42,7 @@ bundle agent main
 """
 
 import json
-from subprocess import Popen, PIPE
-import sys
+from subprocess import Popen, PIPE, TimeoutExpired
 from cfengine_module_library import PromiseModule, ValidationError, Result
 
 
@@ -109,9 +108,9 @@ class GpgKeysPromiseTypeModule(PromiseModule):
             raise ValidationError(
                 f"Promiser '{promiser}' for 'gpg_keys' promise must be an absolute path"
             )
-        if not "keylist" in attributes:
+        if "keylist" not in attributes:
             raise ValidationError(
-                f"Required attribute 'keylist' missing for 'gpg_keys' promise"
+                "Required attribute 'keylist' missing for 'gpg_keys' promise"
             )
 
     def evaluate_promise(self, promiser, attributes, metadata):

@@ -1,11 +1,10 @@
-import json
 import os
 import subprocess
 
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-from cfengine_module_library import PromiseModule, ValidationError, Result
+from cfengine_module_library import PromiseModule, Result
 
 
 SYSTEMD_LIB_PATH = "/lib/systemd/system"
@@ -518,7 +517,7 @@ class SystemdPromiseTypeModule(PromiseModule):
             value = getattr(model, attr)
             if value is None:
                 continue
-            elif type(value) == list:
+            elif isinstance(value, list):
                 for item in value:
                     blocks[block].append("{key}={item}".format(key=key, item=item))
             else:

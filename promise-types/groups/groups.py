@@ -64,7 +64,7 @@ class GroupsPromiseTypeModule(PromiseModule):
                 )
 
             # check attribute gid value
-            if type(gid) == str:
+            if isinstance(gid, str):
                 try:
                     int(gid)
                 except ValueError:

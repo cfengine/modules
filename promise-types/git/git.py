@@ -261,7 +261,7 @@ class GitPromiseTypeModule(PromiseModule):
         env["GIT_SSH_COMMAND"] = model.ssh_executable
         if model.ssh_options:
             env["GIT_SSH_COMMAND"] += " " + model.ssh_options
-        if not "HOME" in env:
+        if "HOME" not in env:
             # git should have a HOME env var to retrieve .gitconfig, .git-credentials, etc
             env["HOME"] = str(Path.home())
         return env
