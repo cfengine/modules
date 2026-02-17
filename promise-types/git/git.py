@@ -4,7 +4,12 @@ from pathlib import Path
 
 from typing import Dict, List, Optional
 
-from cfengine_module_library import PromiseModule, ValidationError, Result
+from cfengine_module_library import (
+    PromiseModule,
+    ValidationError,
+    Result,
+    AttributeObject,
+)
 
 
 class GitPromiseTypeModule(PromiseModule):
@@ -93,7 +98,8 @@ class GitPromiseTypeModule(PromiseModule):
                 result = Result.REPAIRED
             except subprocess.CalledProcessError as e:
                 self.log_error("Failed clone: {error}".format(error=e.output or e))
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -134,7 +140,8 @@ class GitPromiseTypeModule(PromiseModule):
                         result = Result.REPAIRED
                 except subprocess.CalledProcessError as e:
                     self.log_error("Failed reset: {error}".format(error=e.output or e))
-                    e.stderr and self.log_error(e.stderr.strip())
+                    if e.stderr:
+                        self.log_error(e.stderr.strip())
                     return (
                         Result.NOT_KEPT,
                         [
@@ -228,7 +235,8 @@ class GitPromiseTypeModule(PromiseModule):
                     )
                 except subprocess.CalledProcessError as e:
                     self.log_error("Failed fetch: {error}".format(error=e.output or e))
-                    e.stderr and self.log_error(e.stderr.strip())
+                    if e.stderr:
+                        self.log_error(e.stderr.strip())
                     return (
                         Result.NOT_KEPT,
                         [
@@ -241,7 +249,9 @@ class GitPromiseTypeModule(PromiseModule):
         # everything okay
         return (result, classes)
 
-    def _git(self, model: object, args: List[str], cwd: Optional[str] = None) -> str:
+    def _git(
+        self, model: AttributeObject, args: List[str], cwd: Optional[str] = None
+    ) -> str:
         self.log_verbose("Run: {cmd}".format(cmd=" ".join(args)))
         output = (
             subprocess.check_output(
@@ -253,10 +263,11 @@ class GitPromiseTypeModule(PromiseModule):
             .strip()
             .decode("utf-8")
         )
-        output != "" and self.log_verbose(output)
+        if output != "":
+            self.log_verbose(output)
         return output
 
-    def _git_envvars(self, model: object):
+    def _git_envvars(self, model: AttributeObject):
         env = os.environ.copy()
         env["GIT_SSH_COMMAND"] = model.ssh_executable
         if model.ssh_options:

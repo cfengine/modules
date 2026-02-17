@@ -2,14 +2,13 @@
 
 import filecmp
 import os
-import urllib
+import urllib.error
 import urllib.request
 import ssl
 import json
 from contextlib import contextmanager
 
 from cfengine_module_library import PromiseModule, ValidationError, Result
-
 
 _SUPPORTED_METHODS = {"GET", "POST", "PUT", "DELETE", "PATCH"}
 
@@ -179,7 +178,7 @@ class HTTPPromiseModule(PromiseModule):
                     )
 
                 if "Content-Length" not in headers:
-                    headers["Content-Length"] = os.path.getsize(path)
+                    headers["Content-Length"] = str(os.path.getsize(path))
 
             # must be 'None' or bytes or file object
             if isinstance(payload, str):
@@ -194,8 +193,9 @@ class HTTPPromiseModule(PromiseModule):
             # convert to a boolean
             insecure = insecure.lower() == "true"
             if insecure:
-                SSL_context = ssl.SSLContext()
-                SSL_context.verify_method = ssl.CERT_NONE
+                SSL_context = ssl.create_default_context()
+                SSL_context.check_hostname = False
+                SSL_context.verify_mode = ssl.CERT_NONE
 
         try:
             with urllib.request.urlopen(request, context=SSL_context) as url_req:

@@ -4,8 +4,7 @@ import subprocess
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-from cfengine_module_library import PromiseModule, Result
-
+from cfengine_module_library import PromiseModule, Result, AttributeObject
 
 SYSTEMD_LIB_PATH = "/lib/systemd/system"
 
@@ -103,7 +102,8 @@ class SystemdPromiseTypeModule(PromiseModule):
             self.log_error(
                 "Failed to run systemctl: {error}".format(error=e.output or e)
             )
-            e.stderr and self.log_error(e.stderr.strip())
+            if e.stderr:
+                self.log_error(e.stderr.strip())
             return (
                 Result.NOT_KEPT,
                 ["{safe_promiser}_show_failed".format(safe_promiser=safe_promiser)],
@@ -115,7 +115,7 @@ class SystemdPromiseTypeModule(PromiseModule):
             return self._service_present(model, safe_promiser, service_status)
 
     def _service_absent(
-        self, model: object, safe_promiser: str, service_status: dict
+        self, model: AttributeObject, safe_promiser: str, service_status: dict
     ) -> Tuple[str, List[str]]:
         classes = []
         result = Result.KEPT
@@ -130,7 +130,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     ["{safe_promiser}_stop_failed".format(safe_promiser=safe_promiser)],
@@ -146,7 +147,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -189,7 +191,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -203,7 +206,7 @@ class SystemdPromiseTypeModule(PromiseModule):
         return (result, classes)
 
     def _service_present(
-        self, model: object, safe_promiser: str, service_status: dict
+        self, model: AttributeObject, safe_promiser: str, service_status: dict
     ) -> Tuple[str, List[str]]:
         classes = []
         result = Result.KEPT
@@ -244,7 +247,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -265,7 +269,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -286,7 +291,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     ["{safe_promiser}_mask_failed".format(safe_promiser=safe_promiser)],
@@ -303,7 +309,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -330,7 +337,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -357,7 +365,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -383,7 +392,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -410,7 +420,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     ["{safe_promiser}_stop_failed".format(safe_promiser=safe_promiser)],
@@ -429,7 +440,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -452,7 +464,8 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(
                     "Failed to run systemctl: {error}".format(error=e.output or e)
                 )
-                e.stderr and self.log_error(e.stderr.strip())
+                if e.stderr:
+                    self.log_error(e.stderr.strip())
                 return (
                     Result.NOT_KEPT,
                     [
@@ -476,10 +489,11 @@ class SystemdPromiseTypeModule(PromiseModule):
             .strip()
             .decode("utf-8")
         )
-        output != "" and self.log_verbose(output)
+        if output != "":
+            self.log_verbose(output)
         return output
 
-    def _render_service_template(self, model: object) -> str:
+    def _render_service_template(self, model: AttributeObject) -> str:
         blocks = {
             "unit": [],
             "service": [],

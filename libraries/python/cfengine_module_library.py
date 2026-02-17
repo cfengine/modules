@@ -226,6 +226,8 @@ class PromiseModule:
             "debug",
         ]
 
+        promiser = None
+        attributes = {}
         if operation in ["validate_promise", "evaluate_promise"]:
             promiser = request["promiser"]
             attributes = request.get("attributes", {})

@@ -5,7 +5,7 @@ from typing import Dict, Tuple, List
 from cfengine_module_library import PromiseModule, ValidationError, Result
 
 try:
-    from ansible import context
+    import ansible.context as context
     from ansible.cli import CLI
     from ansible.executor.playbook_executor import PlaybookExecutor
     from ansible.inventory.manager import InventoryManager
@@ -27,7 +27,7 @@ if ANSIBLE_AVAILABLE:
         CALLBACK_TYPE = "stdout"
         CALLBACK_NAME = "cfengine"
 
-        def __init__(self, *args, promise=None, **kw):
+        def __init__(self, *args, promise, **kw):
             self.promise = promise
             self.hosts = set()
             self.changed = False
@@ -51,7 +51,7 @@ if ANSIBLE_AVAILABLE:
                     "Task '" + result.task_name + "' didn't change"
                 )
 
-        def v2_runner_on_failed(self, result, **_):
+        def v2_runner_on_failed(self, result, ignore_errors=False):
             self.promise.log_error("Task '" + result.task_name + "' failed")
 
         def v2_runner_on_skipped(self, result):
@@ -65,8 +65,8 @@ if ANSIBLE_AVAILABLE:
                 )
                 if summary_dict.get("unreachable"):
                     self.promise.log_error("Host '" + host + "' is unreachable")
-                else:
-                    summary and self.promise.log_verbose(
+                elif summary:
+                    self.promise.log_verbose(
                         "Summary of the tasks for '" + host + "' is: " + summary
                     )
 
@@ -153,7 +153,7 @@ class AnsiblePromiseTypeModule(PromiseModule):
             passwords={},
         )
         callback = CallbackModule(promise=self)
-        pbex._tqm._stdout_callback = callback
+        pbex._tqm._stdout_callback = callback  # type: ignore
 
         exit_code = pbex.run()
         if exit_code != 0:
