@@ -66,7 +66,7 @@ class SymlinksPromiseTypeModule(PromiseModule):
                         "'{}' is already unlinked from its old target".format(promiser)
                     )
                     return Result.NOT_KEPT
-                except Exception:
+                except Exception as e:
                     self.log_error(
                         "'{}' has wrong target but couldn't be unlinked: {}".format(
                             promiser, e
