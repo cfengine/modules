@@ -33,6 +33,48 @@
       "subdirectory": "reporting/client-initiated-reporting",
       "steps": ["json def.json def.json"]
     },
+    "command-dispatcher": {
+      "description": "Command dispatcher for running shell commands on schedule",
+      "subdirectory": "management/command-dispatcher",
+      "steps": [
+        "copy main.cf services/cfbs/modules/command-dispatcher/main.cf",
+        "policy_files services/cfbs/command-dispatcher/main.cf",
+        "bundles command_dispatcher:main",
+        "input ./input.json def.json"
+      ],
+      "input": [
+        {
+          "type": "list",
+          "variable": "commands_to_run",
+          "namespace": "command_dispatcher",
+          "bundle": "main",
+          "label": "Command",
+          "subtype": [
+            {
+              "key": "command",
+              "type": "string",
+              "label": "Command",
+              "question": "Command to run"
+            },
+            {
+              "key": "condition",
+              "type": "string",
+              "label": "Condition",
+              "question": "Condition for when to run",
+              "default": "any"
+            },
+            {
+              "key": "ifelapsed",
+              "type": "string",
+              "label": "ifelapsed",
+              "question": "Number of minutes between promise assessments",
+              "default": "5"
+            }
+          ],
+          "while": "Do you want to specify more commands to be run?"
+        }
+      ]
+    },
     "conditional-installer": {
       "description": "Allows you to specify packages you want installed and conditions for where you want them installed, as well as a list of packages you generally want uninstalled.",
       "subdirectory": "security/conditional-installer",
