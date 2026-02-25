@@ -1,0 +1,65 @@
+body file control
+{
+  namespace => "command_dispatcher";
+}
+bundle agent main
+{
+  classes:
+    "enabled"
+      expression => isvariable("commands_to_run");
+    "run_$(i)"
+      expression => "$(_condition[$(i)])";
+
+  vars:
+    enabled::
+      "i"
+        slist => getindices(commands_to_run);
+
+      "_command[$(i)]"
+        string => "$(commands_to_run[$(i)][command])",
+        if => isvariable("commands_to_run[$(i)][command]");
+
+      "_condition[$(i)]"
+        string => ifelse(
+          not(strcmp("$(commands_to_run[$(i)][condition])", "")),
+          "$(commands_to_run[$(i)][condition])",
+          "any");
+
+      "_ifelapsed[$(i)]"
+        string => ifelse(
+          not(strcmp("$(commands_to_run[$(i)][ifelapsed])", "")),
+          "$(commands_to_run[$(i)][ifelapsed])",
+          "5");
+
+  reports:
+    enabled::
+      "Command [$(i)]: $(_command[$(i)]), condition: $(_condition[$(i)]), ifelapsed: $(_ifelapsed[$(i)])";
+    !enabled::
+      "Command-dispatcher: commands_to_run variable not found";
+
+  commands:
+    enabled::
+      "$(_command[$(i)])"
+        if => "run_$(i)",
+        action => ifelapsed("$(_ifelapsed[$(i)])"),
+        contain => in_shell;
+}
+body contain in_shell
+{
+  useshell => "true";
+  exec_owner => "root";
+  exec_timeout => "300";
+}
+body action ifelapsed(x)
+{
+  ifelapsed => "$(x)";
+}
+body file control
+{
+  namespace => "default";
+}
+bundle agent __main__
+{
+  methods:
+    "command_dispatcher:main";
+}
