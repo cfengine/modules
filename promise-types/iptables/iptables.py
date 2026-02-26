@@ -222,7 +222,8 @@ class IptablesPromiseTypeModule(PromiseModule):
         if result == Result.NOT_KEPT:
             classes.append("{}_{}_failed".format(safe_promiser, command))
         elif result in {Result.KEPT, Result.REPAIRED}:
-            result == Result.REPAIRED and self.log_info(model.log_str)
+            if result == Result.REPAIRED:
+                self.log_info(model.log_str)
 
             classes.append("{}_{}_successful".format(safe_promiser, command))
         else:

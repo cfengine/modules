@@ -10,7 +10,7 @@ class GitPromiseTypeModule(PromiseModule):
         if not promiser.startswith("/"):
             raise ValidationError(f"File path '{promiser}' must be absolute")
         if "repository" not in attributes:
-            raise ValidationError(f"Attribute 'repository' is required")
+            raise ValidationError("Attribute 'repository' is required")
 
     def evaluate_promise(self, promiser, attributes, metadata):
         url = attributes["repository"]

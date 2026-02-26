@@ -31,7 +31,7 @@ class SiteUpPromiseTypeModule(PromiseModule):
 
         error = None
         try:
-            code = urllib.request.urlopen(url, context=ssl_ctx).getcode()
+            urllib.request.urlopen(url, context=ssl_ctx).getcode()
             self.log_verbose(f"Site '{url}' is UP!")
             return Result.KEPT
         except urllib.error.HTTPError as e:
