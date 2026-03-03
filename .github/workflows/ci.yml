@@ -1,19 +1,26 @@
 name: Continuous Integration
 
 on:
+  push:
+    branches: [master]
   pull_request:
-    types: [opened, reopened]
+    branches: [master]
 
 jobs:
   unit_tests:
     name: Run Unit Tests
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: Install dependencies
-      run: sudo apt-get update -y && sudo apt-get install -y python3
+      run: |
+        sudo apt-get update -y && sudo apt-get install -y python3
+        pip install flake8 pyright black pyflakes
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Install cfbs
       run: pip install cfbs
     - name: Check the status with cfbs
@@ -22,3 +29,5 @@ jobs:
       run: cfbs validate
     - name: Check the formatting
       run: cfbs --check pretty ./cfbs.json
+    - name: Linting
+      run: ./ci/linting.sh

@@ -226,6 +226,8 @@ class PromiseModule:
             "debug",
         ]
 
+        promiser = None
+        attributes = {}
         if operation in ["validate_promise", "evaluate_promise"]:
             promiser = request["promiser"]
             attributes = request.get("attributes", {})
@@ -404,7 +406,7 @@ class PromiseModule:
             assert results is not None  # Most likely someone forgot to return something
 
             # evaluate_promise should return either a result or a (result, result_classes) pair
-            if type(results) == str:
+            if isinstance(results, str):
                 self._result = results
             else:
                 assert len(results) == 2

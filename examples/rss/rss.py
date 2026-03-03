@@ -1,4 +1,7 @@
-import requests, html, re, os, random
+import requests
+import re
+import os
+import random
 import xml.etree.ElementTree as ET
 from cfengine_module_library import PromiseModule, ValidationError, Result
 
@@ -42,7 +45,7 @@ class RssPromiseTypeModule(PromiseModule):
             # check that attribute select has a valid type
             if type(select) is not str:
                 raise ValidationError(
-                    f"Invalid type for attribute select: expected string"
+                    "Invalid type for attribute select: expected string"
                 )
 
             # check that attribute select has a valid value
@@ -159,10 +162,10 @@ class RssPromiseTypeModule(PromiseModule):
             return Result.NOT_KEPT
 
     def _is_win_file(self, path):
-        return re.search(r"^[a-zA-Z]:\\[\\\S|*\S]?.*$", path) != None
+        return re.search(r"^[a-zA-Z]:\\[\\\S|*\S]?.*$", path) is not None
 
     def _is_unix_file(self, path):
-        return re.search(r"^(/[^/ ]*)+/?$", path) != None
+        return re.search(r"^(/[^/ ]*)+/?$", path) is not None
 
     def _is_url(self, path):
         return (
@@ -170,7 +173,7 @@ class RssPromiseTypeModule(PromiseModule):
                 r"^http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
                 path,
             )
-            != None
+            is not None
         )
 
 
