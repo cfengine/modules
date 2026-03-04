@@ -38,7 +38,7 @@
       "subdirectory": "management/command-dispatcher",
       "steps": [
         "copy main.cf services/cfbs/modules/command-dispatcher/main.cf",
-        "policy_files services/cfbs/command-dispatcher/main.cf",
+        "policy_files services/cfbs/modules/command-dispatcher/main.cf",
         "bundles command_dispatcher:main",
         "input ./input.json def.json"
       ],
