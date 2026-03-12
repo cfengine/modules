@@ -1,0 +1,6 @@
+promise agent sshd
+# @brief Define sshd promise type
+{
+  path => "$(sys.workdir)/modules/promises/sshd_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
