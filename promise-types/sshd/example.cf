@@ -1,0 +1,33 @@
+promise agent sshd
+# @brief Define sshd promise type
+{
+  path => "$(sys.workdir)/modules/promises/sshd.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent example
+{
+  packages:
+    "openssh-server"
+        policy => "present";
+
+  services:
+    "sshd"
+        service_policy => "start";
+
+  vars:
+    "allowed_users" slist => { "alice", "bob" };
+
+  sshd:
+    "global"
+        PermitRootLogin        => "no",
+        PasswordAuthentication => "no",
+        Port                   => "22",
+        AllowUsers             => @(allowed_users);
+}
+
+bundle agent __main__
+{
+  methods:
+    "example";
+}
