@@ -302,6 +302,15 @@
         "append enable.cf services/init.cf"
       ]
     },
+    "promise-type-sshd": {
+      "description": "Promise type to configure sshd.",
+      "subdirectory": "promise-types/sshd",
+      "dependencies": ["library-for-promise-types-in-python"],
+      "steps": [
+        "copy sshd.py modules/promises/",
+        "append enable.cf services/init.cf"
+      ]
+    },
     "promise-type-systemd": {
       "description": "Promise type to manage systemd services.",
       "subdirectory": "promise-types/systemd",
