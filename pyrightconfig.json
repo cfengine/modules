@@ -1,3 +1,4 @@
 {
-    "reportMissingImports": "none"
+    "reportMissingImports": "none",
+    "extraPaths": ["libraries/python"]
 }
