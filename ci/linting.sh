@@ -10,7 +10,7 @@ pyright .
 
 shopt -s globstar
 echo "Running black"
-black --check .
+black --check --diff .
 
 echo "Running pyflakes"
 pyflakes .
