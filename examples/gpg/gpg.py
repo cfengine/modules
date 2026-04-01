@@ -141,7 +141,7 @@ class GpgKeysPromiseTypeModule(PromiseModule):
                     f"Importing ascii key for user id '{user_id}' into gpg homedir '{promiser}'"
                 )
                 if self.gpg_import_ascii(promiser, key["ascii"]):
-                    if result != Result.NOTKEPT:
+                    if result != Result.NOT_KEPT:
                         result = Result.REPAIRED
                 else:
                     self.log_error(f"Unable to import key for user id '{user_id}'")
