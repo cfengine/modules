@@ -96,9 +96,9 @@ try:
             return
 
         def evaluate_promise(
-            self, safe_promiser: str, attributes: Dict, metadata: Dict
+            self, promiser: str, attributes: Dict, metadata: Dict
         ) -> Tuple[str, List[str]]:
-            model = self.create_attribute_object(safe_promiser, attributes)
+            model = self.create_attribute_object(promiser, attributes)
 
             classes = []
             result = Result.KEPT
@@ -149,9 +149,7 @@ try:
 
             exit_code = pbex.run()
             if exit_code != 0:
-                classes.append(
-                    "{safe_promiser}_failed".format(safe_promiser=safe_promiser)
-                )
+                classes.append("{safe_promiser}_failed".format(safe_promiser=promiser))
                 result = Result.NOT_KEPT
             elif callback.changed:
                 result = Result.REPAIRED

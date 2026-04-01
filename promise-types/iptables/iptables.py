@@ -231,7 +231,7 @@ class IptablesPromiseTypeModule(PromiseModule):
 
         return result, classes
 
-    def evaluate_command_policy(self, executable, table, chain, target) -> Result:
+    def evaluate_command_policy(self, executable, table, chain, target) -> str:
         policy_rules = self._iptables_policy_rules_of(executable, table, chain)
         assert len(policy_rules) == 1 and len(policy_rules[0].split()) >= 1
 

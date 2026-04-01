@@ -79,9 +79,9 @@ class SystemdPromiseTypeModule(PromiseModule):
         return (safe_promiser, attributes)
 
     def evaluate_promise(
-        self, safe_promiser: str, attributes: Dict, metadata: Dict
+        self, promiser: str, attributes: Dict, metadata: Dict
     ) -> Tuple[str, List[str]]:
-        model = self.create_attribute_object(safe_promiser, attributes)
+        model = self.create_attribute_object(promiser, attributes)
         # get the status of the service
         try:
             output = self._exec_command(
@@ -106,13 +106,13 @@ class SystemdPromiseTypeModule(PromiseModule):
                 self.log_error(e.stderr.strip())
             return (
                 Result.NOT_KEPT,
-                ["{safe_promiser}_show_failed".format(safe_promiser=safe_promiser)],
+                ["{safe_promiser}_show_failed".format(safe_promiser=promiser)],
             )
         # apply the changes
         if model.state == SystemdPromiseTypeStates.ABSENT.value:
-            return self._service_absent(model, safe_promiser, service_status)
+            return self._service_absent(model, promiser, service_status)
         else:
-            return self._service_present(model, safe_promiser, service_status)
+            return self._service_present(model, promiser, service_status)
 
     def _service_absent(
         self, model: AttributeObject, safe_promiser: str, service_status: dict

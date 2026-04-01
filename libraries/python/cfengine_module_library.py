@@ -21,6 +21,7 @@ import json
 import traceback
 from copy import copy
 from collections import OrderedDict
+from typing import Any
 
 _LOG_LEVELS = {
     level: idx
@@ -90,6 +91,17 @@ class AttributeObject(object):
     def __init__(self, d):
         for key, value in d.items():
             setattr(self, key, value)
+
+    # Python only calls __getattr__ as a fallback when normal attribute
+    # lookup (__getattribute__) has already failed, so attributes set via
+    # setattr() in __init__ are never affected. The -> Any return type
+    # tells pyright that dynamic attribute access is valid.
+    def __getattr__(self, name) -> Any:
+        raise AttributeError(
+            "'{}' object has no attribute '{}'".format(
+                self.__class__.__qualname__, name
+            )
+        )
 
     def __repr__(self):
         return "{}({})".format(

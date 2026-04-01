@@ -39,7 +39,7 @@ class JsonPromiseTypeModule(PromiseModule):
             self.types
         )  # for now, the only valid attributes are the types.
 
-    def create_attribute_object(self, attributes):
+    def create_attribute_object(self, promiser, attributes):
         data = {t: None for t in self.valid_attributes}
         for attr, val in attributes.items():
             data[attr] = val
@@ -73,7 +73,7 @@ class JsonPromiseTypeModule(PromiseModule):
         if colon and not field:
             raise ValidationError("Invalid syntax: field specified but empty")
 
-        model = self.create_attribute_object(attributes)
+        model = self.create_attribute_object(promiser, attributes)
         if (
             model.object
             and isinstance(model.object, str)
@@ -113,7 +113,7 @@ class JsonPromiseTypeModule(PromiseModule):
             )
 
     def evaluate_promise(self, promiser, attributes, metadata):
-        model = self.create_attribute_object(attributes)
+        model = self.create_attribute_object(promiser, attributes)
         filename, _, field = promiser.partition(":")
 
         if os.path.exists(filename) and not os.path.isfile(filename):

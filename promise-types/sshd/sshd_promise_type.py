@@ -3,8 +3,7 @@ import re
 import subprocess
 import tempfile
 
-from cfengine_module_library import PromiseModule, ValidationError, Result
-
+from cfengine_module_library import PromiseModule, Result, ValidationError
 
 BASE_CONFIG = "/etc/ssh/sshd_config"
 DROP_IN_DIR = "/etc/ssh/sshd_config.d/"
