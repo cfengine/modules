@@ -1,5 +1,3 @@
-# `sshd` promise type
-
 Configures sshd and restarts the service when configuration changes.
 
 ## Promiser
