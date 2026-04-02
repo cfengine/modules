@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
   pull_request:
-    branches: [master]
+    types: [opened, reopened, synchronize]
 
 jobs:
   unit_tests:
@@ -31,3 +31,7 @@ jobs:
       run: cfbs --check pretty ./cfbs.json
     - name: Linting
       run: ./ci/linting.sh
+    - name: Install pytest
+      run: pip install pytest
+    - name: Run promise type tests
+      run: python3 -m pytest promise-types/ -v
