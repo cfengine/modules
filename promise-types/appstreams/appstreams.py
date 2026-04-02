@@ -54,22 +54,21 @@ class AppStreamsPromiseTypeModule(PromiseModule):
         )
 
     def _validate_state(self, value):
-        if value not in (
+        accepted = (
             "enabled",
             "disabled",
             "installed",
             "removed",
             "default",
             "reset",
-        ):
-            raise ValidationError(
-                "State attribute must be 'enabled', 'disabled', 'installed', "
-                "'removed', 'default', or 'reset'"
-            )
+        )
+        if value not in accepted:
+            accepted_str = "', '".join(accepted)
+            raise ValidationError(f"State attribute must be '{accepted_str}'")
 
     def _validate_module_name(self, name):
         # Validate module name to prevent injection
-        if not re.match(r"^[a-zA-Z0-9_.-]+$", name):
+        if not re.fullmatch(r"[a-zA-Z0-9_.-]+", name):
             raise ValidationError(
                 f"Invalid module name: {name}. Only alphanumeric, underscore, "
                 f"dot, and dash characters are allowed."
@@ -77,7 +76,7 @@ class AppStreamsPromiseTypeModule(PromiseModule):
 
     def _validate_stream_name(self, stream):
         # Validate stream name to prevent injection
-        if stream and not re.match(r"^[a-zA-Z0-9_.-]+$", stream):
+        if stream and not re.fullmatch(r"[a-zA-Z0-9_.-]+", stream):
             raise ValidationError(
                 f"Invalid stream name: {stream}. Only alphanumeric, underscore, "
                 f"dot, and dash characters are allowed."
@@ -85,7 +84,7 @@ class AppStreamsPromiseTypeModule(PromiseModule):
 
     def _validate_profile_name(self, profile):
         # Validate profile name to prevent injection
-        if profile and not re.match(r"^[a-zA-Z0-9_.-]+$", profile):
+        if profile and not re.fullmatch(r"[a-zA-Z0-9_.-]+", profile):
             raise ValidationError(
                 f"Invalid profile name: {profile}. Only alphanumeric, underscore, "
                 f"dot, and dash characters are allowed."

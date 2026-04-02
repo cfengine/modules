@@ -110,7 +110,8 @@ def test_install_profile_repaired(module, mock_base, mock_mpc):
     # Initial state: enabled but not fully installed with profile
     mock_mpc.getModuleState.return_value = mock_mpc.ModuleState_ENABLED
     mock_mpc.getEnabledStream.return_value = "12"
-    mock_mpc.getInstalledProfiles.return_value = []
+    # First call (pre-install check) returns [], second call (post-install verify) returns ["common"]
+    mock_mpc.getInstalledProfiles.side_effect = [[], ["common"]]
 
     # helper for _get_profile_packages
     # It queries module, gets stream, gets profiles, gets content
@@ -132,7 +133,11 @@ def test_install_profile_repaired(module, mock_base, mock_mpc):
 
 def test_remove_module_repaired(module, mock_base, mock_mpc):
     """Test removing a module using 'removed' state (REPAIRED)"""
-    mock_mpc.getModuleState.return_value = mock_mpc.ModuleState_INSTALLED
+    # First call (current state check) returns INSTALLED, second (post-remove verify) returns DEFAULT
+    mock_mpc.getModuleState.side_effect = [
+        mock_mpc.ModuleState_INSTALLED,
+        mock_mpc.ModuleState_DEFAULT,
+    ]
     mock_mpc.getEnabledStream.return_value = "12"
     mock_mpc.getInstalledProfiles.return_value = ["common"]
 
@@ -167,7 +172,12 @@ def test_install_profile_idempotency_success(module, mock_base, mock_mpc):
 
 def test_reset_module_repaired(module, mock_base, mock_mpc):
     """Test resetting a module to default state (REPAIRED)"""
-    mock_mpc.getModuleState.return_value = mock_mpc.ModuleState_ENABLED
+    # evaluate_promise calls _get_module_state first, then _reset_module calls it twice more
+    mock_mpc.getModuleState.side_effect = [
+        mock_mpc.ModuleState_ENABLED,  # evaluate_promise current-state check
+        mock_mpc.ModuleState_ENABLED,  # _reset_module early-exit check
+        mock_mpc.ModuleState_DEFAULT,  # _reset_module post-reset verification
+    ]
 
     result = module.evaluate_promise("nodejs", {"state": "default", "stream": "12"}, {})
 
