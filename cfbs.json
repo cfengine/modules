@@ -282,6 +282,15 @@
         "append enable.cf services/init.cf"
       ]
     },
+    "promise-type-appstreams": {
+      "description": "Promise type to manage AppStream modules.",
+      "subdirectory": "promise-types/appstreams",
+      "dependencies": ["library-for-promise-types-in-python"],
+      "steps": [
+        "copy appstreams.py modules/promises/",
+        "append init.cf services/init.cf"
+      ]
+    },
     "promise-type-git": {
       "description": "Promise type to manage git repos.",
       "subdirectory": "promise-types/git",
