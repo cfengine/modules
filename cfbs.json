@@ -196,6 +196,16 @@
         "bundles inventory_fde:main"
       ]
     },
+    "inventory-smartctl": {
+      "description": "Inventory SMART drive health, temperature, and wear data.",
+      "tags": ["inventory", "monitoring", "hardware", "storage"],
+      "subdirectory": "inventory/inventory-smartctl",
+      "steps": [
+        "copy policy.cf services/cfbs/modules/inventory-smartctl/policy.cf",
+        "policy_files services/cfbs/modules/inventory-smartctl/policy.cf",
+        "bundles inventory_smartctl:main"
+      ]
+    },
     "library-for-promise-types-in-bash": {
       "description": "Library enabling promise types implemented in bash.",
       "subdirectory": "libraries/bash",
