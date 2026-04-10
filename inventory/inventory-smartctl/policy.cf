@@ -1,0 +1,216 @@
+body file control
+{
+      namespace => "inventory_smartctl";
+}
+
+bundle agent main
+# @brief Inventory SMART drive health, temperature, and wear data via smartctl JSON
+#
+# Requires smartmontools >= 7.0 (for JSON output support).
+# Runs on Linux only; silently no-ops on other platforms.
+#
+# Simplified version: reads JSON directly in main bundle, no sub-bundle needed.
+#
+# Attributes exposed in Mission Portal:
+# @inventory SMART drive health         - Per-drive PASSED/FAILED
+# @inventory SMART drive model          - Drive model per device
+# @inventory SMART drive temperatures   - Current temperature in Celsius
+# @inventory SMART drive power-on hours - Cumulative runtime in hours
+# @inventory SMART NVMe available spare - Remaining spare blocks (%), NVMe only
+# @inventory SMART NVMe percentage used - Drive life consumed (%), NVMe only
+# @inventory SMART NVMe media errors    - Uncorrectable media errors, NVMe only
+# @inventory SMART failed drives        - Only present on hosts with a failing drive
+{
+  vars:
+    linux::
+      "_smartctl" string => ifelse(
+        fileexists("/usr/sbin/smartctl"), "/usr/sbin/smartctl",
+        fileexists("/sbin/smartctl"), "/sbin/smartctl",
+        "/usr/sbin/smartctl"  # default fallback
+      );
+      "_sdir"     string => "$(sys.statedir)";
+      "_cache_ttl" string => "3600";  # 1 hour
+
+      # Enumerate drives - extract first field from each line of smartctl --scan
+      "_scan_lines"
+        slist => splitstring(
+          execresult("$(_smartctl) --scan 2>/dev/null", "useshell"),
+          "\n", 32);
+
+      "_drives"
+        slist => maplist(regex_replace("$(this)", "^(\S+).*", "\1", ""), "_scan_lines");
+
+      "_id[${_drives}]" string => canonify("${_drives}");
+      "_cache[${_drives}]" string => "$(_sdir)/inventory_smartctl_${_id[${_drives}]}.json";
+
+  classes:
+    linux::
+      "_have_smartctl" expression => isexecutable("$(_smartctl)");
+
+      # Cache file is missing - needs refresh
+      "_cache_missing_${_id[${_drives}]}"
+        not => fileexists("${_cache[${_drives}]}");
+
+      # Cache file is stale - needs refresh
+      "_cache_stale_${_id[${_drives}]}"
+        expression => isgreaterthan(
+          eval("$(sys.systime) - $(filestat(${_cache[${_drives}]}, mtime))"),
+          "$(_cache_ttl)"),
+        if => fileexists("${_cache[${_drives}]}");
+
+      # Refresh if missing or stale
+      "_refresh_${_id[${_drives}]}"
+        or => {
+          "_cache_missing_${_id[${_drives}]}",
+          "_cache_stale_${_id[${_drives}]}"
+        };
+
+  files:
+    linux._have_smartctl::
+      "${_cache[${_drives}]}"
+        content => execresult("$(_smartctl) -j -a ${_drives}", "noshell", "stdout"),
+        if => "_refresh_${_id[${_drives}]}";
+
+  methods:
+    linux._have_smartctl::
+      # Call parsing bundle for each drive (only when cache exists)
+      "parse_${_id[${_drives}]}"
+        usebundle => parse("${_drives}", "${_cache[${_drives}]}"),
+        useresult => "_d_${_id[${_drives}]}",
+        if => fileexists("${_cache[${_drives}]}");
+
+  vars:
+    linux._have_smartctl::
+      # Collect results from sub-bundles into formatted entries
+      "_health_entries[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[health]}",
+        if => isvariable("_d_${_id[${_drives}]}[health]");
+
+      "_model_entries[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[model]}",
+        if => isvariable("_d_${_id[${_drives}]}[model]");
+
+      "_temp_entries[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[temp]} C",
+        if => isvariable("_d_${_id[${_drives}]}[temp]");
+
+      "_hours_entries[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[hours]} h",
+        if => isvariable("_d_${_id[${_drives}]}[hours]");
+
+      "_nvme_spare_entries[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[nvme_spare]}%",
+        if => isvariable("_d_${_id[${_drives}]}[nvme_spare]");
+
+      "_nvme_pct_used_entries[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[nvme_pct_used]}%",
+        if => isvariable("_d_${_id[${_drives}]}[nvme_pct_used]");
+
+      "_nvme_media_errors_entries[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[nvme_media_errors]}",
+        if => isvariable("_d_${_id[${_drives}]}[nvme_media_errors]");
+
+      "_failed_entries[${_drives}]"
+        string => "${_drives}",
+        if => strcmp("${_d_${_id[${_drives}]}[health]}", "FAILED");
+
+      # Inventory attributes (visible in Mission Portal)
+      "drive_health"
+        slist => getvalues(_health_entries),
+        meta => { "inventory", "attribute_name=SMART drive health" };
+
+      "drive_model"
+        slist => getvalues(_model_entries),
+        meta => { "inventory", "attribute_name=SMART drive model" };
+
+      "drive_temperatures"
+        slist => getvalues(_temp_entries),
+        meta => { "inventory", "attribute_name=SMART drive temperatures (C)" };
+
+      "drive_power_on_hours"
+        slist => getvalues(_hours_entries),
+        meta => { "inventory", "attribute_name=SMART drive power-on hours" };
+
+      "nvme_available_spare"
+        slist => getvalues(_nvme_spare_entries),
+        meta => { "inventory", "attribute_name=SMART NVMe available spare" };
+
+      "nvme_percentage_used"
+        slist => getvalues(_nvme_pct_used_entries),
+        meta => { "inventory", "attribute_name=SMART NVMe percentage used" };
+
+      "nvme_media_errors"
+        slist => getvalues(_nvme_media_errors_entries),
+        meta => { "inventory", "attribute_name=SMART NVMe media errors" };
+
+      "failed_drives"
+        slist => getvalues(_failed_entries),
+        meta => { "inventory", "attribute_name=SMART failed drives" };
+
+    linux.!_have_smartctl::
+      "drive_health"
+        string => "SMARTCTL_MISSING",
+        meta => { "inventory", "attribute_name=SMART drive health" };
+
+  reports:
+    linux._have_smartctl.verbose_mode::
+      "inventory_smartctl: monitoring ${_drives}";
+      "inventory_smartctl: ${_drives} health=${_d_${_id[${_drives}]}[health]}"
+        if => isvariable("_d_${_id[${_drives}]}[health]");
+
+    !linux.verbose_mode::
+      "$(this.promise_filename): inventory_smartctl is Linux-only.";
+}
+
+bundle agent parse(drive, cache_file)
+# @brief Parse smartctl JSON and return key metrics via bundle_return_value_index
+{
+  vars:
+      "_json" data => readjson("$(cache_file)");
+
+      # Extract metrics directly from JSON
+      "_health"
+        string => ifelse(strcmp("${_json[smart_status][passed]}", "true"), "PASSED", "FAILED"),
+        if => isvariable("_json[smart_status][passed]");
+
+      "_model"
+        string => "${_json[model_name]}",
+        if => isvariable("_json[model_name]");
+
+      "_temp"
+        string => "${_json[temperature][current]}",
+        if => isvariable("_json[temperature][current]");
+
+      "_hours"
+        string => "${_json[power_on_time][hours]}",
+        if => isvariable("_json[power_on_time][hours]");
+
+      "_nvme_spare"
+        string => "${_json[nvme_smart_health_information_log][available_spare]}",
+        if => isvariable("_json[nvme_smart_health_information_log][available_spare]");
+
+      "_nvme_pct_used"
+        string => "${_json[nvme_smart_health_information_log][percentage_used]}",
+        if => isvariable("_json[nvme_smart_health_information_log][percentage_used]");
+
+      "_nvme_media_errors"
+        string => "${_json[nvme_smart_health_information_log][media_errors]}",
+        if => isvariable("_json[nvme_smart_health_information_log][media_errors]");
+
+  reports:
+      "$(_health)" bundle_return_value_index => "health";
+      "$(_model)" bundle_return_value_index => "model";
+      "$(_temp)" bundle_return_value_index => "temp";
+      "$(_hours)" bundle_return_value_index => "hours";
+      "$(_nvme_spare)" bundle_return_value_index => "nvme_spare";
+      "$(_nvme_pct_used)" bundle_return_value_index => "nvme_pct_used";
+      "$(_nvme_media_errors)" bundle_return_value_index => "nvme_media_errors";
+}
+
+body file control { namespace => "default"; }
+
+bundle agent __main__
+{
+  methods:
+      "inventory_smartctl:main";
+}

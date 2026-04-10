@@ -1,0 +1,11 @@
+{
+  "name": "inventory-smartctl",
+  "description": "Inventory SMART drive health, temperature, and wear data",
+  "tags": ["inventory", "monitoring", "hardware", "storage", "smartctl"],
+  "version": "0.1.0",
+  "steps": [
+    "copy ./policy.cf services/inventory/smartctl.cf"
+  ],
+  "dependencies": [],
+  "subdirectory": "inventory/inventory-smartctl"
+}
