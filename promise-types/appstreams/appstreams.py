@@ -22,6 +22,7 @@
 
 import dnf
 import dnf.exceptions
+import dnf.module.module_base
 import re
 from cfengine_module_library import PromiseModule, ValidationError, Result
 
@@ -51,6 +52,12 @@ class AppStreamsPromiseTypeModule(PromiseModule):
             str,
             required=False,
             validator=lambda x: self._validate_profile_name(x),
+        )
+        self.add_attribute(
+            "options",
+            list,
+            required=False,
+            default=[],
         )
 
     def _validate_state(self, value):
@@ -102,6 +109,7 @@ class AppStreamsPromiseTypeModule(PromiseModule):
         state = attributes.get("state", "enabled")
         stream = attributes.get("stream", None)
         profile = attributes.get("profile", None)
+        options = attributes.get("options", [])
 
         base = dnf.Base()
         try:
@@ -189,13 +197,29 @@ class AppStreamsPromiseTypeModule(PromiseModule):
                         )
                         return Result.KEPT
                     else:
+                        # Check if we need to switch streams
+                        try:
+                            enabled_stream = mpc.getEnabledStream(module_name)
+                            if stream and enabled_stream and enabled_stream != stream:
+                                # Stream is different, use switch_to instead of install
+                                self.log_verbose(
+                                    f"Switching stream from {enabled_stream} to {stream}"
+                                )
+                                return self._switch_module(
+                                    mpc, base, module_name, stream, profile, options
+                                )
+                        except RuntimeError:
+                            pass
+
                         return self._install_module(
-                            mpc, base, module_name, stream, profile
+                            mpc, base, module_name, stream, profile, options
                         )
                 else:
                     # Module is not enabled, need to install
                     # (which will enable and install packages)
-                    return self._install_module(mpc, base, module_name, stream, profile)
+                    return self._install_module(
+                        mpc, base, module_name, stream, profile, options
+                    )
             elif state == "removed":
                 if current_state == "removed" or current_state == "disabled":
                     self.log_verbose(
@@ -259,7 +283,32 @@ class AppStreamsPromiseTypeModule(PromiseModule):
         if profile_name:
             try:
                 installed_profiles = mpc.getInstalledProfiles(module_name)
-                return profile_name in installed_profiles
+                if profile_name not in installed_profiles:
+                    return False
+
+                # Profile is marked as installed in module metadata,
+                # but verify the actual packages are installed
+                packages = self._get_profile_packages(
+                    mpc, module_name, target_stream, profile_name
+                )
+                if packages:
+                    # Check if any of the profile packages are actually installed
+                    import rpm as rpm_module
+
+                    ts = rpm_module.TransactionSet()
+                    for pkg in packages:
+                        # Check if package is installed (ignoring version)
+                        # rpm.mi() returns an iterator of matching packages
+                        mi = ts.dbMatch("name", pkg)
+                        if not mi:
+                            self.log_verbose(
+                                f"Package {pkg} from profile {profile_name} is not installed"
+                            )
+                            return False
+                    return True
+                else:
+                    # No packages in profile (unusual), trust module metadata
+                    return True
             except RuntimeError:
                 # RuntimeError is raised by libdnf if the module is unknown
                 return False
@@ -313,8 +362,99 @@ class AppStreamsPromiseTypeModule(PromiseModule):
                         return profile.getContent()
         return []
 
-    def _install_module(self, mpc, base, module_name, stream, profile):
+    def _apply_dnf_options(self, base, options):
+        """Apply DNF configuration options generically"""
+        if not options:
+            return
+
+        for option in options:
+            if "=" in option:
+                key, value = option.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+
+                try:
+                    # Use DNF's set_or_append_opt_value to handle options generically
+                    base.conf.set_or_append_opt_value(key, value)
+                    self.log_verbose(f"Set DNF option: {key}={value}")
+                except dnf.exceptions.ConfigError as e:
+                    self.log_warning(f"Failed to set DNF option '{key}={value}': {e}")
+                except Exception as e:
+                    self.log_warning(
+                        f"Unexpected error setting DNF option '{key}={value}': {e}"
+                    )
+
+    def _switch_module(self, mpc, base, module_name, stream, profile, options=None):
+        """Switch a module to a different stream using DNF Python API"""
+        if options is None:
+            options = []
+
+        # Apply DNF configuration options generically
+        self._apply_dnf_options(base, options)
+
+        if not stream:
+            self.log_error("Stream must be specified for module switch")
+            return Result.NOT_KEPT
+
+        if not profile:
+            profile = self._get_default_profile(mpc, module_name, stream)
+
+        if not profile:
+            self.log_error(
+                f"No profile specified and no default found for {module_name}:{stream}"
+            )
+            return Result.NOT_KEPT
+
+        # Use the ModuleBase API to switch streams
+        module_spec = f"{module_name}:{stream}/{profile}"
+        self.log_verbose(f"Switching to module spec: {module_spec}")
+
+        # Set command line for DNF history tracking (base.args is checked in do_transaction)
+        cmdline_parts = ["module", "switch-to", "-y", module_spec]
+        if options:
+            for opt in options:
+                cmdline_parts.append(f"--setopt={opt}")
+        base.args = cmdline_parts
+
+        try:
+            # Create ModuleBase wrapper around base
+            module_base = dnf.module.module_base.ModuleBase(base)
+            module_base.switch_to([module_spec])
+        except dnf.exceptions.Error as e:
+            self.log_error(f"Failed to switch module {module_spec}: {e}")
+            return Result.NOT_KEPT
+
+        base.resolve()
+
+        # Download packages before transaction (following dnf.cli.cli pattern)
+        if base.transaction:
+            install_pkgs = []
+            for tsi in base.transaction:
+                if tsi.action in dnf.transaction.FORWARD_ACTIONS:
+                    install_pkgs.append(tsi.pkg)
+            if install_pkgs:
+                base.download_packages(install_pkgs)
+
+        base.do_transaction()
+
+        # Verify switch succeeded
+        if self._is_module_installed_with_packages(mpc, module_name, stream, profile):
+            self.log_info(
+                f"Module {module_name}:{stream}/{profile} switched successfully"
+            )
+            return Result.REPAIRED
+        else:
+            self.log_error(f"Failed to switch module {module_name}:{stream}/{profile}")
+            return Result.NOT_KEPT
+
+    def _install_module(self, mpc, base, module_name, stream, profile, options=None):
         """Install a module using DNF Python API"""
+        if options is None:
+            options = []
+
+        # Apply DNF configuration options generically
+        self._apply_dnf_options(base, options)
+
         if not stream:
             try:
                 stream = mpc.getEnabledStream(module_name)
@@ -332,23 +472,37 @@ class AppStreamsPromiseTypeModule(PromiseModule):
             )
             return Result.NOT_KEPT
 
-        mpc.enable(module_name, stream)
-        mpc.install(module_name, stream, profile)
-        mpc.save()
-        mpc.moduleDefaultsResolve()
+        # Use the ModuleBase API to properly install module with stream and profile
+        # This ensures packages are installed from the module context, not generic repos
+        module_spec = f"{module_name}:{stream}/{profile}"
+        self.log_verbose(f"Installing module spec: {module_spec}")
 
-        # Install packages
-        packages = self._get_profile_packages(mpc, module_name, stream, profile)
-        failed_packages = []
-        if packages:
-            for pkg in packages:
-                try:
-                    base.install(pkg)
-                except dnf.exceptions.Error as e:
-                    self.log_verbose(f"Failed to install package {pkg}: {e}")
-                    failed_packages.append((pkg, str(e)))
+        # Set command line for DNF history tracking (base.args is checked in do_transaction)
+        cmdline_parts = ["module", "install", "-y", module_spec]
+        if options:
+            for opt in options:
+                cmdline_parts.append(f"--setopt={opt}")
+        base.args = cmdline_parts
+
+        try:
+            # Create ModuleBase wrapper around base
+            module_base = dnf.module.module_base.ModuleBase(base)
+            module_base.install([module_spec])
+        except dnf.exceptions.Error as e:
+            self.log_error(f"Failed to install module {module_spec}: {e}")
+            return Result.NOT_KEPT
 
         base.resolve()
+
+        # Download packages before transaction (following dnf.cli.cli pattern)
+        if base.transaction:
+            install_pkgs = []
+            for tsi in base.transaction:
+                if tsi.action in dnf.transaction.FORWARD_ACTIONS:
+                    install_pkgs.append(tsi.pkg)
+            if install_pkgs:
+                base.download_packages(install_pkgs)
+
         base.do_transaction()
 
         # Verify installation succeeded
