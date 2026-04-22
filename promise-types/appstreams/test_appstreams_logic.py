@@ -13,8 +13,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 # Mock dnf module before importing the promise module
 mock_dnf = MagicMock()
 mock_dnf.exceptions = MagicMock()
+mock_dnf.module = MagicMock()
+mock_dnf.module.module_base = MagicMock()
 sys.modules["dnf"] = mock_dnf
 sys.modules["dnf.exceptions"] = mock_dnf.exceptions
+sys.modules["dnf.module"] = mock_dnf.module
+sys.modules["dnf.module.module_base"] = mock_dnf.module.module_base
 
 import appstreams as appstreams_module  # noqa: E402
 
