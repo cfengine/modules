@@ -113,21 +113,14 @@ def test_install_profile_repaired(module, mock_base, mock_mpc):
     # First call (pre-install check) returns [], second call (post-install verify) returns ["common"]
     mock_mpc.getInstalledProfiles.side_effect = [[], ["common"]]
 
-    # helper for _get_profile_packages
-    # It queries module, gets stream, gets profiles, gets content
-    mock_module_obj = MagicMock()
-    mock_module_obj.getStream.return_value = "12"
-    mock_profile_obj = MagicMock()
-    mock_profile_obj.getName.return_value = "common"
-    mock_profile_obj.getContent.return_value = ["pkg1"]
-    mock_module_obj.getProfiles.return_value = [mock_profile_obj]
-    mock_mpc.query.return_value = [mock_module_obj]
-
     result = module.evaluate_promise(
         "nodejs", {"state": "installed", "stream": "12", "profile": "common"}, {}
     )
 
-    mock_mpc.install.assert_called_with("nodejs", "12", "common")
+    # We now use ModuleBase API instead of mpc.install
+    # Verify the transaction was executed
+    mock_base.resolve.assert_called()
+    mock_base.do_transaction.assert_called()
     assert result == Result.REPAIRED
 
 

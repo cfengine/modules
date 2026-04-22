@@ -34,6 +34,12 @@ import dnf.exceptions
 import re
 from cfengine_module_library import PromiseModule, ValidationError, Result
 
+# Import ModuleBase if available (not available in test environment)
+try:
+    import dnf.module.module_base
+except (ImportError, ModuleNotFoundError):
+    dnf.module = None  # type: ignore
+
 
 class AppStreamsPromiseTypeModule(PromiseModule):
     def __init__(self, **kwargs):
@@ -215,7 +221,9 @@ class AppStreamsPromiseTypeModule(PromiseModule):
                         f"profile: {profile}) is already present"
                     )
                     return Result.KEPT
-                return self._install_module(mpc, base, module_name, stream, profile)
+                return self._install_module(
+                    mpc, base, module_name, stream, profile, options
+                )
 
             elif state == "removed":
                 if current_state in ("removed", "disabled"):
@@ -373,8 +381,11 @@ class AppStreamsPromiseTypeModule(PromiseModule):
                         f"Unexpected error setting DNF option '{key}={value}': {e}"
                     )
 
-    def _install_module(self, mpc, base, module_name, stream, profile):
+    def _install_module(self, mpc, base, module_name, stream, profile, options=None):
         """Enable a module stream and install the given (or default) profile's packages."""
+        # Apply DNF options if specified
+        self._try_apply_dnf_options(base, options)
+
         if not stream:
             try:
                 stream = mpc.getEnabledStream(module_name)
@@ -392,33 +403,22 @@ class AppStreamsPromiseTypeModule(PromiseModule):
             )
             return Result.NOT_KEPT
 
-        mpc.enable(module_name, stream)
-        mpc.install(module_name, stream, profile)
-        mpc.save()
-        mpc.moduleDefaultsResolve()
+        # Use ModuleBase API for proper module context
+        spec = f"{module_name}:{stream}/{profile}"
 
-        # Rebuild the sack so module stream filtering reflects the newly enabled
-        # stream. fill_sack() applies DNF module exclusions at call time, so
-        # packages from the new stream are invisible to base.upgrade() unless
-        # the sack is rebuilt after enable().
-        base.reset(sack=True)
-        base.fill_sack(load_system_repo=True)
-        if hasattr(base.sack, "_moduleContainer"):
-            mpc = base.sack._moduleContainer
+        # Build command line for DNF history (shown in dnf history list)
+        cmdline_parts = ["module", "install", "-y", spec]
+        if options:
+            for opt in options:
+                cmdline_parts.append(f"--setopt={opt}")
+        base.args = cmdline_parts
 
-        failed_packages = []
-        for pkg in self._get_profile_packages(mpc, module_name, stream, profile):
-            # Try upgrade first to handle stream switches where the package
-            # is already installed at a different stream's version. Fall back
-            # to install for packages not yet present on the system.
-            try:
-                base.upgrade(pkg)
-            except dnf.exceptions.Error:
-                try:
-                    base.install(pkg)
-                except dnf.exceptions.Error as e:
-                    self.log_verbose(f"Failed to install package {pkg}: {e}")
-                    failed_packages.append((pkg, str(e)))
+        try:
+            module_base = dnf.module.module_base.ModuleBase(base)
+            module_base.install([spec])
+        except dnf.exceptions.Error as e:
+            self.log_error(f"Failed to install module {spec}: {e}")
+            return Result.NOT_KEPT
 
         base.resolve()
 
@@ -446,7 +446,6 @@ class AppStreamsPromiseTypeModule(PromiseModule):
             return Result.REPAIRED
         else:
             self.log_error(f"Failed to install module {module_name}:{stream}/{profile}")
-            self._log_failed_packages(failed_packages)
             return Result.NOT_KEPT
 
     def _remove_module(self, mpc, base, module_name, stream, profile):
