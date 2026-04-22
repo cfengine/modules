@@ -286,6 +286,32 @@ def test_profile_default_not_found(module, mock_base, mock_mpc):
     assert result == Result.NOT_KEPT
 
 
+def test_invalid_dnf_option_not_kept(module, mock_base, mock_mpc):
+    """Test that invalid DNF options cause NOT_KEPT (ConfigError from DNF)"""
+    # Mock ConfigError to be raised when invalid option is set
+    mock_base.conf.set_or_append_opt_value.side_effect = (
+        mock_dnf.exceptions.ConfigError('Cannot set "invalid_option" to "value"')
+    )
+
+    mock_mpc.getModuleState.return_value = mock_mpc.ModuleState_ENABLED
+    mock_mpc.getEnabledStream.return_value = "12"
+    mock_mpc.getInstalledProfiles.return_value = []
+
+    result = module.evaluate_promise(
+        "nodejs",
+        {
+            "state": "installed",
+            "stream": "12",
+            "profile": "common",
+            "options": ["invalid_option=value"],
+        },
+        {},
+    )
+
+    # Should fail because invalid option raises ConfigError
+    assert result == Result.NOT_KEPT
+
+
 def test_remove_unknown_module_runtime_error(module, mock_base, mock_mpc):
     """Test removing a module when getEnabledStream raises RuntimeError"""
     mock_mpc.getModuleState.return_value = mock_mpc.ModuleState_ENABLED

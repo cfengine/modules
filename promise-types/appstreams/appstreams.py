@@ -375,8 +375,8 @@ class AppStreamsPromiseTypeModule(PromiseModule):
         for pkg, error in failed_packages:
             self.log_error(f"  Package {pkg} failed: {error}")
 
-    def _try_apply_dnf_options(self, base, options):
-        """Apply DNF configuration options at best effort (logs errors but continues)"""
+    def _apply_dnf_options(self, base, options):
+        """Apply DNF configuration options, raising ConfigError on invalid options"""
         if not options:
             return
 
@@ -386,16 +386,9 @@ class AppStreamsPromiseTypeModule(PromiseModule):
                 key = key.strip()
                 value = value.strip()
 
-                try:
-                    # Use DNF's set_or_append_opt_value to handle options generically
-                    base.conf.set_or_append_opt_value(key, value)
-                    self.log_verbose(f"Set DNF option: {key}={value}")
-                except dnf.exceptions.ConfigError as e:
-                    self.log_warning(f"Failed to set DNF option '{key}={value}': {e}")
-                except Exception as e:
-                    self.log_warning(
-                        f"Unexpected error setting DNF option '{key}={value}': {e}"
-                    )
+                # Raises dnf.exceptions.ConfigError if option is invalid
+                base.conf.set_or_append_opt_value(key, value)
+                self.log_verbose(f"Set DNF option: {key}={value}")
 
     def _switch_module(self, mpc, base, module_name, stream, profile, options=None):
         """Switch a module to a different stream using ModuleBase.switch_to()"""
@@ -403,7 +396,11 @@ class AppStreamsPromiseTypeModule(PromiseModule):
             options = []
 
         # Apply DNF configuration options
-        self._try_apply_dnf_options(base, options)
+        try:
+            self._apply_dnf_options(base, options)
+        except dnf.exceptions.ConfigError as e:
+            self.log_error(f"Invalid DNF option: {e}")
+            return Result.NOT_KEPT
 
         if not stream:
             self.log_error("Stream must be specified for module switch")
@@ -483,7 +480,11 @@ class AppStreamsPromiseTypeModule(PromiseModule):
     def _install_module(self, mpc, base, module_name, stream, profile, options=None):
         """Enable a module stream and install the given (or default) profile's packages."""
         # Apply DNF options if specified
-        self._try_apply_dnf_options(base, options)
+        try:
+            self._apply_dnf_options(base, options)
+        except dnf.exceptions.ConfigError as e:
+            self.log_error(f"Invalid DNF option: {e}")
+            return Result.NOT_KEPT
 
         if not stream:
             try:
