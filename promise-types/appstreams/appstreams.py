@@ -64,6 +64,12 @@ class AppStreamsPromiseTypeModule(PromiseModule):
                 x, "profile name", required=False
             ),
         )
+        self.add_attribute(
+            "options",
+            list,
+            required=False,
+            default=[],
+        )
 
         # Standard CFEngine promise attributes — passed through by the agent
         # and used to populate the DNF history comment for audit traceability.
@@ -104,6 +110,7 @@ class AppStreamsPromiseTypeModule(PromiseModule):
         state = attributes.get("state", "enabled")
         stream = attributes.get("stream", None)
         profile = attributes.get("profile", None)
+        options = attributes.get("options", [])
 
         # Build a descriptive argv so dnf history records a meaningful
         # "Command Line" entry instead of leaving it blank.
@@ -112,6 +119,8 @@ class AppStreamsPromiseTypeModule(PromiseModule):
             _cmdline.append(f"stream={stream!r}")
         if profile:
             _cmdline.append(f"profile={profile!r}")
+        if options:
+            _cmdline.append(f"options={options!r}")
         _orig_argv, sys.argv = sys.argv, _cmdline
 
         base = dnf.Base()
@@ -341,6 +350,28 @@ class AppStreamsPromiseTypeModule(PromiseModule):
     def _log_failed_packages(self, failed_packages):
         for pkg, error in failed_packages:
             self.log_error(f"  Package {pkg} failed: {error}")
+
+    def _try_apply_dnf_options(self, base, options):
+        """Apply DNF configuration options at best effort (logs errors but continues)"""
+        if not options:
+            return
+
+        for option in options:
+            if "=" in option:
+                key, value = option.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+
+                try:
+                    # Use DNF's set_or_append_opt_value to handle options generically
+                    base.conf.set_or_append_opt_value(key, value)
+                    self.log_verbose(f"Set DNF option: {key}={value}")
+                except dnf.exceptions.ConfigError as e:
+                    self.log_warning(f"Failed to set DNF option '{key}={value}': {e}")
+                except Exception as e:
+                    self.log_warning(
+                        f"Unexpected error setting DNF option '{key}={value}': {e}"
+                    )
 
     def _install_module(self, mpc, base, module_name, stream, profile):
         """Enable a module stream and install the given (or default) profile's packages."""
