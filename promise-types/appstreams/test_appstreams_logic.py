@@ -13,8 +13,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 # Mock dnf module before importing the promise module
 mock_dnf = MagicMock()
 mock_dnf.exceptions = MagicMock()
+mock_dnf.module = MagicMock()
+mock_dnf.module.module_base = MagicMock()
 sys.modules["dnf"] = mock_dnf
 sys.modules["dnf.exceptions"] = mock_dnf.exceptions
+sys.modules["dnf.module"] = mock_dnf.module
+sys.modules["dnf.module.module_base"] = mock_dnf.module.module_base
 
 import appstreams as appstreams_module  # noqa: E402
 
@@ -113,21 +117,14 @@ def test_install_profile_repaired(module, mock_base, mock_mpc):
     # First call (pre-install check) returns [], second call (post-install verify) returns ["common"]
     mock_mpc.getInstalledProfiles.side_effect = [[], ["common"]]
 
-    # helper for _get_profile_packages
-    # It queries module, gets stream, gets profiles, gets content
-    mock_module_obj = MagicMock()
-    mock_module_obj.getStream.return_value = "12"
-    mock_profile_obj = MagicMock()
-    mock_profile_obj.getName.return_value = "common"
-    mock_profile_obj.getContent.return_value = ["pkg1"]
-    mock_module_obj.getProfiles.return_value = [mock_profile_obj]
-    mock_mpc.query.return_value = [mock_module_obj]
-
     result = module.evaluate_promise(
         "nodejs", {"state": "installed", "stream": "12", "profile": "common"}, {}
     )
 
-    mock_mpc.install.assert_called_with("nodejs", "12", "common")
+    # We now use ModuleBase API instead of mpc.install
+    # Verify the transaction was executed
+    mock_base.resolve.assert_called()
+    mock_base.do_transaction.assert_called()
     assert result == Result.REPAIRED
 
 
@@ -286,6 +283,32 @@ def test_profile_default_not_found(module, mock_base, mock_mpc):
     result = module.evaluate_promise(
         "nodejs", {"state": "installed", "stream": "12", "profile": "default"}, {}
     )
+    assert result == Result.NOT_KEPT
+
+
+def test_invalid_dnf_option_not_kept(module, mock_base, mock_mpc):
+    """Test that invalid DNF options cause NOT_KEPT (ConfigError from DNF)"""
+    # Mock ConfigError to be raised when invalid option is set
+    mock_base.conf.set_or_append_opt_value.side_effect = (
+        mock_dnf.exceptions.ConfigError('Cannot set "invalid_option" to "value"')
+    )
+
+    mock_mpc.getModuleState.return_value = mock_mpc.ModuleState_ENABLED
+    mock_mpc.getEnabledStream.return_value = "12"
+    mock_mpc.getInstalledProfiles.return_value = []
+
+    result = module.evaluate_promise(
+        "nodejs",
+        {
+            "state": "installed",
+            "stream": "12",
+            "profile": "common",
+            "options": ["invalid_option=value"],
+        },
+        {},
+    )
+
+    # Should fail because invalid option raises ConfigError
     assert result == Result.NOT_KEPT
 
 
