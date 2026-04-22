@@ -213,6 +213,22 @@ class AppStreamsPromiseTypeModule(PromiseModule):
                 return self._disable_module(mpc, base, module_name)
 
             elif state == "installed":
+                # Check if we need to switch streams
+                try:
+                    enabled_stream = mpc.getEnabledStream(module_name)
+                    if stream and enabled_stream and enabled_stream != stream:
+                        # Stream switch needed
+                        self.log_info(
+                            f"Switching module {module_name} from stream "
+                            f"{enabled_stream} to {stream}"
+                        )
+                        return self._switch_module(
+                            mpc, base, module_name, stream, profile, options
+                        )
+                except RuntimeError:
+                    # Module not enabled yet, proceed with normal install
+                    pass
+
                 if self._is_module_installed_with_packages(
                     mpc, base, module_name, stream, profile
                 ):
@@ -380,6 +396,89 @@ class AppStreamsPromiseTypeModule(PromiseModule):
                     self.log_warning(
                         f"Unexpected error setting DNF option '{key}={value}': {e}"
                     )
+
+    def _switch_module(self, mpc, base, module_name, stream, profile, options=None):
+        """Switch a module to a different stream using ModuleBase.switch_to()"""
+        if options is None:
+            options = []
+
+        # Apply DNF configuration options
+        self._try_apply_dnf_options(base, options)
+
+        if not stream:
+            self.log_error("Stream must be specified for module switch")
+            return Result.NOT_KEPT
+
+        if not profile:
+            profile = mpc.getDefaultProfiles(module_name, stream)
+            profile = profile[0] if profile else None
+
+        if not profile:
+            self.log_error(
+                f"No profile specified and no default found for {module_name}:{stream}"
+            )
+            return Result.NOT_KEPT
+
+        # Use ModuleBase API to switch streams
+        module_spec = f"{module_name}:{stream}/{profile}"
+        self.log_verbose(f"Switching to module spec: {module_spec}")
+
+        # Build command line for DNF history (shown in dnf history list)
+        cmdline_parts = ["module", "switch-to", "-y", module_spec]
+        if options:
+            for opt in options:
+                cmdline_parts.append(f"--setopt={opt}")
+        base.args = cmdline_parts
+
+        try:
+            # Create ModuleBase wrapper around base
+            module_base = dnf.module.module_base.ModuleBase(base)
+            module_base.switch_to([module_spec])
+        except dnf.exceptions.Error as e:
+            self.log_error(f"Failed to switch module {module_spec}: {e}")
+            return Result.NOT_KEPT
+
+        # Resolve and execute transaction
+        base.resolve()
+
+        # Download packages before transaction (following DNF CLI pattern)
+        pkgs_to_download = list(base.transaction.install_set)
+        if pkgs_to_download:
+            base.download_packages(pkgs_to_download)
+
+        base.do_transaction()
+
+        # Verify switch succeeded
+        try:
+            enabled_stream = mpc.getEnabledStream(module_name)
+        except RuntimeError:
+            self.log_error(
+                f"Failed to get enabled stream for {module_name} after switch"
+            )
+            return Result.NOT_KEPT
+
+        if enabled_stream != stream:
+            self.log_error(
+                f"Module {module_name} stream is {enabled_stream}, expected {stream}"
+            )
+            return Result.NOT_KEPT
+
+        try:
+            installed_profiles = mpc.getInstalledProfiles(module_name)
+        except RuntimeError:
+            self.log_error(
+                f"Failed to get installed profiles for {module_name} after switch"
+            )
+            return Result.NOT_KEPT
+
+        if profile not in installed_profiles:
+            self.log_error(
+                f"Profile {profile} not in installed profiles {installed_profiles}"
+            )
+            return Result.NOT_KEPT
+
+        self.log_info(f"Module {module_name}:{stream}/{profile} switched successfully")
+        return Result.REPAIRED
 
     def _install_module(self, mpc, base, module_name, stream, profile, options=None):
         """Enable a module stream and install the given (or default) profile's packages."""
