@@ -2,7 +2,8 @@ Inventory module for collecting SMART drive health, temperature, and wear data v
 
 ## Description
 
-This module collects S.M.A.R.T. (Self-Monitoring, Analysis and Reporting Technology) data from storage devices and exposes it as inventory attributes in CFEngine Mission Portal. It provides a rolled-up status for fleet-wide filtering (`OK`, `DEGRADED`, `SMARTCTL_MISSING`) along with per-drive health, temperature, power-on hours, and NVMe-specific metrics.
+This module collects S.M.A.R.T. (Self-Monitoring, Analysis and Reporting Technology) data from storage devices and exposes it as inventory attributes in CFEngine Mission Portal.
+It provides a rolled-up status for fleet-wide filtering (`OK`, `DEGRADED`, `SMARTCTL_MISSING`) along with per-drive health, temperature, power-on hours, and NVMe-specific metrics.
 
 SMART data helps predict drive failures before they occur and provides visibility into storage device health across your infrastructure.
 
