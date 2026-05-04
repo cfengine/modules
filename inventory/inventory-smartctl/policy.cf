@@ -9,9 +9,8 @@ bundle agent main
 # Requires smartmontools >= 7.0 (for JSON output support).
 # Runs on Linux only; silently no-ops on other platforms.
 #
-# Simplified version: reads JSON directly in main bundle, no sub-bundle needed.
-#
 # Attributes exposed in Mission Portal:
+# @inventory SMART status               - OK, DEGRADED, or SMARTCTL_MISSING
 # @inventory SMART drive health         - Per-drive PASSED/FAILED
 # @inventory SMART drive model          - Drive model per device
 # @inventory SMART drive temperatures   - Current temperature in Celsius
@@ -42,6 +41,67 @@ bundle agent main
 
       "_id[${_drives}]" string => canonify("${_drives}");
       "_cache[${_drives}]" string => "$(_sdir)/inventory_smartctl_${_id[${_drives}]}.json";
+
+    linux._have_smartctl::
+      # Rolled-up status: OK or DEGRADED (SMARTCTL_MISSING when smartctl absent)
+      "smartctl_status"
+        string => "DEGRADED",
+        meta => { "inventory", "attribute_name=SMART status" },
+        if => some(".*", "failed_drives");
+
+      "smartctl_status"
+        string => "OK",
+        meta => { "inventory", "attribute_name=SMART status" },
+        if => not(isvariable("failed_drives"));
+
+    linux.!_have_smartctl::
+      "smartctl_status"
+        string => "SMARTCTL_MISSING",
+        meta => { "inventory", "attribute_name=SMART status" };
+
+    linux._have_smartctl::
+      # Inventory attributes (visible in Mission Portal)
+      # Each array element is a separate variable in inventory, avoiding
+      # the ~4K truncation limit that affects slists on hosts with many drives.
+      "drive_health[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[health]}",
+        meta => { "inventory", "attribute_name=SMART drive health" },
+        if => isvariable("_d_${_id[${_drives}]}[health]");
+
+      "drive_model[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[model]}",
+        meta => { "inventory", "attribute_name=SMART drive model" },
+        if => isvariable("_d_${_id[${_drives}]}[model]");
+
+      "drive_temperatures[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[temp]} C",
+        meta => { "inventory", "attribute_name=SMART drive temperatures (C)" },
+        if => isvariable("_d_${_id[${_drives}]}[temp]");
+
+      "drive_power_on_hours[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[hours]} h",
+        meta => { "inventory", "attribute_name=SMART drive power-on hours" },
+        if => isvariable("_d_${_id[${_drives}]}[hours]");
+
+      "nvme_available_spare[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[nvme_spare]}%",
+        meta => { "inventory", "attribute_name=SMART NVMe available spare" },
+        if => isvariable("_d_${_id[${_drives}]}[nvme_spare]");
+
+      "nvme_percentage_used[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[nvme_pct_used]}%",
+        meta => { "inventory", "attribute_name=SMART NVMe percentage used" },
+        if => isvariable("_d_${_id[${_drives}]}[nvme_pct_used]");
+
+      "nvme_media_errors[${_drives}]"
+        string => "${_drives}: ${_d_${_id[${_drives}]}[nvme_media_errors]}",
+        meta => { "inventory", "attribute_name=SMART NVMe media errors" },
+        if => isvariable("_d_${_id[${_drives}]}[nvme_media_errors]");
+
+      "failed_drives[${_drives}]"
+        string => "${_drives}",
+        meta => { "inventory", "attribute_name=SMART failed drives" },
+        if => strcmp("${_d_${_id[${_drives}]}[health]}", "FAILED");
 
   classes:
     linux::
@@ -78,79 +138,6 @@ bundle agent main
         usebundle => parse("${_drives}", "${_cache[${_drives}]}"),
         useresult => "_d_${_id[${_drives}]}",
         if => fileexists("${_cache[${_drives}]}");
-
-  vars:
-    linux._have_smartctl::
-      # Collect results from sub-bundles into formatted entries
-      "_health_entries[${_drives}]"
-        string => "${_drives}: ${_d_${_id[${_drives}]}[health]}",
-        if => isvariable("_d_${_id[${_drives}]}[health]");
-
-      "_model_entries[${_drives}]"
-        string => "${_drives}: ${_d_${_id[${_drives}]}[model]}",
-        if => isvariable("_d_${_id[${_drives}]}[model]");
-
-      "_temp_entries[${_drives}]"
-        string => "${_drives}: ${_d_${_id[${_drives}]}[temp]} C",
-        if => isvariable("_d_${_id[${_drives}]}[temp]");
-
-      "_hours_entries[${_drives}]"
-        string => "${_drives}: ${_d_${_id[${_drives}]}[hours]} h",
-        if => isvariable("_d_${_id[${_drives}]}[hours]");
-
-      "_nvme_spare_entries[${_drives}]"
-        string => "${_drives}: ${_d_${_id[${_drives}]}[nvme_spare]}%",
-        if => isvariable("_d_${_id[${_drives}]}[nvme_spare]");
-
-      "_nvme_pct_used_entries[${_drives}]"
-        string => "${_drives}: ${_d_${_id[${_drives}]}[nvme_pct_used]}%",
-        if => isvariable("_d_${_id[${_drives}]}[nvme_pct_used]");
-
-      "_nvme_media_errors_entries[${_drives}]"
-        string => "${_drives}: ${_d_${_id[${_drives}]}[nvme_media_errors]}",
-        if => isvariable("_d_${_id[${_drives}]}[nvme_media_errors]");
-
-      "_failed_entries[${_drives}]"
-        string => "${_drives}",
-        if => strcmp("${_d_${_id[${_drives}]}[health]}", "FAILED");
-
-      # Inventory attributes (visible in Mission Portal)
-      "drive_health"
-        slist => getvalues(_health_entries),
-        meta => { "inventory", "attribute_name=SMART drive health" };
-
-      "drive_model"
-        slist => getvalues(_model_entries),
-        meta => { "inventory", "attribute_name=SMART drive model" };
-
-      "drive_temperatures"
-        slist => getvalues(_temp_entries),
-        meta => { "inventory", "attribute_name=SMART drive temperatures (C)" };
-
-      "drive_power_on_hours"
-        slist => getvalues(_hours_entries),
-        meta => { "inventory", "attribute_name=SMART drive power-on hours" };
-
-      "nvme_available_spare"
-        slist => getvalues(_nvme_spare_entries),
-        meta => { "inventory", "attribute_name=SMART NVMe available spare" };
-
-      "nvme_percentage_used"
-        slist => getvalues(_nvme_pct_used_entries),
-        meta => { "inventory", "attribute_name=SMART NVMe percentage used" };
-
-      "nvme_media_errors"
-        slist => getvalues(_nvme_media_errors_entries),
-        meta => { "inventory", "attribute_name=SMART NVMe media errors" };
-
-      "failed_drives"
-        slist => getvalues(_failed_entries),
-        meta => { "inventory", "attribute_name=SMART failed drives" };
-
-    linux.!_have_smartctl::
-      "drive_health"
-        string => "SMARTCTL_MISSING",
-        meta => { "inventory", "attribute_name=SMART drive health" };
 
   reports:
     linux._have_smartctl.verbose_mode::
@@ -198,13 +185,20 @@ bundle agent parse(drive, cache_file)
         if => isvariable("_json[nvme_smart_health_information_log][media_errors]");
 
   reports:
-      "$(_health)" bundle_return_value_index => "health";
-      "$(_model)" bundle_return_value_index => "model";
-      "$(_temp)" bundle_return_value_index => "temp";
-      "$(_hours)" bundle_return_value_index => "hours";
-      "$(_nvme_spare)" bundle_return_value_index => "nvme_spare";
-      "$(_nvme_pct_used)" bundle_return_value_index => "nvme_pct_used";
-      "$(_nvme_media_errors)" bundle_return_value_index => "nvme_media_errors";
+      "$(_health)" bundle_return_value_index => "health",
+        if => isvariable("_health");
+      "$(_model)" bundle_return_value_index => "model",
+        if => isvariable("_model");
+      "$(_temp)" bundle_return_value_index => "temp",
+        if => isvariable("_temp");
+      "$(_hours)" bundle_return_value_index => "hours",
+        if => isvariable("_hours");
+      "$(_nvme_spare)" bundle_return_value_index => "nvme_spare",
+        if => isvariable("_nvme_spare");
+      "$(_nvme_pct_used)" bundle_return_value_index => "nvme_pct_used",
+        if => isvariable("_nvme_pct_used");
+      "$(_nvme_media_errors)" bundle_return_value_index => "nvme_media_errors",
+        if => isvariable("_nvme_media_errors");
 }
 
 body file control { namespace => "default"; }

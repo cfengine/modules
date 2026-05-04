@@ -2,7 +2,7 @@ Inventory module for collecting SMART drive health, temperature, and wear data v
 
 ## Description
 
-This module collects S.M.A.R.T. (Self-Monitoring, Analysis and Reporting Technology) data from storage devices and exposes it as inventory attributes in CFEngine Mission Portal. It monitors drive health status, temperature, power-on hours, and NVMe-specific metrics.
+This module collects S.M.A.R.T. (Self-Monitoring, Analysis and Reporting Technology) data from storage devices and exposes it as inventory attributes in CFEngine Mission Portal. It provides a rolled-up status for fleet-wide filtering (`OK`, `DEGRADED`, `SMARTCTL_MISSING`) along with per-drive health, temperature, power-on hours, and NVMe-specific metrics.
 
 SMART data helps predict drive failures before they occur and provides visibility into storage device health across your infrastructure.
 
@@ -35,13 +35,21 @@ bundle agent main
 
 The following attributes are exposed in Mission Portal:
 
-### Universal Attributes (all drive types)
+### Overall Status
+
+- **SMART status** - Rolled-up health across all drives
+  - Values: `OK`, `DEGRADED`, `SMARTCTL_MISSING`
+  - `OK`: All detected drives report PASSED
+  - `DEGRADED`: One or more drives report FAILED
+  - `SMARTCTL_MISSING`: smartctl is not installed on the system
+  - Use for fleet-wide filtering and alerting in Mission Portal
+
+### Per-Drive Attributes (all drive types)
 
 - **SMART drive health** - Per-drive health status
-  - Values: `PASSED`, `FAILED`, `SMARTCTL_MISSING`
+  - Values: `PASSED`, `FAILED`
   - Example: `/dev/sda: PASSED`, `/dev/nvme0: FAILED`
-  - `SMARTCTL_MISSING`: Indicates smartctl is not installed on the system
-  - Critical: A FAILED status indicates the drive is predicting imminent failure
+  - A FAILED status indicates the drive is predicting imminent failure
 
 - **SMART drive model** - Drive model identifier
   - Example: `/dev/sda: Samsung SSD 870 EVO`
@@ -76,9 +84,9 @@ The following attributes are exposed in Mission Portal:
 
 ## Troubleshooting
 
-### SMARTCTL_MISSING appears in inventory
+### SMART status shows SMARTCTL_MISSING
 
-The module reports `SMARTCTL_MISSING` when smartctl is not installed. To resolve:
+The `SMART status` attribute reports `SMARTCTL_MISSING` when smartctl is not installed. To resolve:
 
 **Install smartmontools package:**
 
