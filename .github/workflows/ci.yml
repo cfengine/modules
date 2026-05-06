@@ -7,31 +7,28 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
-  unit_tests:
-    name: Run Unit Tests
+  lint_and_test:
+    name: Lint and test
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
     - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        submodules: recursive
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -y && sudo apt-get install -y python3
-        pip install flake8 pyright black pyflakes
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Install cfbs
-      run: pip install cfbs
+        python-version: "3.14"
+    - name: Install python tools
+      run: pipx install flake8 pyright black pyflakes pytest cfbs cfengine
     - name: Check the status with cfbs
       run: cfbs status
     - name: Validate with cfbs
       run: cfbs validate
     - name: Check the formatting
       run: cfbs --check pretty ./cfbs.json
-    - name: Linting
+    - name: Linting python code
       run: ./ci/linting.sh
-    - name: Install pytest
-      run: pip install pytest
     - name: Run promise type tests
-      run: python3 -m pytest promise-types/ -v
+      run: pytest promise-types/ -v
+    - name: Lint policy with CFEngine CLI
+      run: cfengine lint --strict no ./
