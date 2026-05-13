@@ -142,6 +142,47 @@
         "bundles delete_home_dotshosts:main"
       ]
     },
+    "dirtyfrag": {
+      "description": "Detect and optionally mitigate CVE-2026-43284 (DirtyFrag) and CVE-2026-43500 in the Linux kernel.",
+      "tags": ["security", "inventory", "detection", "mitigation"],
+      "subdirectory": "security/dirtyfrag",
+      "steps": [
+        "copy dirtyfrag.cf services/cfbs/modules/dirtyfrag/dirtyfrag.cf",
+        "copy patched-kernels.json services/cfbs/modules/dirtyfrag/patched-kernels.json",
+        "policy_files services/cfbs/modules/dirtyfrag/dirtyfrag.cf",
+        "bundles dirtyfrag:main",
+        "input ./input.json def.json"
+      ],
+      "input": [
+        {
+          "type": "string",
+          "variable": "mitigate_esp",
+          "namespace": "dirtyfrag",
+          "bundle": "main",
+          "label": "Mitigate CVE-2026-43284 (ESP/IPComp)",
+          "question": "Blacklist esp4, esp6, ipcomp4, ipcomp6 kernel modules? (breaks IPsec) [true/false]",
+          "default": "false"
+        },
+        {
+          "type": "string",
+          "variable": "mitigate_rxrpc",
+          "namespace": "dirtyfrag",
+          "bundle": "main",
+          "label": "Mitigate CVE-2026-43500 (RxRPC)",
+          "question": "Blacklist rxrpc kernel module? (breaks AFS/RxRPC) [true/false]",
+          "default": "false"
+        },
+        {
+          "type": "string",
+          "variable": "mitigate_userns",
+          "namespace": "dirtyfrag",
+          "bundle": "main",
+          "label": "Mitigate CVE-2026-43284 via user namespaces",
+          "question": "Set user.max_user_namespaces=0? (blocks ESP exploit without disabling IPsec, may break rootless containers) [true/false]",
+          "default": "false"
+        }
+      ]
+    },
     "demo": {
       "description": "Enables convenient and insecure settings for demoing CFEngine.",
       "subdirectory": "management/demo",
