@@ -18,7 +18,8 @@ After adding this module you can view Dirty Frag vulnerability status in Mission
   - `VULNERABLE (esp4, esp6 loaded)` -- vulnerable modules currently in memory (names vary by host)
   - `VULNERABLE (modules on disk, none loaded)` -- modules present but not loaded; latent risk
   - `PATCHED (kernel fix applied)` -- running kernel version includes the fix (auto-detected or admin-declared)
-  - `MITIGATED (blacklist in place)` -- modprobe blacklist or userns restriction active
+  - `MITIGATED (blacklist in place)` -- modprobe blacklist active for esp4/esp6/ipcomp/ipcomp6
+  - `MITIGATED (userns disabled)` -- `user.max_user_namespaces=0` sysctl active, blocking the exploit path without unloading IPsec
   - `NOT AFFECTED` -- vulnerable modules not present on this host
 - **Dirty Frag CVE-2026-43500 (RxRPC) status**:
   - `VULNERABLE (rxrpc loaded)` -- module currently in memory
@@ -37,7 +38,7 @@ Each CVE has an independent toggle and separate conf file:
 # Dirty Frag CVE-2026-43284 mitigation: block xfrm-ESP and IPComp
 install esp4 /bin/false
 install esp6 /bin/false
-install ipcomp4 /bin/false
+install ipcomp /bin/false
 install ipcomp6 /bin/false
 ```
 
@@ -61,7 +62,7 @@ user.max_user_namespaces = 0
 
 This blocks the ESP/IPComp exploit path without blacklisting the modules, preserving IPsec functionality. Use this instead of `mitigate_esp` on hosts that require IPsec. Note: this does **not** mitigate CVE-2026-43500 (RxRPC) and may break rootless containers (Podman, Docker rootless), Flatpak, and browser sandboxes. Applied via `sysctl --system` on first write.
 
-All mitigations are **disabled by default** -- the module only reports status unless the corresponding CMDB variable is set to `"true"`.
+All mitigations are **disabled by default** -- the module only reports status unless the corresponding CMDB variable (`dirtyfrag:main.mitigate_esp`, `dirtyfrag:main.mitigate_rxrpc`, or `dirtyfrag:main.mitigate_userns`) is set to `"true"`. See the table below for the full set of toggles.
 
 ## Usage
 
@@ -87,7 +88,7 @@ To enable mitigation, set one or both variables in your site's `def.json` (Augme
 
 | Variable | What it does | Trade-off |
 |----------|-------------|-----------|
-| `mitigate_esp` | Blacklists esp4, esp6, ipcomp4, ipcomp6 | Breaks IPsec |
+| `mitigate_esp` | Blacklists esp4, esp6, ipcomp, ipcomp6 | Breaks IPsec |
 | `mitigate_rxrpc` | Blacklists rxrpc | Breaks AFS/RxRPC |
 | `mitigate_userns` | Sets `user.max_user_namespaces=0` | May break rootless containers/sandboxes |
 | `esp_patched` | Declare CVE-2026-43284 as patched | Admin must verify kernel is actually patched |
@@ -135,4 +136,55 @@ To update the patched kernel data, edit `patched-kernels.json` and redeploy. The
 ## Adding exceptions
 
 To exclude specific hosts from mitigation, use conditional augments to override them to a value other than `"true"`.
+
+## Mission Portal — operator reference
+
+The module is structured to give Mission Portal operators four things: inventory columns for at-a-glance state, a filterable mitigation-method enum, queryable classes for targeting, and CVE-linked promise stakeholders for audit traceability.
+
+### Inventory columns
+
+| Attribute name | Values | Filterable as |
+|---|---|---|
+| `Dirty Frag CVE-2026-43284 (xfrm-ESP) status` | `VULNERABLE (...)`, `PATCHED (kernel fix applied)`, `MITIGATED (blacklist in place)`, `MITIGATED (userns disabled)`, `NOT AFFECTED` | starts-with regex (`^VULNERABLE`, `^PATCHED`, `^MITIGATED`) |
+| `Dirty Frag CVE-2026-43500 (RxRPC) status` | same shape, no userns option | same |
+| `Dirty Frag CVE-2026-43284 mitigation method` | `kernel-patch`, `modprobe`, `userns`, `admin-override`, `none`, `not-applicable` | exact match |
+| `Dirty Frag CVE-2026-43500 mitigation method` | `kernel-patch`, `modprobe`, `admin-override`, `none`, `not-applicable` | exact match |
+
+The detailed status strings are for humans; the method enums are for dashboards and filters.
+
+### Queryable classes (collected as `report`, not in default inventory columns)
+
+| Class | Meaning | Use case |
+|---|---|---|
+| `dirtyfrag_vulnerable` | Any tracked CVE is unmitigated on this host | Targeting: "patch these now" |
+| `dirtyfrag_esp_mitigated` | ESP mitigation path is active (any of blacklist / userns / patched) | Audit: confirm coverage |
+| `dirtyfrag_rxrpc_mitigated` | RxRPC mitigation path is active | Same |
+| `dirtyfrag_esp_needs_mitigation` | ESP exposure exists and no mitigation in place | Targeting fragments |
+| `dirtyfrag_rxrpc_needs_mitigation` | Same for RxRPC | Same |
+| `dirtyfrag_esp_present`, `dirtyfrag_rxrpc_present` | Module is loadable or loaded | Scoping |
+
+Tagged with `meta => { "report" }` so cf-hub collects them for queries but they don't add columns to the default inventory view.
+
+### Recommended alerts
+
+Configure in Mission Portal → **Alerts**. The module ships no alerts itself; operators wire conditions appropriate to their fleet's risk tolerance:
+
+- **Inventory condition** — alert when `Dirty Frag CVE-2026-43284 (xfrm-ESP) status` matches regex `^VULNERABLE`. Catches new unmitigated hosts as they join the fleet or as kernels regress.
+- **Inventory condition** — alert when `Dirty Frag CVE-2026-43284 mitigation method` equals `userns` on more than N hosts. The userns path is fragile (breaks rootless containers); knowing how many hosts depend on it informs upgrade prioritization.
+- **Policy condition** — alert on any **promises not kept** for handles `dirtyfrag_esp_modprobe_blacklist`, `dirtyfrag_rxrpc_modprobe_blacklist`, `dirtyfrag_esp_modprobe_unload`, `dirtyfrag_rxrpc_modprobe_unload`, `dirtyfrag_userns_sysctl_conf`, `dirtyfrag_userns_sysctl_reapply`. These are the file/command promises that enforce mitigation; a failure means the conf wasn't written or the module wasn't unloaded.
+
+### Promise handles (for report filtering)
+
+| Handle | What | When it fails |
+|---|---|---|
+| `dirtyfrag_esp_modprobe_blacklist` | Writes `/etc/modprobe.d/dirtyfrag-esp.conf` | Filesystem error, conflicting writes |
+| `dirtyfrag_rxrpc_modprobe_blacklist` | Writes `/etc/modprobe.d/dirtyfrag-rxrpc.conf` | Same |
+| `dirtyfrag_userns_sysctl_conf` | Writes `/etc/sysctl.d/dirtyfrag-userns.conf` | Same |
+| `dirtyfrag_esp_modprobe_unload` | `modprobe -r` on currently-loaded ESP/IPComp modules | Module busy (existing IPsec tunnel) |
+| `dirtyfrag_rxrpc_modprobe_unload` | `modprobe -r rxrpc` | Module busy |
+| `dirtyfrag_userns_sysctl_reapply` | `sysctl --system` to load the userns conf | sysctl conf rejected |
+
+### Compliance traceability
+
+Every file and command promise carries a **promisee arrow** linking to its CVE: `"${path}" -> { "CVE-2026-43284" }` and `"${path}" -> { "CVE-2026-43500" }`. In Mission Portal's promise detail view, this surfaces as the stakeholder / linked identifier. Searching the audit history for `CVE-2026-43284` returns every policy artifact addressing it.
 

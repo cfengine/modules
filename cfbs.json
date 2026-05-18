@@ -160,7 +160,7 @@
           "namespace": "dirtyfrag",
           "bundle": "main",
           "label": "Mitigate CVE-2026-43284 (ESP/IPComp)",
-          "question": "Blacklist esp4, esp6, ipcomp4, ipcomp6 kernel modules? (breaks IPsec) [true/false]",
+          "question": "Blacklist esp4, esp6, ipcomp, ipcomp6 kernel modules? (breaks IPsec) [true/false]",
           "default": "false"
         },
         {

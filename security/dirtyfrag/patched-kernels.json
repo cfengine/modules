@@ -1,66 +1,87 @@
 {
   "_meta": {
     "description": "Minimum patched kernel package versions for Dirty Frag CVEs. Keyed by distro match (os_release ID + major version). The policy matches the running host against these entries and uses sort -V to compare the installed kernel package version against the minimum patched version.",
-    "updated": "2026-05-12",
+    "updated": "2026-05-15",
     "sources": [
       "https://access.redhat.com/security/vulnerabilities/RHSB-2026-003",
       "https://security-tracker.debian.org/tracker/CVE-2026-43284",
       "https://security-tracker.debian.org/tracker/CVE-2026-43500",
       "https://ubuntu.com/security/CVE-2026-43500",
       "https://almalinux.org/blog/2026-05-07-dirty-frag/",
-      "https://www.suse.com/security/cve/CVE-2026-43284.html",
       "https://explore.alas.aws.amazon.com/CVE-2026-43284.html"
-    ]
+    ],
+    "placeholder_note": "TBD-pending-USN sorts higher than any numeric version under sort -V, so the policy will report VULNERABLE until the entry is updated with the real fix version. Admins on hosts known to be patched can set dirtyfrag:main.esp_patched / .rxrpc_patched in site augments to override."
   },
   "entries": [
     {
+      "label": "RHEL/CentOS/Alma/Rocky/OL 7 (ELS)",
+      "id_match": "^(rhel|centos|rocky|almalinux|ol)$",
+      "version_match": "^7(\\..*|$)",
+      "cve_2026_43284": "TBD-pending-USN",
+      "cve_2026_43500": "TBD-pending-USN"
+    },
+    {
       "label": "RHEL/CentOS/Alma/Rocky/OL 8",
       "id_match": "^(rhel|centos|rocky|almalinux|ol)$",
-      "version_match": "^8",
+      "version_match": "^8(\\..*|$)",
       "cve_2026_43284": "4.18.0-553.123.2",
       "cve_2026_43500": "4.18.0-553.123.2"
     },
     {
       "label": "RHEL/CentOS/Alma/Rocky/OL 9",
       "id_match": "^(rhel|centos|rocky|almalinux|ol)$",
-      "version_match": "^9",
+      "version_match": "^9(\\..*|$)",
       "cve_2026_43284": "5.14.0-611.54.1",
       "cve_2026_43500": "5.14.0-611.54.3"
     },
     {
       "label": "RHEL/CentOS/Alma/Rocky/OL 10",
       "id_match": "^(rhel|centos|rocky|almalinux|ol)$",
-      "version_match": "^10",
+      "version_match": "^10(\\..*|$)",
       "cve_2026_43284": "6.12.0-124.55.2",
       "cve_2026_43500": "6.12.0-124.55.3"
     },
     {
       "label": "Debian 11 (Bullseye)",
       "id_match": "^debian$",
-      "version_match": "^11",
+      "version_match": "^11(\\..*|$)",
       "cve_2026_43284": "5.10.251-4",
       "cve_2026_43500": "5.10.251-4"
     },
     {
       "label": "Debian 12 (Bookworm)",
       "id_match": "^debian$",
-      "version_match": "^12",
+      "version_match": "^12(\\..*|$)",
       "cve_2026_43284": "6.1.170-3",
       "cve_2026_43500": "6.1.170-3"
     },
     {
       "label": "Debian 13 (Trixie)",
       "id_match": "^debian$",
-      "version_match": "^13",
+      "version_match": "^13(\\..*|$)",
       "cve_2026_43284": "6.12.86-1",
       "cve_2026_43500": "6.12.86-1"
     },
     {
-      "label": "SLES 15 SP7",
-      "id_match": "^sles$",
-      "version_match": "^15\\.7",
-      "cve_2026_43284": "6.4.0-150700.53.45.1",
-      "cve_2026_43500": "6.4.0-150700.53.45.1"
+      "label": "Ubuntu 20.04 LTS (focal, ESM)",
+      "id_match": "^ubuntu$",
+      "version_match": "^20\\.04",
+      "cve_2026_43284": "TBD-pending-USN",
+      "cve_2026_43500": "TBD-pending-USN"
+    },
+    {
+      "label": "Ubuntu 22.04 LTS (jammy)",
+      "id_match": "^ubuntu$",
+      "version_match": "^22\\.04",
+      "cve_2026_43284": "TBD-pending-USN",
+      "cve_2026_43500": "TBD-pending-USN"
+    },
+    {
+      "label": "Ubuntu 24.04 LTS (noble)",
+      "id_match": "^ubuntu$",
+      "version_match": "^24\\.04",
+      "cve_2026_43284": "TBD-pending-USN",
+      "cve_2026_43500": "TBD-pending-USN"
     }
   ]
 }
