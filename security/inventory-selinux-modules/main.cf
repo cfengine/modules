@@ -1,0 +1,74 @@
+body file control
+{
+      namespace => "inventory_selinux";
+}
+
+bundle agent semodule_list_modules
+{
+  classes:
+      "_$(this.namespace)_$(this.bundle)_supported_platform"
+        if => isexecutable( "$(path[semodule])");
+
+  vars:
+      "path[semodule]"
+        string => ifelse( isexecutable("/sbin/semodule"), "/sbin/semodule",
+                          isexecutable("/usr/sbin/semodule"), "/usr/sbin/semodule",
+                          "" ),
+        meta => { "paths.cf" };
+
+    _inventory_selinux_semodule_list_modules_supported_platform::
+      "hours_cached"
+        string => "1",
+        if => not( isvariable( hours_cached ));
+
+      "cache_file"
+        string => "$(sys.statedir)/$(this.namespace)_$(this.bundle).txt";
+
+      "cache_file_age"
+        string => filestat( $(cache_file), mtime ),
+        if => fileexists( "$(cache_file)" );
+
+      # Example $(cache_file) content
+      # 400 cfengine-enterprise pp
+      # 200 container           pp
+      # 100 wine                pp disabled
+      # 100 wireshark           pp
+
+
+      "d" data => data_readstringarrayidx( "$(cache_file)",
+                                           "",
+                                           "\s+",
+                                           inf,
+                                           inf),
+        if => fileexists( $(cache_file) );
+
+      "i" slist => getindices( "d" );
+
+      # Inventory enabled and disabled selinux modules
+      "enabled[$(i)]"
+        string => "$(d[$(i)][1])",
+        if => strcmp( "$(d[$(i)][3])", "" ),
+        meta => { "inventory", "attribute_name=SELinux Modules Enabled" };
+
+      "disabled[$(i)]"
+        string => "$(d[$(i)][1])",
+        if => strcmp( "$(d[$(i)][3])", "disabled" ),
+        meta => { "inventory", "attribute_name=SELinux Modules Disabled" };
+
+  files:
+    _inventory_selinux_semodule_list_modules_supported_platform::
+      # Delete the cache file if it's older than hours_cached
+      "$(cache_file)"
+        delete => default:tidy,
+        if => isgreaterthan(
+                             format( "%d", eval( "$(sys.systime)-$(cache_file_age)" )),  # now minus mtime of cache file
+                             format( "%d", eval( "$(hours_cached)*60*60" )));            # cache minutes
+  commands:
+    _inventory_selinux_semodule_list_modules_supported_platform::
+      "/sbin/semodule"
+        arglist => { "--list-modules=full",
+                     ">", "$(cache_file)" },
+        contain => default:in_shell, # Required for redirection
+        if => not( fileexists( $(cache_file) ));
+
+}

@@ -1,0 +1,15 @@
+This module inventories the SELinux Modules that are installed.
+
+* Inventory
+- SELinux Modules Enabled :: SELinux Modules that are installed and not disabled.
+- SELinux Modules Disabled :: SELinux Modules that are installed and disabled.
+
+[[https://raw.githubusercontent.com/cfengine/modules/master/security/inventory-selinux-modules/inventory-selinux-modules.png]]
+
+* Configuration
+** Variables
+- =inventory_selinux:semodule_list_modules.hours_cached= :: Number of hours to cache the output from ~semodule --list-modules=full~.
+
+* Requirements
+
+The ~semodule~ command is required for inventory to be reported.
