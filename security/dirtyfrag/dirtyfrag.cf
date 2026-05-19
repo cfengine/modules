@@ -1,0 +1,438 @@
+body file control
+{
+  namespace => "dirtyfrag";
+}
+
+bundle agent main
+# @brief Detects Dirty Frag (CVE-2026-43284, CVE-2026-43500) vulnerability
+#   and applies CMDB-toggleable mitigations. CMDB variables, mitigation
+#   trade-offs and inventory states are documented in README.md.
+#
+# @inventory Dirty Frag CVE-2026-43284 (xfrm-ESP) status - Vulnerability/mitigation state for the xfrm-ESP/IPComp CVE.
+# @inventory Dirty Frag CVE-2026-43500 (RxRPC) status - Vulnerability/mitigation state for the RxRPC CVE.
+# @inventory Dirty Frag CVE-2026-43284 mitigation method - Which mitigation strategy is currently active for ESP (kernel-patch, modprobe, userns, admin-override, none, not-applicable).
+# @inventory Dirty Frag CVE-2026-43500 mitigation method - Which mitigation strategy is currently active for RxRPC (kernel-patch, modprobe, admin-override, none, not-applicable).
+# @class dirtyfrag_vulnerable - true if any tracked CVE is unmitigated on this host (queryable; not in default inventory column set).
+# @class dirtyfrag_esp_mitigated - true if any ESP mitigation path is active on this host.
+# @class dirtyfrag_rxrpc_mitigated - true if any RxRPC mitigation path is active on this host.
+{
+  vars:
+    # --- Patched-kernel data lookup ---------------------------------
+    # Minimum patched kernel package versions per distro live in
+    # patched-kernels.json next to this policy. The data file is
+    # walked here; comparison happens in the classes:: block below.
+    "_data_file"
+      string => "$(this.promise_dirname)/patched-kernels.json";
+
+    "_data"
+      data => readjson("${_data_file}"),
+      if => fileexists("${_data_file}");
+
+    # Indexing goes inside ${...}; see lessons-learned/data-indexing.md.
+    "_entries_idx"
+      slist => getindices("_data[entries]"),
+      if => isvariable("_data");
+
+    "_os_id"
+      string => "$(default:sys.os_release[ID])",
+      if => isvariable("default:sys.os_release[ID]");
+
+    "_os_ver"
+      string => "$(default:sys.os_release[VERSION_ID])",
+      if => isvariable("default:sys.os_release[VERSION_ID]");
+
+    # Find matching entry: the entry whose id_match and version_match
+    # both match this host's os-release ID and VERSION_ID.
+    "_matched_idx"
+      string => "${_entries_idx}",
+      if => and(
+        regcmp("${_data[entries][${_entries_idx}][id_match]}", "${_os_id}"),
+        regcmp("${_data[entries][${_entries_idx}][version_match]}", "${_os_ver}")
+      );
+
+    "_esp_patched_ver"
+      string => "${_data[entries][${_matched_idx}][cve_2026_43284]}",
+      if => isvariable("_matched_idx");
+
+    "_rxrpc_patched_ver"
+      string => "${_data[entries][${_matched_idx}][cve_2026_43500]}",
+      if => isvariable("_matched_idx");
+
+    # --- Installed kernel package version --------------------------
+    # RHEL family: sys.release is the package NEVR -- compare directly.
+    # Debian/Ubuntu: sys.release is an ABI version; the package version
+    #   lives in package metadata. packagesmatching() reads the
+    #   package_inventory cache populated by the standard masterfiles
+    #   apt_get inventory. See lessons-learned/packagesmatching.md.
+    # Other: fall back to sys.release as best-effort.
+    "_kernel_pkgs"
+      data => packagesmatching(
+        "linux-image-$(default:sys.release)", ".*", ".*", "apt_get"
+      ),
+      if => regcmp("debian|ubuntu", "$(default:sys.os_release[ID])");
+
+    "_kernel_pkg_ver"
+      string => "$(_kernel_pkgs[0][version])",
+      if => isvariable("_kernel_pkgs[0][version]");
+
+    "_kernel_pkg_ver"
+      string => "$(default:sys.release)",
+      if => not(regcmp("debian|ubuntu", "$(default:sys.os_release[ID])"));
+
+    # --- Mitigation-conf paths and contents -----------------------
+    "_esp_conf_path"    string => "/etc/modprobe.d/dirtyfrag-esp.conf";
+    "_rxrpc_conf_path"  string => "/etc/modprobe.d/dirtyfrag-rxrpc.conf";
+    "_userns_conf_path" string => "/etc/sysctl.d/dirtyfrag-userns.conf";
+
+    "_esp_conf_content"
+      string => concat(
+        "# Dirty Frag CVE-2026-43284 mitigation: block xfrm-ESP and IPComp$(const.n)",
+        "install esp4 /bin/false$(const.n)",
+        "install esp6 /bin/false$(const.n)",
+        "install ipcomp /bin/false$(const.n)",
+        "install ipcomp6 /bin/false$(const.n)"
+      );
+
+    "_rxrpc_conf_content"
+      string => concat(
+        "# Dirty Frag CVE-2026-43500 mitigation: block RxRPC$(const.n)",
+        "install rxrpc /bin/false$(const.n)"
+      );
+
+    "_userns_conf_content"
+      string => concat(
+        "# Dirty Frag CVE-2026-43284 mitigation: disable unprivileged user namespaces$(const.n)",
+        "# Blocks ESP/IPComp exploit without disabling IPsec.$(const.n)",
+        "# WARNING: May affect rootless containers and sandboxed applications.$(const.n)",
+        "user.max_user_namespaces = 0$(const.n)"
+      );
+
+    # --- Module files on disk -------------------------------------
+    # Single findfiles glob covers .ko, .ko.xz, .ko.zst and any future
+    # compression scheme. Empty list means the modules aren't shipped
+    # for this kernel build.
+    "_esp_module_files"
+      slist => findfiles(
+        "/lib/modules/$(default:sys.release)/kernel/net/ipv4/esp4.ko*",
+        "/lib/modules/$(default:sys.release)/kernel/net/ipv6/esp6.ko*",
+        "/lib/modules/$(default:sys.release)/kernel/net/ipv4/ipcomp.ko*",
+        "/lib/modules/$(default:sys.release)/kernel/net/ipv6/ipcomp6.ko*"
+      );
+
+    "_rxrpc_module_files"
+      slist => findfiles(
+        "/lib/modules/$(default:sys.release)/kernel/net/rxrpc/rxrpc.ko*"
+      );
+
+    # --- Unprivileged user namespace setting ----------------------
+    # sysctlvalue works across RHEL/SLES/Debian regardless of the
+    # /proc/sys/kernel/unprivileged_userns_clone vs user.max_user_namespaces
+    # path differences.
+    "_max_userns" string => sysctlvalue("user.max_user_namespaces");
+
+    # --- Loaded-module names for the VULNERABLE status string -----
+    # Each slot is the module name when loaded, "" otherwise.
+    # filter(".+", ...) drops the empties; join glues with ", ".
+    "_esp_loaded_list"
+      slist => {
+        ifelse("_esp4_loaded",    "esp4",    ""),
+        ifelse("_esp6_loaded",    "esp6",    ""),
+        ifelse("_ipcomp_loaded",  "ipcomp",  ""),
+        ifelse("_ipcomp6_loaded", "ipcomp6", ""),
+      };
+
+    "_esp_loaded_names"
+      string => join(", ",
+        filter(".+", "_esp_loaded_list", "false", "false", "10"));
+
+    # --- Status strings -------------------------------------------
+    "_esp_status"
+      string => ifelse(
+        "dirtyfrag_esp_needs_mitigation._esp_any_loaded",
+        "VULNERABLE ($(_esp_loaded_names) loaded)",
+        "dirtyfrag_esp_needs_mitigation",
+        "VULNERABLE (modules on disk, none loaded)",
+        "_esp_kernel_patched|_esp_admin_patched",
+        "PATCHED (kernel fix applied)",
+        "dirtyfrag_esp_present._esp_mitigated",
+        "MITIGATED (blacklist in place)",
+        "dirtyfrag_esp_present._userns_conf_exists",
+        "MITIGATED (userns disabled)",
+        "NOT AFFECTED"
+      );
+
+    "_rxrpc_status"
+      string => ifelse(
+        "dirtyfrag_rxrpc_needs_mitigation._rxrpc_loaded",
+        "VULNERABLE (rxrpc loaded)",
+        "dirtyfrag_rxrpc_needs_mitigation",
+        "VULNERABLE (module on disk, not loaded)",
+        "_rxrpc_kernel_patched|_rxrpc_admin_patched",
+        "PATCHED (kernel fix applied)",
+        "dirtyfrag_rxrpc_present._rxrpc_mitigated",
+        "MITIGATED (blacklist in place)",
+        "NOT AFFECTED"
+      );
+
+    # --- Per-CVE mitigation method (one-word enum) -----------------
+    # Single keyword per CVE so MP can filter "show me all hosts where
+    # mitigation method is `userns`" -- much cleaner than regex-matching
+    # the long _esp_status string. ifelse takes first-match order.
+    "_esp_mitigation_method"
+      string => ifelse(
+        "dirtyfrag_esp_needs_mitigation",      "none",
+        "_esp_kernel_patched",                 "kernel-patch",
+        "_esp_admin_patched",                  "admin-override",
+        "_esp_conf_exists",                    "modprobe",
+        "_userns_conf_exists",                 "userns",
+        "not-applicable"
+      );
+
+    "_rxrpc_mitigation_method"
+      string => ifelse(
+        "dirtyfrag_rxrpc_needs_mitigation",    "none",
+        "_rxrpc_kernel_patched",               "kernel-patch",
+        "_rxrpc_admin_patched",                "admin-override",
+        "_rxrpc_conf_exists",                  "modprobe",
+        "not-applicable"
+      );
+
+    # --- Inventory output for Mission Portal ----------------------
+    # The CVE id and module family live in attribute_name (the column
+    # header); the value is just the state so it's easy to filter on.
+    "inventory_dirtyfrag_esp"
+      string => "$(_esp_status)",
+      meta => {
+        "inventory",
+        "attribute_name=Dirty Frag CVE-2026-43284 (xfrm-ESP) status",
+      },
+      comment => "CVE-2026-43284 xfrm-ESP mitigation status";
+
+    "inventory_dirtyfrag_rxrpc"
+      string => "$(_rxrpc_status)",
+      meta => {
+        "inventory",
+        "attribute_name=Dirty Frag CVE-2026-43500 (RxRPC) status",
+      },
+      comment => "CVE-2026-43500 RxRPC mitigation status";
+
+    "inventory_dirtyfrag_esp_method"
+      string => "$(_esp_mitigation_method)",
+      meta => {
+        "inventory",
+        "attribute_name=Dirty Frag CVE-2026-43284 mitigation method",
+      },
+      comment => "Active mitigation strategy for CVE-2026-43284 (filterable enum)";
+
+    "inventory_dirtyfrag_rxrpc_method"
+      string => "$(_rxrpc_mitigation_method)",
+      meta => {
+        "inventory",
+        "attribute_name=Dirty Frag CVE-2026-43500 mitigation method",
+      },
+      comment => "Active mitigation strategy for CVE-2026-43500 (filterable enum)";
+
+  classes:
+    # --- CMDB toggles ---------------------------------------------
+    "_mitigate_esp"    expression => strcmp("true", "$(mitigate_esp)");
+    "_mitigate_rxrpc"  expression => strcmp("true", "$(mitigate_rxrpc)");
+    "_mitigate_userns" expression => strcmp("true", "$(mitigate_userns)");
+
+    # --- Admin override: manually declare host as patched ---------
+    "_esp_admin_patched"   expression => strcmp("true", "$(esp_patched)");
+    "_rxrpc_admin_patched" expression => strcmp("true", "$(rxrpc_patched)");
+
+    # --- Kernel-patch comparison ----------------------------------
+    # sort -V -C exits 0 iff stdin is already version-sorted, so the
+    # pipeline below answers "is installed >= patched?" in one fork.
+    # This keeps useshell despite the noshell preference elsewhere:
+    # CFEngine has no semantic-version comparison primitive, sort -V
+    # needs stdin (no single-arg form), and the noshell alternatives
+    # (tempfile + commands:, or a bundled wrapper script) are heavier
+    # for no real safety gain on a static, internally-built string.
+    # See lessons-learned/version-compare-shell-exception.md.
+    "_patch_data_matched"
+      expression => isvariable("_matched_idx");
+
+    "_esp_kernel_patched"
+      expression => returnszero(
+        "printf '%s\\n%s\\n' '$(_esp_patched_ver)' '$(_kernel_pkg_ver)' | sort -V -C",
+        "useshell"
+      ),
+      if => and(
+        isvariable("_esp_patched_ver"),
+        isvariable("_kernel_pkg_ver")
+      );
+
+    "_rxrpc_kernel_patched"
+      expression => returnszero(
+        "printf '%s\\n%s\\n' '$(_rxrpc_patched_ver)' '$(_kernel_pkg_ver)' | sort -V -C",
+        "useshell"
+      ),
+      if => and(
+        isvariable("_rxrpc_patched_ver"),
+        isvariable("_kernel_pkg_ver")
+      );
+
+    # --- Unprivileged user namespace enabled? ---------------------
+    "_userns_disabled" expression => strcmp("0", "${_max_userns}");
+    "_userns_enabled"  not        => "_userns_disabled";
+
+    # --- xfrm-ESP/IPComp modules ----------------------------------
+    # On-disk presence collapses to: did findfiles return anything?
+    # some(".+", slist) is true when the list has any non-empty element.
+    "_esp_files_present" expression => some(".+", "_esp_module_files");
+
+    "_esp4_loaded"    expression => isdir("/sys/module/esp4");
+    "_esp6_loaded"    expression => isdir("/sys/module/esp6");
+    "_ipcomp_loaded"  expression => isdir("/sys/module/ipcomp");
+    "_ipcomp6_loaded" expression => isdir("/sys/module/ipcomp6");
+
+    "_esp_any_loaded"
+      or => {
+        "_esp4_loaded", "_esp6_loaded", "_ipcomp_loaded", "_ipcomp6_loaded"
+      };
+
+    "dirtyfrag_esp_present"
+      or => { "_esp_files_present", "_esp_any_loaded" };
+
+    # --- RxRPC module ---------------------------------------------
+    "_rxrpc_files_present" expression => some(".+", "_rxrpc_module_files");
+    "_rxrpc_loaded"        expression => isdir("/sys/module/rxrpc");
+
+    "dirtyfrag_rxrpc_present"
+      or => { "_rxrpc_files_present", "_rxrpc_loaded" };
+
+    # --- Mitigation conf files in place? --------------------------
+    "_esp_conf_exists"    expression => fileexists("${_esp_conf_path}");
+    "_rxrpc_conf_exists"  expression => fileexists("${_rxrpc_conf_path}");
+    "_userns_conf_exists" expression => fileexists("${_userns_conf_path}");
+
+    # ESP is mitigated by modprobe blacklist, patched kernel, or
+    # admin override. Userns mitigation is handled in the
+    # vulnerability condition (see dirtyfrag_esp_needs_mitigation).
+    "_esp_mitigated"
+      or => {
+        "_esp_conf_exists",
+        "_esp_kernel_patched",
+        "_esp_admin_patched",
+      };
+
+    # RxRPC is mitigated by the modprobe blacklist, patched kernel,
+    # or admin override.
+    "_rxrpc_mitigated"
+      or => {
+        "_rxrpc_conf_exists",
+        "_rxrpc_kernel_patched",
+        "_rxrpc_admin_patched",
+      };
+
+    # --- Per-CVE vulnerability checks -----------------------------
+    # ESP is vulnerable if modules are present, not mitigated,
+    # AND userns mitigation conf is not in place. Userns conf is
+    # not in _esp_mitigated (which tracks blacklist/mitigation
+    # confs); it's tracked here so disabling userns blocks the
+    # exploit vector directly.
+    "dirtyfrag_esp_needs_mitigation"
+      and   => { "dirtyfrag_esp_present", "!_esp_mitigated", "!_userns_conf_exists" },
+      meta  => { "report" },
+      scope => "namespace";
+
+    "dirtyfrag_rxrpc_needs_mitigation"
+      and   => { "dirtyfrag_rxrpc_present", "!_rxrpc_mitigated" },
+      meta  => { "report" },
+      scope => "namespace";
+
+    # --- Composite roll-ups for targeting and querying ------------
+    # Tagged `report` (not `inventory`) so cf-hub collects them but they
+    # don't clutter the default Mission Portal inventory columns. Use
+    # for class filters in reports, alerts, and CMDB-style targeting.
+    "dirtyfrag_vulnerable"
+      or    => { "dirtyfrag_esp_needs_mitigation", "dirtyfrag_rxrpc_needs_mitigation" },
+      meta  => { "report" },
+      scope => "namespace";
+
+    "dirtyfrag_esp_mitigated"
+      or    => { "_esp_mitigated", "_userns_conf_exists" },
+      meta  => { "report" },
+      scope => "namespace";
+
+    "dirtyfrag_rxrpc_mitigated"
+      or    => { "_rxrpc_mitigated" },
+      meta  => { "report" },
+      scope => "namespace";
+
+  files:
+    # CVE refs go in the promisee slot (-> { ... }); Mission Portal
+    # surfaces this as the "stakeholder / linked identifier" on the
+    # promise detail page so operators can search "CVE-2026-43284"
+    # and find every policy artifact addressing it.
+    # handle gives each promise a stable, queryable name in reports.
+
+    _mitigate_esp::
+      "${_esp_conf_path}" -> { "CVE-2026-43284" }
+        handle  => "dirtyfrag_esp_modprobe_blacklist",
+        create  => "true",
+        content => "${_esp_conf_content}",
+        comment => "Blacklist xfrm-ESP/IPComp modules to mitigate Dirty Frag CVE-2026-43284";
+
+    _mitigate_rxrpc::
+      "${_rxrpc_conf_path}" -> { "CVE-2026-43500" }
+        handle  => "dirtyfrag_rxrpc_modprobe_blacklist",
+        create  => "true",
+        content => "${_rxrpc_conf_content}",
+        comment => "Blacklist RxRPC module to mitigate Dirty Frag CVE-2026-43500";
+
+    _mitigate_userns::
+      "${_userns_conf_path}" -> { "CVE-2026-43284" }
+        handle  => "dirtyfrag_userns_sysctl_conf",
+        create  => "true",
+        content => "${_userns_conf_content}",
+        comment => "Disable unprivileged user namespaces to block CVE-2026-43284 ESP exploit path";
+
+  commands:
+    # Key off "module is loaded + mitigation desired", not "conf was
+    # just written". The previous _conf_repaired guard missed the
+    # case where the conf file exists from a prior run and the module
+    # got loaded since -- the agent would never re-run the unload.
+    # modprobe -r (vs rmmod) tolerates "some of the named modules
+    # aren't loaded", which simplifies the per-module gating to a
+    # single class.
+
+    _mitigate_esp._esp_any_loaded::
+      "/sbin/modprobe" -> { "CVE-2026-43284" }
+        handle  => "dirtyfrag_esp_modprobe_unload",
+        arglist => { "-r", "esp4", "esp6", "ipcomp", "ipcomp6" },
+        comment => "Unload ESP/IPComp modules while ESP mitigation is active";
+
+    _mitigate_rxrpc._rxrpc_loaded::
+      "/sbin/modprobe" -> { "CVE-2026-43500" }
+        handle  => "dirtyfrag_rxrpc_modprobe_unload",
+        arglist => { "-r", "rxrpc" },
+        comment => "Unload RxRPC module while RxRPC mitigation is active";
+
+    # sysctl --system is idempotent; re-running it when the conf says
+    # 0 but the live value isn't 0 picks up cases where the conf was
+    # written but never applied (e.g. between writing and the next
+    # boot).
+    _mitigate_userns._userns_enabled::
+      "/sbin/sysctl" -> { "CVE-2026-43284" }
+        handle  => "dirtyfrag_userns_sysctl_reapply",
+        arglist => { "--system" },
+        comment => "Re-apply user.max_user_namespaces=0 while userns is enabled";
+
+  reports:
+    inform_mode._patch_data_matched::
+      "Dirty Frag: matched distro $(_os_id) $(_os_ver) (entry $(_matched_idx)); kernel package version=$(_kernel_pkg_ver)";
+
+    inform_mode._esp_kernel_patched::
+      "Dirty Frag CVE-2026-43284: kernel $(_kernel_pkg_ver) >= $(_esp_patched_ver) (PATCHED)";
+
+    inform_mode._rxrpc_kernel_patched::
+      "Dirty Frag CVE-2026-43500: kernel $(_kernel_pkg_ver) >= $(_rxrpc_patched_ver) (PATCHED)";
+
+    inform_mode::
+
+      "Dirty Frag CVE-2026-43284 (xfrm-ESP/IPComp): $(_esp_status)";
+      "Dirty Frag CVE-2026-43500 (RxRPC): $(_rxrpc_status)";
+}
