@@ -208,6 +208,15 @@
       "subdirectory": "management/every-minute",
       "steps": ["json def.json def.json"]
     },
+    "inventory-selinux-modules": {
+      "description": "Inventory installed SELinux modules and their enabled/disabled status.",
+      "subdirectory": "security/inventory-selinux-modules",
+      "steps": [
+        "copy main.cf services/cfbs/modules/inventory-selinux-modules/main.cf",
+        "policy_files services/cfbs/modules/inventory-selinux-modules/main.cf",
+        "bundles inventory_selinux:semodule_list_modules"
+      ]
+    },
     "inventory-unshadowed-users": {
       "description": "Adds reporting data (inventory) on local users in /etc/passwd not using /etc/shadow for their password.",
       "subdirectory": "security/inventory-unshadowed-users",
