@@ -1,0 +1,196 @@
+body file control
+{
+  namespace => "manage_fwupd";
+@if minimum_version(3.27)
+  evaluation_order => "top_down";
+@endif
+}
+
+bundle agent allowed
+# @brief Default values for firmware update configuration.
+#   Override apply_updates, device_name_reglist, and reboot_after_update
+#   via CMDB or augments to control firmware update behavior.
+{
+  vars:
+      "apply_updates"
+        string => "!any",
+        if => not(isvariable("apply_updates")),
+        comment => "Default disabled; set to a class expression to enable firmware updates";
+
+      "device_name_reglist"
+        slist => {},
+        if => not(isvariable("device_name_reglist")),
+        comment => "Default empty allow-list; override via CMDB or augments";
+
+      "reboot_after_update"
+        string => "!any",
+        if => not(isvariable("reboot_after_update")),
+        comment => "Default disabled; set to a class expression to reboot after firmware update";
+}
+
+bundle agent main
+# @brief Ensure fwupd is installed, its refresh timer is enabled, and
+#   optionally apply firmware updates for devices matching an allow-list.
+#
+# Depends on inventory-fwupd, which provides:
+#   - inventory_fwupd_main.fwupdmgr      (path to fwupdmgr binary)
+#   - default:have_fwupdmgr              (class: fwupdmgr is present)
+#   - updates cache at $(sys.statedir)/fwupd_inventory_updates.json
+#
+# Firmware updates are applied when the apply_updates class expression resolves
+# true AND a device name matches at least one pcre regular expression defined in
+# manage_fwupd:allowed.device_name_reglist.
+#
+# A marker file ($(sys.statedir)/fwupd_update_applied) prevents the
+# same update from re-executing on subsequent agent runs within the
+# same boot cycle.  The marker's mtime is compared against /proc/1
+# (boot time) via isnewerthan(). Any marker remaining from a prior boot
+# is deleted so the update can re-evaluate after reboot.
+#
+# When reboot_after_update resolves true the marker is removed and
+# a deferred reboot is scheduled.  On systemd systems a transient
+# service polls for cf-agent to exit then reboots immediately; on
+# non-systemd systems the legacy shutdown -r +1 fallback is used.
+#
+# --no-reboot-check suppresses the interactive "reboot now?" prompt
+# that fwupdmgr emits after certain updates.  It does not skip or
+# defer the update itself.
+#
+# @inventory fwupd management status - INSTALLED, NOT_INSTALLED, or NOT_SUPPORTED
+{
+  vars:
+    linux::
+      "_update_marker"
+        string => "$(sys.statedir)/fwupd_update_applied";
+
+      "_systemd_run"
+        string => ifelse(isexecutable("/bin/systemd-run"), "/bin/systemd-run",
+                         isexecutable("/usr/bin/systemd-run"), "/usr/bin/systemd-run",
+                         ""),
+        comment => "Path to systemd-run when available (empty string otherwise)";
+
+    linux.default:have_fwupdmgr.manage_fwupd:apply_updates::
+      "_updates_cache"
+        string => "$(sys.statedir)/fwupd_inventory_updates.json";
+
+      "_updates"
+        data => readjson("$(_updates_cache)"),
+        if => fileexists("$(_updates_cache)");
+
+      "_dev_idx"
+        slist => getindices("_updates[Devices]"),
+        if => isvariable("_updates");
+
+      "_dev_name[$(_dev_idx)]"
+        string => "$(_updates[Devices][$(_dev_idx)][Name])";
+
+      "_dev_id[$(_dev_idx)]"
+        string => "$(_updates[Devices][$(_dev_idx)][DeviceId])";
+
+  classes:
+    linux::
+      "apply_updates"
+        scope => "namespace",
+        meta => { "report" },
+        expression => "$(manage_fwupd:allowed.apply_updates)",
+        comment => "Opt-in via class expression (default '!any' = disabled)";
+
+      "reboot_after_update"
+        scope => "namespace",
+        meta => { "report" },
+        expression => "$(manage_fwupd:allowed.reboot_after_update)",
+        comment => "Opt-in reboot after firmware update (default '!any' = disabled)";
+
+      "_have_systemd_run"
+        expression => isgreaterthan(string_length("$(_systemd_run)"), 0),
+        comment => "True when systemd-run is available for deferred reboot";
+
+      "_update_applied"
+        expression => and(
+          fileexists("$(_update_marker)"),
+          isnewerthan("$(_update_marker)", "/proc/1")
+        ),
+        comment => "A firmware update was applied during this boot cycle";
+
+    linux.default:have_fwupdmgr.manage_fwupd:apply_updates::
+      "_device_allowed_$(_dev_idx)"
+        expression => regcmp("$(manage_fwupd:allowed.device_name_reglist)", "$(_dev_name[$(_dev_idx)])"),
+        comment => "Device $(_dev_name[$(_dev_idx)]) matches allow-list entry";
+
+  packages:
+    linux::
+      "fwupd"
+        policy => "present",
+        comment => "Ensure fwupd is installed for firmware inventory and management";
+
+  services:
+    linux.default:have_fwupdmgr::
+      "fwupd-refresh.timer"
+        service_policy => "enabled",
+        comment => "Ensure the fwupd metadata refresh timer is enabled so the LVFS firmware catalog stays current";
+
+  # --- Stale marker cleanup ----------------------------------------
+  files:
+    linux::
+      "$(_update_marker)"
+        delete => default:tidy,
+        if => not("_update_applied"),
+        comment => "Remove stale marker from a previous boot cycle";
+
+  # --- Apply firmware updates --------------------------------------
+  commands:
+    linux.default:have_fwupdmgr.manage_fwupd:apply_updates::
+      "$(default:inventory_fwupd_main.fwupdmgr)"
+        arglist => { "update", "--no-reboot-check", "$(_dev_id[$(_dev_idx)])" },
+        handle => canonify("manage_fwupd_apply_device_$(_dev_idx)_$(_dev_name[$(_dev_idx)])"),
+        if => and("_device_allowed_$(_dev_idx)", not("_update_applied")),
+        classes => default:results("bundle", "manage_fwupd_update_$(_dev_idx)"),
+        comment => "Apply firmware update to allowed device $(_dev_name[$(_dev_idx)])";
+
+  # --- Post-update marker and reboot --------------------------------
+  files:
+    linux.default:have_fwupdmgr.manage_fwupd:apply_updates::
+      "$(_update_marker)"
+        create => "true",
+        if => "manage_fwupd_update_$(_dev_idx)_repaired",
+        comment => "Record that a firmware update was applied this boot cycle (prevents re-execution)";
+
+    manage_fwupd:_update_applied.manage_fwupd:reboot_after_update::
+      "$(_update_marker)"
+        delete => default:tidy,
+        comment => "Clear marker before issuing reboot";
+
+  commands:
+    manage_fwupd:_update_applied.manage_fwupd:reboot_after_update.manage_fwupd:_have_systemd_run::
+      "$(_systemd_run)"
+        arglist => {
+          "--unit=cfengine-fwupd-reboot",
+          "--description=Reboot after cf-agent exits for firmware update",
+          "/bin/bash", "-c",
+          "while kill -0 $(this.promiser_pid) 2>/dev/null; do sleep 1; done; /sbin/shutdown -r now 'Rebooting for firmware update applied by CFEngine'"
+        },
+        handle => "manage_fwupd_reboot_after_update",
+        comment => "Deferred reboot: polls for cf-agent to exit, then reboots immediately";
+
+    manage_fwupd:_update_applied.manage_fwupd:reboot_after_update.!manage_fwupd:_have_systemd_run::
+      "/sbin/shutdown"
+        arglist => { "-r", "+1", "Rebooting for firmware update applied by CFEngine" },
+        handle => "manage_fwupd_reboot_after_update_fallback",
+        comment => "Fallback reboot for non-systemd systems (shutdown -r +1)";
+
+  # --- Inventory --------------------------------------------------
+  vars:
+    linux.default:have_fwupdmgr::
+      "_status" string => "INSTALLED";
+
+    linux.!default:have_fwupdmgr::
+      "_status" string => "NOT_INSTALLED";
+
+    !linux::
+      "_status" string => "NOT_SUPPORTED";
+
+    any::
+      "inventory_status"
+        string => "$(_status)",
+        meta => { "inventory", "attribute_name=fwupd management status" };
+}
