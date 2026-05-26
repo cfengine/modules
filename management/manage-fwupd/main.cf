@@ -35,25 +35,25 @@ bundle agent main
 # Depends on inventory-fwupd, which provides:
 #   - inventory_fwupd_main.fwupdmgr      (path to fwupdmgr binary)
 #   - default:have_fwupdmgr              (class: fwupdmgr is present)
-#   - updates cache at $(sys.statedir)/fwupd_inventory_updates.json
+#   - updates cache at $(sys.statedir)/fwupd/inventory_updates.json
 #
 # Firmware updates are applied when the apply_updates class expression resolves
 # true AND a device name matches at least one pcre regular expression defined in
 # manage_fwupd:allowed.device_name_reglist.
 #
-# A marker file ($(sys.statedir)/fwupd_update_applied) prevents the
+# A marker file ($(sys.statedir)/fwupd/update_applied) prevents the
 # same update from re-executing on subsequent agent runs within the
-# same boot cycle.  The marker's mtime is compared against /proc/1
+# same boot cycle. The marker's mtime is compared against /proc/1
 # (boot time) via isnewerthan(). Any marker remaining from a prior boot
 # is deleted so the update can re-evaluate after reboot.
 #
 # When reboot_after_update resolves true the marker is removed and
-# a deferred reboot is scheduled.  On systemd systems a transient
+# a deferred reboot is scheduled. On systemd systems a transient
 # service polls for cf-agent to exit then reboots immediately; on
 # non-systemd systems the legacy shutdown -r +1 fallback is used.
 #
 # --no-reboot-check suppresses the interactive "reboot now?" prompt
-# that fwupdmgr emits after certain updates.  It does not skip or
+# that fwupdmgr emits after certain updates. It does not skip or
 # defer the update itself.
 #
 # @inventory fwupd management status - INSTALLED, NOT_INSTALLED, or NOT_SUPPORTED
@@ -61,7 +61,7 @@ bundle agent main
   vars:
     linux::
       "_update_marker"
-        string => "$(sys.statedir)/fwupd_update_applied";
+        string => "$(sys.statedir)/fwupd/update_applied";
 
       "_systemd_run"
         string => ifelse(isexecutable("/bin/systemd-run"), "/bin/systemd-run",
@@ -71,7 +71,7 @@ bundle agent main
 
     linux.default:have_fwupdmgr.manage_fwupd:apply_updates::
       "_updates_cache"
-        string => "$(sys.statedir)/fwupd_inventory_updates.json";
+        string => "$(sys.statedir)/fwupd/inventory_updates.json";
 
       "_updates"
         data => readjson("$(_updates_cache)"),

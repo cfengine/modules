@@ -33,10 +33,11 @@ bundle agent inventory_fwupd_main
           fileexists("/usr/local/bin/fwupdmgr"), "/usr/local/bin/fwupdmgr",
           "/usr/bin/fwupdmgr");
 
+      "_fwupd_dir"   string => "$(sys.statedir)/fwupd";
       "_devices_src" string => "/var/cache/fwupd/devices.json";
-      "_updates_src" string => "$(sys.statedir)/fwupd_inventory_updates.json";
-      "_security_src" string => "$(sys.statedir)/fwupd_inventory_security.json";
-      "_cache"       string => "$(sys.statedir)/fwupd_inventory_cache";
+      "_updates_src" string => "$(_fwupd_dir)/inventory_updates.json";
+      "_security_src" string => "$(_fwupd_dir)/inventory_security.json";
+      "_cache"       string => "$(_fwupd_dir)/inventory_cache";
       "_template"    string => "$(this.promise_dirname)/fwupd-inventory.mustache";
 
       # TTLs in seconds for the fwupdmgr-derived JSON caches.
@@ -154,6 +155,10 @@ bundle agent inventory_fwupd_main
                          '{"SecurityAttributes":[]}');
 
   files:
+    linux::
+      "$(_fwupd_dir)/."
+        create => "true";
+
     linux.have_fwupdmgr._updates_stale::
       "$(_updates_src)"
         content => "$(_updates_payload)";
@@ -254,7 +259,7 @@ bundle agent inventory_fwupd_render(devices_src, updates_src, security_src, temp
 
       # Measurements file: one key=value per line, read by
       # inventory_fwupd_monitor for time-series tracking.
-      "_measurements_path" string => "$(sys.statedir)/fwupd_inventory_measurements";
+      "_measurements_path" string => "$(sys.statedir)/fwupd/inventory_measurements";
       "_measurements_body" string => format(
         "firmware_devices_total=%d$(const.n)firmware_updates_available=%d",
         "$(_dev_count)", "$(_updates_count)");
@@ -379,7 +384,7 @@ bundle agent inventory_fwupd_hsi(security_src)
   files:
       # Write HSI failing count to its own measurements file so
       # cf-monitord can track it as a time-series metric.
-      "$(sys.statedir)/fwupd_measurements_hsi"
+      "$(sys.statedir)/fwupd/measurements_hsi"
         content => "firmware_hsi_failing_attributes=$(fwupd_hsi_failing_count)",
         if => isvariable("fwupd_hsi_failing_count");
 }
@@ -446,32 +451,32 @@ bundle monitor inventory_fwupd_monitor
 {
   measurements:
     linux::
-      "$(sys.statedir)/fwupd_inventory_measurements"
+      "$(sys.statedir)/fwupd/inventory_measurements"
         handle => "firmware_devices_total",
         stream_type => "file",
         data_type => "int",
         history_type => "weekly",
         units => "devices",
         match_value => inventory_fwupd_kv("firmware_devices_total"),
-        if => fileexists("$(sys.statedir)/fwupd_inventory_measurements");
+        if => fileexists("$(sys.statedir)/fwupd/inventory_measurements");
 
-      "$(sys.statedir)/fwupd_inventory_measurements"
+      "$(sys.statedir)/fwupd/inventory_measurements"
         handle => "firmware_updates_available",
         stream_type => "file",
         data_type => "int",
         history_type => "weekly",
         units => "devices",
         match_value => inventory_fwupd_kv("firmware_updates_available"),
-        if => fileexists("$(sys.statedir)/fwupd_inventory_measurements");
+        if => fileexists("$(sys.statedir)/fwupd/inventory_measurements");
 
-      "$(sys.statedir)/fwupd_measurements_hsi"
+      "$(sys.statedir)/fwupd/measurements_hsi"
         handle => "firmware_hsi_failing",
         stream_type => "file",
         data_type => "int",
         history_type => "weekly",
         units => "checks",
         match_value => inventory_fwupd_kv("firmware_hsi_failing_attributes"),
-        if => fileexists("$(sys.statedir)/fwupd_measurements_hsi");
+        if => fileexists("$(sys.statedir)/fwupd/measurements_hsi");
 }
 
 body match_value inventory_fwupd_kv(key)
