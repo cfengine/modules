@@ -1,7 +1,7 @@
 # inventory-fwupd policy
 #
 # Inventories hardware firmware versions, pending firmware updates, and the
-# Host Security ID (HSI) attribute scores reported by fwupd.
+# Host Security Identifier (HSI) attribute scores reported by fwupd.
 #
 # Implementation notes:
 #  - Device list is read directly from /var/cache/fwupd/devices.json, which
