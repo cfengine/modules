@@ -63,8 +63,9 @@ devices are eligible for firmware updates. Even when =apply_updates= is
 enabled, only devices whose name matches an entry in this list will be
 updated.
 
-Use =.*= to match all devices. Use specific patterns to target individual
-hardware, e.g. =UEFI dbx=, =System Firmware=, =TPM=.
+Patterns are unanchored (substring match), so =UEFI dbx= matches any
+device whose name contains "UEFI dbx". Use =^…$= to anchor if you need
+an exact match. Use =.*= to match all devices.
 
 ** Reboot after update
 
@@ -76,6 +77,18 @@ When enabled, the module waits for cf-agent to finish before rebooting.
 On systemd systems this uses a transient service that polls for cf-agent's
 PID to exit, then reboots immediately. On non-systemd systems it falls
 back to ~shutdown -r +1~.
+
+* Requirements
+
+Linux only. The =fwupd= package must be available in the system's
+package repositories.
+
+* Warnings
+
+Firmware updates carry inherent risk (bricking, required reboots, AC
+power requirements). Use the allow-list to limit updates to
+well-understood device classes. Test in a non-production environment
+first.
 
 * Mission Portal
 
@@ -97,15 +110,3 @@ visible in Mission Portal's inventory reports:
 
 The =--no-reboot-check= flag suppresses the interactive reboot prompt.
 It does not skip or defer the update itself.
-
-* Requirements
-
-Linux only. The =fwupd= package must be available in the system's
-package repositories.
-
-* Warnings
-
-Firmware updates carry inherent risk (bricking, required reboots, AC
-power requirements). Use the allow-list to limit updates to
-well-understood device classes. Test in a non-production environment
-first.

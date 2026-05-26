@@ -182,7 +182,7 @@ bundle agent inventory_fwupd_main
       "hsi" usebundle => inventory_fwupd_hsi("$(_security_src)"),
         if => fileexists("$(_security_src)");
 
-     # Per-device pending firmware update inventory, emitted natively
+      # Per-device pending firmware update inventory, emitted natively
       # from the updates JSON cache. Mirrors the HSI bundle idiom.
       "updates" usebundle => inventory_fwupd_updates("$(_updates_src)"),
         if => fileexists("$(_updates_src)");
@@ -297,8 +297,8 @@ bundle agent inventory_fwupd_hsi(security_src)
 # The rollup mirrors fwupd's own algorithm: walk levels 1-4 sequentially;
 # at each level, if any non-obsoleted attribute fails, stop — the result
 # is the highest level that had at least one success before the walk
-# stopped.  Empty levels (no attributes) are skipped without advancing
-# or stopping.
+# stopped. Empty levels (no attributes) are skipped without advancing
+# the level counter.
 #
 # An attribute is failing when its HsiResult differs from HsiResultSuccess.
 {
@@ -370,8 +370,8 @@ bundle agent inventory_fwupd_hsi(security_src)
         int => countclassesmatching("inventory_fwupd_hsi_failing_[0-9]+");
 
       # Rolled-up HSI level: highest level with a pass where no level
-      # at or below it has a failure.  Checks highest first so the
-      # first match wins.  Mirrors fwupd's fu_security_attrs_calculate_hsi().
+      # at or below it has a failure. Checks highest first so the
+      # first match wins. Mirrors fwupd's fu_security_attrs_calculate_hsi().
       "fwupd_hsi_level"
         string => ifelse(
           and("_hsi_L4_pass", not("_hsi_L1_fail"), not("_hsi_L2_fail"), not("_hsi_L3_fail"), not("_hsi_L4_fail")), "HSI:4",
@@ -393,7 +393,7 @@ bundle agent inventory_fwupd_updates(updates_src)
 # @brief Surface per-device pending firmware update inventory.
 #
 # Reads the updates JSON cache and emits one inventory entry per device
-# that has a pending update.  Format:
+# that has a pending update. Format:
 #   "Device Name: current_version -> new_version"
 #
 # Unlike the HSI bundle, devices here are iterated from the Devices array
@@ -436,8 +436,8 @@ bundle agent inventory_fwupd_devices(devices_src)
 
       "fwupd_dev[$(_did[$(_idxes)])]"
         string => "$(_name[$(_idxes)]) | $(_vend[$(_idxes)]) | v$(_ver[$(_idxes)]) | [$(_plug[$(_idxes)])]",
-        meta  => { "inventory", "attribute_name=Firmware devices" },
-        if    => not(strcmp("$(_name[$(_idxes)])", ""));
+        meta   => { "inventory", "attribute_name=Firmware devices" },
+        if     => not(strcmp("$(_name[$(_idxes)])", ""));
 }
 
 bundle monitor inventory_fwupd_monitor
