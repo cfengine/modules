@@ -156,12 +156,10 @@ bundle agent inventory_fwupd_main
   files:
     linux.have_fwupdmgr._updates_stale::
       "$(_updates_src)"
-        create  => "true",
         content => "$(_updates_payload)";
 
     linux.have_fwupdmgr._security_stale::
       "$(_security_src)"
-        create  => "true",
         content => "$(_security_payload)";
 
   methods:
@@ -276,7 +274,6 @@ bundle agent inventory_fwupd_render(devices_src, updates_src, security_src, temp
         template_data => @(_merged);
 
       "$(_measurements_path)"
-        create  => "true",
         content => "$(_measurements_body)";
 }
 
@@ -383,7 +380,6 @@ bundle agent inventory_fwupd_hsi(security_src)
       # Write HSI failing count to its own measurements file so
       # cf-monitord can track it as a time-series metric.
       "$(sys.statedir)/fwupd_measurements_hsi"
-        create  => "true",
         content => "firmware_hsi_failing_attributes=$(fwupd_hsi_failing_count)",
         if => isvariable("fwupd_hsi_failing_count");
 }
