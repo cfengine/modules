@@ -1,0 +1,33 @@
+[
+  {
+    "type": "string",
+    "variable": "apply_updates",
+    "namespace": "manage_fwupd",
+    "bundle": "allowed",
+    "label": "Apply firmware updates",
+    "question": "Class expression for when firmware updates should be applied (e.g. 'any', 'linux', '(env_dev|env_qa).Night.(cohort_A|cohort_C)'). Default '!any' means disabled.",
+    "default": "!any"
+  },
+  {
+    "type": "list",
+    "variable": "device_name_reglist",
+    "namespace": "manage_fwupd",
+    "bundle": "allowed",
+    "label": "Allowed devices",
+    "subtype": {
+      "type": "string",
+      "label": "Device name pattern",
+      "question": "Device name (regex) to allow firmware updates for"
+    },
+    "while": "Do you want to allow firmware updates for more devices?"
+  },
+  {
+    "type": "string",
+    "variable": "reboot_after_update",
+    "namespace": "manage_fwupd",
+    "bundle": "allowed",
+    "label": "Reboot after firmware update",
+    "question": "Class expression for when to reboot after a firmware update is applied (e.g. 'any', 'Night', 'Hr04.Min00_05'). Default '!any' means disabled (no automatic reboot).",
+    "default": "!any"
+  }
+]

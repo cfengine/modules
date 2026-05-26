@@ -1,0 +1,895 @@
+{
+  "reports": {
+    "fwupd-firmware-security": {
+      "id": "fwupd-firmware-security",
+      "type": "compliance",
+      "title": "Firmware Security (fwupd)",
+      "conditions": [
+        "fwupd:hsi-installed",
+        "fwupd:hsi-level-1",
+        "fwupd:hsi-level-2",
+        "fwupd:hsi-level-3",
+        "fwupd:hsi-level-4",
+        "fwupd:no-pending-updates",
+        "fwupd:status-ok",
+        "fwupd:hsi-l1-uefi-secure-boot",
+        "fwupd:hsi-l1-tpm-v2.0",
+        "fwupd:hsi-l1-tpm-empty-pcrs",
+        "fwupd:hsi-l1-uefi-platform-key",
+        "fwupd:hsi-l1-bios-firmware-updates",
+        "fwupd:hsi-l1-spi-write",
+        "fwupd:hsi-l1-spi-lock",
+        "fwupd:hsi-l1-spi-bios-region",
+        "fwupd:hsi-l1-spi-descriptor",
+        "fwupd:hsi-l1-supported-cpu",
+        "fwupd:hsi-l1-platform-debugging",
+        "fwupd:hsi-l1-csme-manufacturing-mode",
+        "fwupd:hsi-l1-csme-override",
+        "fwupd:hsi-l1-mei-key-manifest",
+        "fwupd:hsi-l1-csme-version",
+        "fwupd:hsi-l1-uefi-bootservice-vars",
+        "fwupd:hsi-l1-amd-microcode-signature",
+        "fwupd:hsi-l1-platform-fused",
+        "fwupd:hsi-l1-smm-locked-down",
+        "fwupd:hsi-l2-iommu",
+        "fwupd:hsi-l2-intel-bootguard",
+        "fwupd:hsi-l2-intel-bootguard-verified",
+        "fwupd:hsi-l2-intel-bootguard-acm",
+        "fwupd:hsi-l2-intel-bootguard-otp",
+        "fwupd:hsi-l2-tpm-pcr0-reconstruction",
+        "fwupd:hsi-l2-bios-rollback-protection",
+        "fwupd:hsi-l2-platform-debugging",
+        "fwupd:hsi-l2-intel-gds-mitigation",
+        "fwupd:hsi-l2-amd-platform-secure-boot",
+        "fwupd:hsi-l2-amd-spi-write-protections",
+        "fwupd:hsi-l2-hp-surestart",
+        "fwupd:hsi-l3-suspend-to-idle",
+        "fwupd:hsi-l3-suspend-to-ram",
+        "fwupd:hsi-l3-pre-boot-dma-protection",
+        "fwupd:hsi-l3-intel-bootguard-policy",
+        "fwupd:hsi-l3-cet-platform",
+        "fwupd:hsi-l3-amd-spi-replay-protections",
+        "fwupd:hsi-l3-uefi-memory-protections",
+        "fwupd:hsi-l4-encrypted-ram",
+        "fwupd:hsi-l4-smap",
+        "fwupd:hsi-l3-cet-os-support",
+        "fwupd:hsi-l4-amd-rollback-protection"
+      ]
+    }
+  },
+  "conditions": {
+    "fwupd:hsi-installed": {
+      "id": "fwupd:hsi-installed",
+      "name": "fwupd installed",
+      "description": "Checks that fwupd is installed on the host.\n\nHosts without fwupd report a firmware update status of FWUPD_MISSING and cannot provide firmware security inventory. This is a prerequisite for all other firmware security checks.",
+      "type": "inventory",
+      "condition_for": "passing",
+      "rules": [
+        {
+          "attribute": "Firmware update status",
+          "operator": "not_match",
+          "value": "FWUPD_MISSING"
+        }
+      ],
+      "category": "Firmware tooling",
+      "severity": "high",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-level-1": {
+      "id": "fwupd:hsi-level-1",
+      "name": "HSI Level 1+ - Critical firmware protections",
+      "description": "Rolled-up check: the host achieves at least HSI Level 1 (Critical). See the individual Level 1 conditions for specific checks.",
+      "type": "inventory",
+      "condition_for": "passing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI level",
+          "operator": "not_match",
+          "value": "HSI:0"
+        }
+      ],
+      "category": "HSI Level Overview",
+      "severity": "high",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-level-2": {
+      "id": "fwupd:hsi-level-2",
+      "name": "HSI Level 2+ - Important firmware protections",
+      "description": "Rolled-up check: the host achieves at least HSI Level 2 (Important). See the individual Level 2 conditions for specific checks.",
+      "type": "inventory",
+      "condition_for": "passing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI level",
+          "operator": "regex_matches",
+          "value": "HSI:[2-4]"
+        }
+      ],
+      "category": "HSI Level Overview",
+      "severity": "medium",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-level-3": {
+      "id": "fwupd:hsi-level-3",
+      "name": "HSI Level 3+ - Recommended firmware protections",
+      "description": "Rolled-up check: the host achieves at least HSI Level 3 (Recommended). See the individual Level 3 conditions for specific checks.",
+      "type": "inventory",
+      "condition_for": "passing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI level",
+          "operator": "regex_matches",
+          "value": "HSI:[3-4]"
+        }
+      ],
+      "category": "HSI Level Overview",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-level-4": {
+      "id": "fwupd:hsi-level-4",
+      "name": "HSI Level 4 - Complete firmware protections",
+      "description": "Rolled-up check: the host achieves HSI Level 4 (Complete). See the individual Level 4 conditions for specific checks.",
+      "type": "inventory",
+      "condition_for": "passing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI level",
+          "operator": "matches",
+          "value": "HSI:4"
+        }
+      ],
+      "category": "HSI Level Overview",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:no-pending-updates": {
+      "id": "fwupd:no-pending-updates",
+      "name": "No pending firmware updates",
+      "description": "Checks that the host has no outstanding firmware updates.\n\nHosts with pending firmware updates have known firmware versions that should be applied. Use the manage-fwupd module to automate firmware update application.",
+      "type": "inventory",
+      "condition_for": "passing",
+      "rules": [
+        {
+          "attribute": "Firmware update status",
+          "operator": "not_match",
+          "value": "UPDATES_AVAILABLE"
+        }
+      ],
+      "category": "Firmware updates",
+      "severity": "medium",
+      "host_filter": "linux"
+    },
+    "fwupd:status-ok": {
+      "id": "fwupd:status-ok",
+      "name": "Firmware status healthy",
+      "description": "Checks that fwupd is present, has discoverable devices, and no pending updates.\n\nThis is the strictest firmware status check. A host passes only when fwupd is installed, reports at least one updatable device, and has no outstanding firmware updates.",
+      "type": "inventory",
+      "condition_for": "passing",
+      "rules": [
+        {
+          "attribute": "Firmware update status",
+          "operator": "matches",
+          "value": "OK"
+        }
+      ],
+      "category": "Firmware updates",
+      "severity": "medium",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l1-uefi-secure-boot": {
+      "id": "fwupd:hsi-l1-uefi-secure-boot",
+      "name": "UEFI SecureBoot",
+      "description": "Secure Boot is enabled and functional.\n\nUEFI Secure Boot prevents unauthorized code from running during the boot process by verifying digital signatures of boot loaders and drivers.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: UEFI secure boot",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l1-tpm-v2.0": {
+      "id": "fwupd:hsi-l1-tpm-v2.0",
+      "name": "TPM 2.0 Present",
+      "description": "TPM 2.0 device exists and is enabled.\n\nA Trusted Platform Module provides hardware-backed cryptographic operations and secure measurement storage for verified boot.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: TPM v2.0",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l1-tpm-empty-pcrs": {
+      "id": "fwupd:hsi-l1-tpm-empty-pcrs",
+      "name": "Empty PCR in TPM",
+      "description": "All TPM PCRs 0-7 have valid measurements.\n\nEmpty Platform Configuration Registers indicate that the firmware boot process is not being measured, weakening the chain of trust.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: TPM empty PCRs",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l1-uefi-platform-key": {
+      "id": "fwupd:hsi-l1-uefi-platform-key",
+      "name": "UEFI Platform Key",
+      "description": "Valid production platform key is installed (not a test key).\n\nThe UEFI Platform Key (PK) is the root of trust for Secure Boot. A test key allows any code to be signed and run.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: UEFI platform key",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l1-bios-firmware-updates": {
+      "id": "fwupd:hsi-l1-bios-firmware-updates",
+      "name": "BIOS Capsule Updates",
+      "description": "Firmware update mechanism (UEFI capsule updates) is enabled.\n\nWhen disabled, the system cannot receive firmware security patches through the standard UEFI update mechanism.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: BIOS firmware updates",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l1-spi-write": {
+      "id": "fwupd:hsi-l1-spi-write",
+      "name": "BIOS Write Enable (BWE)",
+      "description": "SPI ROM is protected from userspace writes.\n\nThe BIOS Write Enable bit controls whether the SPI flash containing the BIOS can be written from the operating system. It should be disabled to prevent firmware tampering.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: SPI write",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-spi-lock": {
+      "id": "fwupd:hsi-l1-spi-lock",
+      "name": "BIOS Lock Enable (BLE)",
+      "description": "SMI protection on BIOSWE bit changes is enabled.\n\nBIOS Lock Enable generates a System Management Interrupt when software attempts to change the BIOS Write Enable bit, preventing silent firmware tampering.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: SPI lock",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-spi-bios-region": {
+      "id": "fwupd:hsi-l1-spi-bios-region",
+      "name": "SMM BIOS Write Protect",
+      "description": "BIOS region is non-writable outside System Management Mode.\n\nSMM BIOS Write Protect ensures that the BIOS SPI flash region cannot be modified except from within the trusted SMM environment.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: SPI BIOS region",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-spi-descriptor": {
+      "id": "fwupd:hsi-l1-spi-descriptor",
+      "name": "Read-only SPI Descriptor",
+      "description": "SPI flash descriptor region is locked.\n\nThe SPI descriptor defines access permissions for SPI flash regions. If unlocked, an attacker could modify these permissions to gain write access to the BIOS.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: SPI descriptor",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-supported-cpu": {
+      "id": "fwupd:hsi-l1-supported-cpu",
+      "name": "Supported CPU",
+      "description": "Platform CPU has HSI test support in fwupd.\n\nUnsupported CPUs cannot have their firmware security attributes fully evaluated.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: Supported CPU",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l1-platform-debugging": {
+      "id": "fwupd:hsi-l1-platform-debugging",
+      "name": "Platform Debug (Intel DCI)",
+      "description": "USB3 debugging interface (Intel DCI) is disabled.\n\nDirect Connect Interface allows deep hardware debugging over USB3. If enabled in production, it provides an attack surface for physical access exploits.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: Platform debugging",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-csme-manufacturing-mode": {
+      "id": "fwupd:hsi-l1-csme-manufacturing-mode",
+      "name": "ME Manufacturing Mode",
+      "description": "Intel Management Engine is not in manufacturing mode.\n\nManufacturing mode is intended for factory provisioning. If left enabled, it exposes additional attack surface on the ME subsystem.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: csme manufacturing mode",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-csme-override": {
+      "id": "fwupd:hsi-l1-csme-override",
+      "name": "ME Flash Descriptor Override",
+      "description": "Intel ME flash descriptor override (debug mode) is not accessible.\n\nThe override strap allows bypassing SPI flash access controls, enabling firmware tampering through physical access.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: csme override",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-mei-key-manifest": {
+      "id": "fwupd:hsi-l1-mei-key-manifest",
+      "name": "ME BootGuard Platform Key",
+      "description": "CPU fuses are not using leaked or compromised keys.\n\nThe MEI key manifest validates that the BootGuard keys burned into the CPU fuses have not been compromised.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: MEI key manifest",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-csme-version": {
+      "id": "fwupd:hsi-l1-csme-version",
+      "name": "CSME Version",
+      "description": "Intel Converged Security and Management Engine firmware is not vulnerable to known critical CVEs.\n\nOutdated CSME versions may contain exploitable vulnerabilities that compromise the hardware root of trust.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: CSME version",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-uefi-bootservice-vars": {
+      "id": "fwupd:hsi-l1-uefi-bootservice-vars",
+      "name": "UEFI BootService Variables",
+      "description": "Boot-only UEFI variables are not readable at OS runtime.\n\nBootService variables should be inaccessible after ExitBootServices() to prevent information leakage to the operating system.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: UEFI bootservice variables",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l1-amd-microcode-signature": {
+      "id": "fwupd:hsi-l1-amd-microcode-signature",
+      "name": "AMD Microcode Signature",
+      "description": "Firmware prevents loading of maliciously crafted CPU microcode.\n\nAMD processors vulnerable to microcode signature verification bypass (EntrySign) allow arbitrary microcode patches, undermining hardware security guarantees.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: AMD microcode signature",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_amd"
+    },
+    "fwupd:hsi-l1-platform-fused": {
+      "id": "fwupd:hsi-l1-platform-fused",
+      "name": "Part is Fused",
+      "description": "Hardware one-time-programmable fuses are blown for tampering protection.\n\nProduction hardware should have security fuses blown to lock down debugging interfaces and enforce boot chain verification.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: Part is fused",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l1-smm-locked-down": {
+      "id": "fwupd:hsi-l1-smm-locked-down",
+      "name": "SMM Locked Down",
+      "description": "System Management Mode save state protection prevents data exfiltration.\n\nSMM lockdown prevents SMM handlers from reading or modifying OS memory, closing a class of privilege escalation attacks.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L1: SMM locked down",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 1 - Critical",
+      "severity": "high",
+      "host_filter": "fwupd_cpu_vendor_amd"
+    },
+    "fwupd:hsi-l2-iommu": {
+      "id": "fwupd:hsi-l2-iommu",
+      "name": "DMA Protection (IOMMU)",
+      "description": "IOMMU is enabled for PCIe DMA attack prevention.\n\nThe IOMMU restricts DMA-capable devices to their assigned memory regions, preventing malicious peripherals from reading or writing arbitrary system memory.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: IOMMU",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l2-intel-bootguard": {
+      "id": "fwupd:hsi-l2-intel-bootguard",
+      "name": "Intel BootGuard Enabled",
+      "description": "Intel BootGuard feature is activated.\n\nBootGuard provides hardware-rooted verified boot by validating the Initial Boot Block before execution.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: Intel BootGuard",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l2-intel-bootguard-verified": {
+      "id": "fwupd:hsi-l2-intel-bootguard-verified",
+      "name": "Intel BootGuard Verified",
+      "description": "Intel BootGuard boot chain verification is functional.\n\nVerified Boot mode ensures each stage of the boot process is cryptographically validated before execution.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: Intel BootGuard verified boot",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l2-intel-bootguard-acm": {
+      "id": "fwupd:hsi-l2-intel-bootguard-acm",
+      "name": "Intel BootGuard ACM",
+      "description": "Intel Authenticated Code Modules are protected.\n\nACMs are signed microcode modules executed by the CPU before any other code. Their integrity is essential for the hardware root of trust.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: Intel BootGuard ACM protected",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l2-intel-bootguard-otp": {
+      "id": "fwupd:hsi-l2-intel-bootguard-otp",
+      "name": "Intel BootGuard OTP",
+      "description": "SOC is locked via one-time programmable fuses for BootGuard.\n\nOTP fuses permanently bind the BootGuard key hash to the CPU, preventing key substitution attacks.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: Intel BootGuard OTP fuse",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l2-tpm-pcr0-reconstruction": {
+      "id": "fwupd:hsi-l2-tpm-pcr0-reconstruction",
+      "name": "PCR0 TPM Event Log",
+      "description": "TPM PCR0 value matches the reconstructed firmware measurements.\n\nPCR0 reconstruction verifies that the TPM event log is consistent with the actual PCR values, detecting tampering with boot measurements.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: TPM PCR0 reconstruction",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l2-bios-rollback-protection": {
+      "id": "fwupd:hsi-l2-bios-rollback-protection",
+      "name": "BIOS Rollback Protection",
+      "description": "BIOS prevents installing older vulnerable firmware versions.\n\nWithout rollback protection, an attacker with firmware write access could downgrade to a version with known vulnerabilities.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: BIOS rollback protection",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l2-platform-debugging": {
+      "id": "fwupd:hsi-l2-platform-debugging",
+      "name": "Part is Debug Locked",
+      "description": "Hardware debugging access is locked.\n\nDebug interfaces (JTAG, etc.) allow full hardware access. In production systems these should be permanently locked to prevent physical attack vectors.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: Platform debugging",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l2-intel-gds-mitigation": {
+      "id": "fwupd:hsi-l2-intel-gds-mitigation",
+      "name": "Intel GDS Mitigation",
+      "description": "CPU microcode patches mitigate Gather Data Sampling.\n\nGDS (Downfall) is a transient execution side-channel vulnerability in Intel CPUs that can leak data across security boundaries.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: Intel GDS mitigation",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l2-amd-platform-secure-boot": {
+      "id": "fwupd:hsi-l2-amd-platform-secure-boot",
+      "name": "AMD Platform Secure Boot",
+      "description": "AMD Platform Secure Boot prevents non-manufacturer firmware execution.\n\nThe AMD Secure Processor validates firmware authenticity before allowing execution, providing a hardware root of trust.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: AMD platform secure boot",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "fwupd_cpu_vendor_amd"
+    },
+    "fwupd:hsi-l2-amd-spi-write-protections": {
+      "id": "fwupd:hsi-l2-amd-spi-write-protections",
+      "name": "AMD SPI Write Protections",
+      "description": "SPI bus write control prevents unauthorized firmware changes on AMD systems.\n\nAMD SPI write protections lock the SPI flash to prevent unauthorized firmware modifications.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: AMD SPI write protections",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "fwupd_cpu_vendor_amd"
+    },
+    "fwupd:hsi-l2-hp-surestart": {
+      "id": "fwupd:hsi-l2-hp-surestart",
+      "name": "HP SureStart",
+      "description": "HP SureStart BIOS self-healing and corruption detection is enabled.\n\nHP SureStart monitors the BIOS for corruption or tampering and automatically restores it from a protected copy.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L2: HP SureStart",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 2 - Important",
+      "severity": "medium",
+      "host_filter": "fwupd_oem_vendor_hp"
+    },
+    "fwupd:hsi-l3-suspend-to-idle": {
+      "id": "fwupd:hsi-l3-suspend-to-idle",
+      "name": "Suspend-to-Idle",
+      "description": "Default sleep state is suspend-to-idle (S0ix) rather than S3.\n\nSuspend-to-idle keeps the IOMMU and other security features active during sleep, unlike S3 which powers down protections.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L3: Suspend-to-idle",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 3 - Recommended",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l3-suspend-to-ram": {
+      "id": "fwupd:hsi-l3-suspend-to-ram",
+      "name": "Suspend to RAM Disabled",
+      "description": "S3 suspend-to-RAM sleep is not available or not the default.\n\nS3 sleep powers down the IOMMU, disabling DMA protections and creating a window for cold boot or DMA attacks on resume.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L3: Suspend-to-ram",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 3 - Recommended",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l3-pre-boot-dma-protection": {
+      "id": "fwupd:hsi-l3-pre-boot-dma-protection",
+      "name": "Pre-boot DMA Protection",
+      "description": "IOMMU is configured for pre-boot DMA attack mitigation.\n\nPre-boot DMA protection ensures the IOMMU is active before the OS loads, preventing DMA attacks during early boot when the OS IOMMU driver is not yet running.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L3: Pre-boot DMA protection",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 3 - Recommended",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l3-intel-bootguard-policy": {
+      "id": "fwupd:hsi-l3-intel-bootguard-policy",
+      "name": "Intel BootGuard Policy",
+      "description": "BootGuard error enforcement policy halts boot on verification failure.\n\nIn enforcement mode, BootGuard stops the boot process if signature verification fails rather than continuing with potentially compromised firmware.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L3: Intel BootGuard error policy",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 3 - Recommended",
+      "severity": "low",
+      "host_filter": "fwupd_cpu_vendor_intel"
+    },
+    "fwupd:hsi-l3-cet-platform": {
+      "id": "fwupd:hsi-l3-cet-platform",
+      "name": "CET Available",
+      "description": "Control Flow Enforcement Technology is supported and enabled.\n\nCET provides hardware-enforced shadow stacks and indirect branch tracking to mitigate return-oriented programming (ROP) and jump-oriented programming (JOP) attacks.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L3: CET Platform",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 3 - Recommended",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l3-amd-spi-replay-protections": {
+      "id": "fwupd:hsi-l3-amd-spi-replay-protections",
+      "name": "AMD SPI Replay Protections",
+      "description": "Monotonic counter prevents SPI flash replay attacks on AMD systems.\n\nSPI replay protection uses a hardware counter to detect when an older SPI flash image has been re-applied, preventing firmware downgrade attacks.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L3: AMD SPI replay protections",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 3 - Recommended",
+      "severity": "low",
+      "host_filter": "fwupd_cpu_vendor_amd"
+    },
+    "fwupd:hsi-l3-uefi-memory-protections": {
+      "id": "fwupd:hsi-l3-uefi-memory-protections",
+      "name": "Early-boot UEFI Memory Protections",
+      "description": "NX and read-only protections are applied to UEFI boot memory.\n\nEarly-boot memory protections prevent code injection and data corruption during the UEFI boot phase by enforcing W^X (write XOR execute) policies.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L3: UEFI memory protections",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 3 - Recommended",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l4-encrypted-ram": {
+      "id": "fwupd:hsi-l4-encrypted-ram",
+      "name": "DRAM Memory Encryption",
+      "description": "Total Memory Encryption (Intel TME) or Secure Memory Encryption (AMD SME) encrypts all data on the memory bus.\n\nMemory encryption protects against physical memory access attacks including cold boot attacks and DMA-based memory scraping.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L4: Encrypted RAM",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 4 - Complete",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l4-smap": {
+      "id": "fwupd:hsi-l4-smap",
+      "name": "SMAP",
+      "description": "Supervisor Mode Access Prevention is enabled.\n\nSMAP prevents the kernel from accidentally accessing user-space memory, mitigating a class of privilege escalation exploits that trick the kernel into dereferencing user-controlled pointers.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L4: SMAP",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 4 - Complete",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l3-cet-os-support": {
+      "id": "fwupd:hsi-l3-cet-os-support",
+      "name": "CET Utilized by OS",
+      "description": "The operating system actively uses Control Flow Enforcement Technology.\n\nWhile CET hardware support (Level 3) is necessary, the OS must also enable and use it for the protection to be effective.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L3: CET OS Support",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 3 - Recommended",
+      "severity": "low",
+      "host_filter": "linux"
+    },
+    "fwupd:hsi-l4-amd-rollback-protection": {
+      "id": "fwupd:hsi-l4-amd-rollback-protection",
+      "name": "AMD Secure Processor Rollback",
+      "description": "AMD Secure Processor prevents firmware downgrade attacks.\n\nThe AMD Platform Security Processor maintains anti-rollback counters that prevent installation of older firmware versions with known vulnerabilities.",
+      "type": "inventory",
+      "condition_for": "failing",
+      "rules": [
+        {
+          "attribute": "Firmware HSI L4: AMD rollback protection",
+          "operator": "matches",
+          "value": "FAIL"
+        }
+      ],
+      "category": "HSI Level 4 - Complete",
+      "severity": "low",
+      "host_filter": "fwupd_cpu_vendor_amd"
+    }
+  }
+}
