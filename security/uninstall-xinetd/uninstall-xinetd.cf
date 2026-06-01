@@ -7,12 +7,13 @@ bundle agent uninstall_xinetd
 {
   vars:
     redhat|suse::
+      # Name in yum:
       "pkg_name" slist => { "xinetd" };
 
-    # Name in yum
     debian::
+      # Name in apt:
       "pkg_name" slist => { "xinetd" };
-  # name in apt
+
   classes:
     "xinetd_allowed"
       or => {

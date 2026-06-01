@@ -7,12 +7,13 @@ bundle agent uninstall_dhcp
 {
   vars:
     redhat|suse::
+      # Name in yum:
       "pkg_name" slist => { "dhcp" };
 
-    # Name in yum
     debian::
+      # Name in apt:
       "pkg_name" slist => { "isc-dhcp-server" };
-  # name in apt
+
   classes:
     "dhcp_allowed"
       or => {

@@ -43,12 +43,12 @@ bundle agent inventory_fwupd_main
       "_template" string => "$(this.promise_dirname)/fwupd-inventory.mustache";
 
       # TTLs in seconds for the fwupdmgr-derived JSON caches.
+      # 12 h:
       "_updates_ttl" string => "43200";
 
-      # 12 h
+      # 24 h:
       "_security_ttl" string => "86400";
 
-      # 24 h
       # Pre-compute file mtimes here rather than calling filestat() inline
       # inside class expressions: nested $(filestat($(path), mtime)) does not
       # expand reliably inside isgreaterthan(), so the staleness comparisons

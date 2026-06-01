@@ -7,12 +7,13 @@ bundle agent uninstall_dovecot
 {
   vars:
     redhat|suse::
+      # Name in yum:
       "pkg_name" slist => { "dovecot" };
 
-    # Name in yum
     debian::
+      # Name in apt:
       "pkg_name" slist => { "dovecot-core" };
-  # name in apt
+
   classes:
     "dovecot_allowed"
       or => {

@@ -7,12 +7,13 @@ bundle agent install_aide
 {
   vars:
     redhat|suse::
+      # Name in yum:
       "pkg_name" slist => { "aide" };
 
-    # Name in yum
     debian::
+      # Name in apt:
       "pkg_name" slist => { "aide" };
-  # name in apt
+
   packages:
     "${pkg_name}" -> { "CCE-27096-7" }
       policy => "present",

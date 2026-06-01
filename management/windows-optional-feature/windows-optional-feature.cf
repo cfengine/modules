@@ -80,11 +80,12 @@ bundle agent _promise_state(feature_name, desired_state)
   commands:
     windows.state_not_ok::
       # -All enables parent features if need be
+      # -NoRestart so that we don't wait forever for a Yes reply from a user
+      # then if we ran this command due to needing to, restart below.
       "${operation}-WindowsOptionalFeature -Online -FeatureName ${feature_name} -NoRestart -All"
         contain => default:powershell,
         classes => default:results("bundle", "state");
-  # -NoRestart so that we don't wait forever for a Yes reply from a user
-  # then if we ran this command due to needing to, restart below.
+
   files:
     windows.state_repaired::
       "${_inventory.cache_file}" delete => default:tidy;

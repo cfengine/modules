@@ -20,8 +20,8 @@ bundle agent main
 
   vars:
     dotrhosts_management_disabled::
+      # Fill in exception reason if missing (class was used)
       "exception"
-        # Fill in exception reason if missing (class was used)
         string => "Unknown reason",
         if => not(isvariable("delete_home_dotrhosts:main.exception"));
 

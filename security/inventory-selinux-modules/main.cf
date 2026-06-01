@@ -60,16 +60,17 @@ bundle agent semodule_list_modules
       "$(cache_file)"
         delete => default:tidy,
         if => isgreaterthan(
+          # now minus mtime of cache file:
           format("%d", eval("$(sys.systime)-$(cache_file_age)")),
-          # now minus mtime of cache file
+          # cache minutes:
           format("%d", eval("$(hours_cached)*60*60"))
         );
-  # cache minutes
+
   commands:
     _inventory_selinux_semodule_list_modules_supported_platform::
       "/sbin/semodule"
         arglist => { "--list-modules=full", ">", "$(cache_file)" },
+        # Required for redirection:
         contain => default:in_shell,
-        # Required for redirection
         if => not(fileexists($(cache_file)));
 }

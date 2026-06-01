@@ -7,12 +7,13 @@ bundle agent uninstall_bind
 {
   vars:
     redhat|suse::
+      # Name in yum:
       "pkg_name" slist => { "bind" };
 
-    # Name in yum
     debian::
+      # Name in apt:
       "pkg_name" slist => { "bind", "bind9" };
-  # name in apt
+
   classes:
     "bind_allowed"
       or => {
