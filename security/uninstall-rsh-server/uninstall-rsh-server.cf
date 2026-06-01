@@ -7,18 +7,21 @@ bundle agent uninstall_rsh_server
 {
   vars:
     redhat|suse::
-      "pkg_name" slist => { "rsh-server" }; # Name in yum
+      # Name in yum:
+      "pkg_name" slist => { "rsh-server" };
+
     debian::
-      "pkg_name" slist => { "rsh-server" }; # name in apt
+      # Name in apt:
+      "pkg_name" slist => { "rsh-server" };
 
   classes:
-      "rsh_server_allowed"
-        or => {
-          "hardening_rsh_server_allowed",
-          "data:hardening_rsh_server_allowed",
-          "exception_uninstall_rsh_server",
-          "data:exception_uninstall_rsh_server",
-        };
+    "rsh_server_allowed"
+      or => {
+        "hardening_rsh_server_allowed",
+        "data:hardening_rsh_server_allowed",
+        "exception_uninstall_rsh_server",
+        "data:exception_uninstall_rsh_server",
+      };
 
   packages:
     !rsh_server_allowed::

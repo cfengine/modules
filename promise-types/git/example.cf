@@ -9,7 +9,7 @@ bundle agent main
 {
   git:
     "starter_pack_repo"
-      repository  => "https://github.com/cfengine/starter_pack",
+      repository => "https://github.com/cfengine/starter_pack",
       destination => "$(this.promise_dirname)/starter-pack",
-      version     => "master";
+      version => "master";
 }

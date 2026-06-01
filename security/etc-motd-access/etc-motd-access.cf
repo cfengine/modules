@@ -8,7 +8,7 @@ bundle agent etc_motd_access
 # https://static.open-scap.org/ssg-guides/ssg-rhel7-guide-anssi_nt28_minimal.html
 {
   files:
-    "/etc/motd" -> {"CCE-83737-7", "CCE-83727-8", "CCE-83337-6"}
+    "/etc/motd" -> { "CCE-83737-7", "CCE-83727-8", "CCE-83337-6" }
       perms => mog("644", "root", "root"),
       if => fileexists("$(this.promiser)");
 }

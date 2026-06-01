@@ -1,5 +1,3 @@
 {
-  "classes": {
-    "services_autorun_inputs": ["any"]
-  }
+  "classes": { "services_autorun_inputs": ["any"] }
 }

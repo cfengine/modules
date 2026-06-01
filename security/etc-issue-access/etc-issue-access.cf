@@ -8,7 +8,7 @@ bundle agent etc_issue_access
 # https://static.open-scap.org/ssg-guides/ssg-rhel7-guide-anssi_nt28_minimal.html
 {
   files:
-    "/etc/issue" -> { "CCE-83717-9", "CCE-83707-0", "CCE-83347-5"}
+    "/etc/issue" -> { "CCE-83717-9", "CCE-83707-0", "CCE-83347-5" }
       perms => mog("644", "root", "root"),
       if => fileexists("$(this.promiser)");
 }

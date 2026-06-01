@@ -21,8 +21,7 @@ bundle agent main
     # Minimum patched kernel package versions per distro live in
     # patched-kernels.json next to this policy. The data file is
     # walked here; comparison happens in the classes:: block below.
-    "_data_file"
-      string => "$(this.promise_dirname)/patched-kernels.json";
+    "_data_file" string => "$(this.promise_dirname)/patched-kernels.json";
 
     "_data"
       data => readjson("${_data_file}"),
@@ -47,7 +46,9 @@ bundle agent main
       string => "${_entries_idx}",
       if => and(
         regcmp("${_data[entries][${_entries_idx}][id_match]}", "${_os_id}"),
-        regcmp("${_data[entries][${_entries_idx}][version_match]}", "${_os_ver}")
+        regcmp(
+          "${_data[entries][${_entries_idx}][version_match]}", "${_os_ver}"
+        )
       );
 
     "_esp_patched_ver"
@@ -80,8 +81,8 @@ bundle agent main
       if => not(regcmp("debian|ubuntu", "$(default:sys.os_release[ID])"));
 
     # --- Mitigation-conf paths and contents -----------------------
-    "_esp_conf_path"    string => "/etc/modprobe.d/dirtyfrag-esp.conf";
-    "_rxrpc_conf_path"  string => "/etc/modprobe.d/dirtyfrag-rxrpc.conf";
+    "_esp_conf_path" string => "/etc/modprobe.d/dirtyfrag-esp.conf";
+    "_rxrpc_conf_path" string => "/etc/modprobe.d/dirtyfrag-rxrpc.conf";
     "_userns_conf_path" string => "/etc/sysctl.d/dirtyfrag-userns.conf";
 
     "_esp_conf_content"
@@ -135,15 +136,16 @@ bundle agent main
     # filter(".+", ...) drops the empties; join glues with ", ".
     "_esp_loaded_list"
       slist => {
-        ifelse("_esp4_loaded",    "esp4",    ""),
-        ifelse("_esp6_loaded",    "esp6",    ""),
-        ifelse("_ipcomp_loaded",  "ipcomp",  ""),
+        ifelse("_esp4_loaded", "esp4", ""),
+        ifelse("_esp6_loaded", "esp6", ""),
+        ifelse("_ipcomp_loaded", "ipcomp", ""),
         ifelse("_ipcomp6_loaded", "ipcomp6", ""),
       };
 
     "_esp_loaded_names"
-      string => join(", ",
-        filter(".+", "_esp_loaded_list", "false", "false", "10"));
+      string => join(
+        ", ", filter(".+", "_esp_loaded_list", "false", "false", "10")
+      );
 
     # --- Status strings -------------------------------------------
     "_esp_status"
@@ -180,20 +182,29 @@ bundle agent main
     # the long _esp_status string. ifelse takes first-match order.
     "_esp_mitigation_method"
       string => ifelse(
-        "dirtyfrag_esp_needs_mitigation",      "none",
-        "_esp_kernel_patched",                 "kernel-patch",
-        "_esp_admin_patched",                  "admin-override",
-        "_esp_conf_exists",                    "modprobe",
-        "_userns_conf_exists",                 "userns",
+        "dirtyfrag_esp_needs_mitigation",
+        "none",
+        "_esp_kernel_patched",
+        "kernel-patch",
+        "_esp_admin_patched",
+        "admin-override",
+        "_esp_conf_exists",
+        "modprobe",
+        "_userns_conf_exists",
+        "userns",
         "not-applicable"
       );
 
     "_rxrpc_mitigation_method"
       string => ifelse(
-        "dirtyfrag_rxrpc_needs_mitigation",    "none",
-        "_rxrpc_kernel_patched",               "kernel-patch",
-        "_rxrpc_admin_patched",                "admin-override",
-        "_rxrpc_conf_exists",                  "modprobe",
+        "dirtyfrag_rxrpc_needs_mitigation",
+        "none",
+        "_rxrpc_kernel_patched",
+        "kernel-patch",
+        "_rxrpc_admin_patched",
+        "admin-override",
+        "_rxrpc_conf_exists",
+        "modprobe",
         "not-applicable"
       );
 
@@ -234,12 +245,12 @@ bundle agent main
 
   classes:
     # --- CMDB toggles ---------------------------------------------
-    "_mitigate_esp"    expression => strcmp("true", "$(mitigate_esp)");
-    "_mitigate_rxrpc"  expression => strcmp("true", "$(mitigate_rxrpc)");
+    "_mitigate_esp" expression => strcmp("true", "$(mitigate_esp)");
+    "_mitigate_rxrpc" expression => strcmp("true", "$(mitigate_rxrpc)");
     "_mitigate_userns" expression => strcmp("true", "$(mitigate_userns)");
 
     # --- Admin override: manually declare host as patched ---------
-    "_esp_admin_patched"   expression => strcmp("true", "$(esp_patched)");
+    "_esp_admin_patched" expression => strcmp("true", "$(esp_patched)");
     "_rxrpc_admin_patched" expression => strcmp("true", "$(rxrpc_patched)");
 
     # --- Kernel-patch comparison ----------------------------------
@@ -251,18 +262,14 @@ bundle agent main
     # (tempfile + commands:, or a bundled wrapper script) are heavier
     # for no real safety gain on a static, internally-built string.
     # See lessons-learned/version-compare-shell-exception.md.
-    "_patch_data_matched"
-      expression => isvariable("_matched_idx");
+    "_patch_data_matched" expression => isvariable("_matched_idx");
 
     "_esp_kernel_patched"
       expression => returnszero(
         "printf '%s\\n%s\\n' '$(_esp_patched_ver)' '$(_kernel_pkg_ver)' | sort -V -C",
         "useshell"
       ),
-      if => and(
-        isvariable("_esp_patched_ver"),
-        isvariable("_kernel_pkg_ver")
-      );
+      if => and(isvariable("_esp_patched_ver"), isvariable("_kernel_pkg_ver"));
 
     "_rxrpc_kernel_patched"
       expression => returnszero(
@@ -270,22 +277,20 @@ bundle agent main
         "useshell"
       ),
       if => and(
-        isvariable("_rxrpc_patched_ver"),
-        isvariable("_kernel_pkg_ver")
+        isvariable("_rxrpc_patched_ver"), isvariable("_kernel_pkg_ver")
       );
 
     # --- Unprivileged user namespace enabled? ---------------------
     "_userns_disabled" expression => strcmp("0", "${_max_userns}");
-    "_userns_enabled"  not        => "_userns_disabled";
+    "_userns_enabled" not => "_userns_disabled";
 
     # --- xfrm-ESP/IPComp modules ----------------------------------
     # On-disk presence collapses to: did findfiles return anything?
     # some(".+", slist) is true when the list has any non-empty element.
     "_esp_files_present" expression => some(".+", "_esp_module_files");
-
-    "_esp4_loaded"    expression => isdir("/sys/module/esp4");
-    "_esp6_loaded"    expression => isdir("/sys/module/esp6");
-    "_ipcomp_loaded"  expression => isdir("/sys/module/ipcomp");
+    "_esp4_loaded" expression => isdir("/sys/module/esp4");
+    "_esp6_loaded" expression => isdir("/sys/module/esp6");
+    "_ipcomp_loaded" expression => isdir("/sys/module/ipcomp");
     "_ipcomp6_loaded" expression => isdir("/sys/module/ipcomp6");
 
     "_esp_any_loaded"
@@ -293,19 +298,16 @@ bundle agent main
         "_esp4_loaded", "_esp6_loaded", "_ipcomp_loaded", "_ipcomp6_loaded"
       };
 
-    "dirtyfrag_esp_present"
-      or => { "_esp_files_present", "_esp_any_loaded" };
+    "dirtyfrag_esp_present" or => { "_esp_files_present", "_esp_any_loaded" };
 
     # --- RxRPC module ---------------------------------------------
     "_rxrpc_files_present" expression => some(".+", "_rxrpc_module_files");
-    "_rxrpc_loaded"        expression => isdir("/sys/module/rxrpc");
-
-    "dirtyfrag_rxrpc_present"
-      or => { "_rxrpc_files_present", "_rxrpc_loaded" };
+    "_rxrpc_loaded" expression => isdir("/sys/module/rxrpc");
+    "dirtyfrag_rxrpc_present" or => { "_rxrpc_files_present", "_rxrpc_loaded" };
 
     # --- Mitigation conf files in place? --------------------------
-    "_esp_conf_exists"    expression => fileexists("${_esp_conf_path}");
-    "_rxrpc_conf_exists"  expression => fileexists("${_rxrpc_conf_path}");
+    "_esp_conf_exists" expression => fileexists("${_esp_conf_path}");
+    "_rxrpc_conf_exists" expression => fileexists("${_rxrpc_conf_path}");
     "_userns_conf_exists" expression => fileexists("${_userns_conf_path}");
 
     # ESP is mitigated by modprobe blacklist, patched kernel, or
@@ -313,18 +315,14 @@ bundle agent main
     # vulnerability condition (see dirtyfrag_esp_needs_mitigation).
     "_esp_mitigated"
       or => {
-        "_esp_conf_exists",
-        "_esp_kernel_patched",
-        "_esp_admin_patched",
+        "_esp_conf_exists", "_esp_kernel_patched", "_esp_admin_patched",
       };
 
     # RxRPC is mitigated by the modprobe blacklist, patched kernel,
     # or admin override.
     "_rxrpc_mitigated"
       or => {
-        "_rxrpc_conf_exists",
-        "_rxrpc_kernel_patched",
-        "_rxrpc_admin_patched",
+        "_rxrpc_conf_exists", "_rxrpc_kernel_patched", "_rxrpc_admin_patched",
       };
 
     # --- Per-CVE vulnerability checks -----------------------------
@@ -334,13 +332,15 @@ bundle agent main
     # confs); it's tracked here so disabling userns blocks the
     # exploit vector directly.
     "dirtyfrag_esp_needs_mitigation"
-      and   => { "dirtyfrag_esp_present", "!_esp_mitigated", "!_userns_conf_exists" },
-      meta  => { "report" },
+      and => {
+        "dirtyfrag_esp_present", "!_esp_mitigated", "!_userns_conf_exists"
+      },
+      meta => { "report" },
       scope => "namespace";
 
     "dirtyfrag_rxrpc_needs_mitigation"
-      and   => { "dirtyfrag_rxrpc_present", "!_rxrpc_mitigated" },
-      meta  => { "report" },
+      and => { "dirtyfrag_rxrpc_present", "!_rxrpc_mitigated" },
+      meta => { "report" },
       scope => "namespace";
 
     # --- Composite roll-ups for targeting and querying ------------
@@ -348,18 +348,20 @@ bundle agent main
     # don't clutter the default Mission Portal inventory columns. Use
     # for class filters in reports, alerts, and CMDB-style targeting.
     "dirtyfrag_vulnerable"
-      or    => { "dirtyfrag_esp_needs_mitigation", "dirtyfrag_rxrpc_needs_mitigation" },
-      meta  => { "report" },
+      or => {
+        "dirtyfrag_esp_needs_mitigation", "dirtyfrag_rxrpc_needs_mitigation"
+      },
+      meta => { "report" },
       scope => "namespace";
 
     "dirtyfrag_esp_mitigated"
-      or    => { "_esp_mitigated", "_userns_conf_exists" },
-      meta  => { "report" },
+      or => { "_esp_mitigated", "_userns_conf_exists" },
+      meta => { "report" },
       scope => "namespace";
 
     "dirtyfrag_rxrpc_mitigated"
-      or    => { "_rxrpc_mitigated" },
-      meta  => { "report" },
+      or => { "_rxrpc_mitigated" },
+      meta => { "report" },
       scope => "namespace";
 
   files:
@@ -368,25 +370,24 @@ bundle agent main
     # promise detail page so operators can search "CVE-2026-43284"
     # and find every policy artifact addressing it.
     # handle gives each promise a stable, queryable name in reports.
-
     _mitigate_esp::
       "${_esp_conf_path}" -> { "CVE-2026-43284" }
-        handle  => "dirtyfrag_esp_modprobe_blacklist",
-        create  => "true",
+        handle => "dirtyfrag_esp_modprobe_blacklist",
+        create => "true",
         content => "${_esp_conf_content}",
         comment => "Blacklist xfrm-ESP/IPComp modules to mitigate Dirty Frag CVE-2026-43284";
 
     _mitigate_rxrpc::
       "${_rxrpc_conf_path}" -> { "CVE-2026-43500" }
-        handle  => "dirtyfrag_rxrpc_modprobe_blacklist",
-        create  => "true",
+        handle => "dirtyfrag_rxrpc_modprobe_blacklist",
+        create => "true",
         content => "${_rxrpc_conf_content}",
         comment => "Blacklist RxRPC module to mitigate Dirty Frag CVE-2026-43500";
 
     _mitigate_userns::
       "${_userns_conf_path}" -> { "CVE-2026-43284" }
-        handle  => "dirtyfrag_userns_sysctl_conf",
-        create  => "true",
+        handle => "dirtyfrag_userns_sysctl_conf",
+        create => "true",
         content => "${_userns_conf_content}",
         comment => "Disable unprivileged user namespaces to block CVE-2026-43284 ESP exploit path";
 
@@ -398,16 +399,15 @@ bundle agent main
     # modprobe -r (vs rmmod) tolerates "some of the named modules
     # aren't loaded", which simplifies the per-module gating to a
     # single class.
-
     _mitigate_esp._esp_any_loaded::
       "/sbin/modprobe" -> { "CVE-2026-43284" }
-        handle  => "dirtyfrag_esp_modprobe_unload",
+        handle => "dirtyfrag_esp_modprobe_unload",
         arglist => { "-r", "esp4", "esp6", "ipcomp", "ipcomp6" },
         comment => "Unload ESP/IPComp modules while ESP mitigation is active";
 
     _mitigate_rxrpc._rxrpc_loaded::
       "/sbin/modprobe" -> { "CVE-2026-43500" }
-        handle  => "dirtyfrag_rxrpc_modprobe_unload",
+        handle => "dirtyfrag_rxrpc_modprobe_unload",
         arglist => { "-r", "rxrpc" },
         comment => "Unload RxRPC module while RxRPC mitigation is active";
 
@@ -417,7 +417,7 @@ bundle agent main
     # boot).
     _mitigate_userns._userns_enabled::
       "/sbin/sysctl" -> { "CVE-2026-43284" }
-        handle  => "dirtyfrag_userns_sysctl_reapply",
+        handle => "dirtyfrag_userns_sysctl_reapply",
         arglist => { "--system" },
         comment => "Re-apply user.max_user_namespaces=0 while userns is enabled";
 
@@ -432,7 +432,6 @@ bundle agent main
       "Dirty Frag CVE-2026-43500: kernel $(_kernel_pkg_ver) >= $(_rxrpc_patched_ver) (PATCHED)";
 
     inform_mode::
-
       "Dirty Frag CVE-2026-43284 (xfrm-ESP/IPComp): $(_esp_status)";
       "Dirty Frag CVE-2026-43500 (RxRPC): $(_rxrpc_status)";
 }

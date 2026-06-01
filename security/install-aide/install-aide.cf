@@ -7,16 +7,19 @@ bundle agent install_aide
 {
   vars:
     redhat|suse::
-      "pkg_name" slist => { "aide" }; # Name in yum
+      # Name in yum:
+      "pkg_name" slist => { "aide" };
+
     debian::
-      "pkg_name" slist => { "aide" }; # name in apt
+      # Name in apt:
+      "pkg_name" slist => { "aide" };
 
   packages:
-      "${pkg_name}" -> { "CCE-27096-7" }
-        policy => "present",
-        if => isvariable("pkg_name");
+    "${pkg_name}" -> { "CCE-27096-7" }
+      policy => "present",
+      if => isvariable("pkg_name");
 
   reports:
-      "warning: aide package name not known for this platform"
-        unless => isvariable("pkg_name");
+    "warning: aide package name not known for this platform"
+      unless => isvariable("pkg_name");
 }

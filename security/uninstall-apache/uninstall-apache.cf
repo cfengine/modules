@@ -7,18 +7,21 @@ bundle agent uninstall_apache
 {
   vars:
     redhat|suse::
-      "pkg_name" slist => { "httpd" }; # Name in yum
+      # Name in yum:
+      "pkg_name" slist => { "httpd" };
+
     debian::
-      "pkg_name" slist => { "apache2" }; # name in apt
+      # Name in apt:
+      "pkg_name" slist => { "apache2" };
 
   classes:
-      "apache_allowed"
-        or => {
-          "hardening_apache_allowed",
-          "data:hardening_apache_allowed",
-          "exception_uninstall_apache",
-          "data:exception_uninstall_apache",
-        };
+    "apache_allowed"
+      or => {
+        "hardening_apache_allowed",
+        "data:hardening_apache_allowed",
+        "exception_uninstall_apache",
+        "data:exception_uninstall_apache",
+      };
 
   packages:
     !apache_allowed::

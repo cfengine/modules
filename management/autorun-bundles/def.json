@@ -1,5 +1,3 @@
 {
-  "classes": {
-    "services_autorun_bundles": ["any"]
-  }
+  "classes": { "services_autorun_bundles": ["any"] }
 }

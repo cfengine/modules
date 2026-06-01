@@ -8,6 +8,5 @@ promise agent json
 bundle agent main
 {
   json:
-    "/tmp/myusers.json:name"
-      string => "John"
+    "/tmp/myusers.json:name" string => "John";
 }

@@ -1,22 +1,20 @@
 body file control
 {
-      namespace => "inventory_fde";
+  namespace => "inventory_fde";
 }
-
 # Duplicated from the CFEngine standard library so this module can be parsed
 # and tested standalone without loading the full masterfiles.
 # _tidy: lib/files.cf body delete tidy
 # _in_shell: lib/commands.cf body contain in_shell
-
 body delete _tidy
 {
-      dirlinks => "delete";
-      rmdirs   => "true";
+  dirlinks => "delete";
+  rmdirs => "true";
 }
 
 body contain _in_shell
 {
-      useshell => "useshell";
+  useshell => "useshell";
 }
 
 bundle agent main
@@ -30,15 +28,13 @@ bundle agent main
 {
   vars:
     linux::
-      "_dmsetup"    string => "/sbin/dmsetup";
+      "_dmsetup" string => "/sbin/dmsetup";
       "_cryptsetup" string => "/sbin/cryptsetup";
 
   classes:
     linux::
-      "_have_dmsetup"
-        expression => isexecutable("${_dmsetup}");
-      "_have_cryptsetup"
-        expression => isexecutable("${_cryptsetup}");
+      "_have_dmsetup" expression => isexecutable("${_dmsetup}");
+      "_have_cryptsetup" expression => isexecutable("${_cryptsetup}");
 
       # Flag each dm device that has a CRYPT uuid
       "_dm_is_crypt_${_dm_devices}"
@@ -47,26 +43,35 @@ bundle agent main
       # Classify crypt type per device
       "_dm_is_luks2_${_dm_devices}"
         expression => strcmp("LUKS2", "${_dm_crypt_type[${_dm_devices}]}");
+
       "_dm_is_luks1_${_dm_devices}"
         expression => strcmp("LUKS1", "${_dm_crypt_type[${_dm_devices}]}");
 
       # Classify each mount: real block device? (starts with /dev/, not a loop device)
       "_is_real_block_${_mnt_idx}"
-        expression => regcmp("/dev/(?!loop)\S+", "${_mnt_data[${_mnt_idx}][0]}");
+        expression => regcmp(
+          "/dev/(?!loop)\S+", "${_mnt_data[${_mnt_idx}][0]}"
+        );
 
       # Classify each real block mount: is device in the crypt paths list?
       "_is_encrypted_${_mnt_idx}"
-        expression => regcmp("(${_crypt_paths_regex})", "${_mnt_data[${_mnt_idx}][0]}"),
+        expression => regcmp(
+          "(${_crypt_paths_regex})", "${_mnt_data[${_mnt_idx}][0]}"
+        ),
         if => canonify("_is_real_block_${_mnt_idx}");
 
       # LUKS1: flag enabled keyslots (slots 0-7, all share global cipher, all use PBKDF2)
       "_luks1_slot_enabled_${_dm_devices}_${_luks1_slots}"
-        expression => regcmp("(?s).*Key Slot ${_luks1_slots}: ENABLED.*", "${_luks1_dump[${_dm_devices}]}"),
+        expression => regcmp(
+          "(?s).*Key Slot ${_luks1_slots}: ENABLED.*",
+          "${_luks1_dump[${_dm_devices}]}"
+        ),
         if => canonify("_dm_is_luks1_${_dm_devices}");
 
       # Summary classes
       "_has_encrypted"
         expression => isgreaterthan(length(_encrypted_mountpoints), 0);
+
       "_has_unencrypted"
         expression => isgreaterthan(length(_unencrypted_mountpoints), 0);
 
@@ -79,6 +84,7 @@ bundle agent main
       "_dm_uuid[${_dm_devices}]"
         string => readfile("/sys/block/${_dm_devices}/dm/uuid"),
         if => fileexists("/sys/block/${_dm_devices}/dm/uuid");
+
       "_dm_name[${_dm_devices}]"
         string => readfile("/sys/block/${_dm_devices}/dm/name"),
         if => fileexists("/sys/block/${_dm_devices}/dm/name");
@@ -87,26 +93,36 @@ bundle agent main
       "_crypt_mapper_path[${_dm_devices}]"
         string => "/dev/mapper/${_dm_name[${_dm_devices}]}",
         if => canonify("_dm_is_crypt_${_dm_devices}");
+
       "_crypt_dm_path[${_dm_devices}]"
         string => "/dev/${_dm_devices}",
         if => canonify("_dm_is_crypt_${_dm_devices}");
+
       "_all_crypt_paths"
         slist => { getvalues(_crypt_mapper_path), getvalues(_crypt_dm_path) };
 
       # Build a regex alternation of all crypt device paths for matching
       "_crypt_paths_regex"
-        string => join("|", maplist(regex_replace("$(this)", "([./])", "\\\1", "g"), _all_crypt_paths));
+        string => join(
+          "|",
+          maplist(
+            regex_replace("$(this)", "([./])", "\\\1", "g"), _all_crypt_paths
+          )
+        );
 
       # Extract the encryption type for crypt devices
       # UUID format: CRYPT-<TYPE>-<uuid>-<name>
       "_dm_crypt_type[${_dm_devices}]"
-        string => regex_replace("${_dm_uuid[${_dm_devices}]}", "^CRYPT-([^-]+)-.*", "\1", ""),
+        string => regex_replace(
+          "${_dm_uuid[${_dm_devices}]}", "^CRYPT-([^-]+)-.*", "\1", ""
+        ),
         if => canonify("_dm_is_crypt_${_dm_devices}");
 
       # Underlying block device for each crypt device (for cryptsetup luksDump)
       "_dm_slaves[${_dm_devices}]"
         slist => lsdir("/sys/block/${_dm_devices}/slaves", "[a-z].*", false),
         if => canonify("_dm_is_crypt_${_dm_devices}");
+
       "_dm_slave_dev[${_dm_devices}]"
         string => "/dev/${_dm_slaves[${_dm_devices}]}",
         if => canonify("_dm_is_crypt_${_dm_devices}");
@@ -114,7 +130,10 @@ bundle agent main
       # Parse /proc/mounts into indexed array
       # Columns: 0=device, 1=mountpoint, 2=fstype, 3=options, 4=dump, 5=pass
       "_n_mnt_lines"
-        int => readstringarrayidx("_mnt_data", "/proc/mounts", "\s*#[^\n]*", "\s+", inf, inf);
+        int => readstringarrayidx(
+          "_mnt_data", "/proc/mounts", "\s*#[^\n]*", "\s+", inf, inf
+        );
+
       "_mnt_idx" slist => getindices(_mnt_data);
 
       # Collect all real block device mountpoints
@@ -135,12 +154,16 @@ bundle agent main
         string => "${_mnt_data[${_mnt_idx}][1]}",
         if => and(
           canonify("_dm_is_crypt_${_dm_devices}"),
-          regcmp("(/dev/mapper/${_dm_name[${_dm_devices}]}|/dev/${_dm_devices})",
-                 "${_mnt_data[${_mnt_idx}][0]}"));
+          regcmp(
+            "(/dev/mapper/${_dm_name[${_dm_devices}]}|/dev/${_dm_devices})",
+            "${_mnt_data[${_mnt_idx}][0]}"
+          )
+        );
 
       # Derive unencrypted mountpoints as the difference
       "_all_real_mountpoints" slist => getvalues(_all_real_mountpoint);
       "_encrypted_mountpoints" slist => getvalues(_encrypted_mountpoint);
+
       "_unencrypted_mountpoints"
         slist => difference(_all_real_mountpoints, _encrypted_mountpoints);
 
@@ -149,8 +172,13 @@ bundle agent main
       # dmsetup table format: "0 <size> crypt <cipher> <key> <iv_offset> <dev> <offset>"
       "_dm_active_cipher[${_dm_devices}]"
         string => regex_replace(
-          execresult("${_dmsetup} table ${_dm_name[${_dm_devices}]}", "noshell"),
-          "^\d+\s+\d+\s+crypt\s+(\S+)\s+.*$", "\1", ""),
+          execresult(
+            "${_dmsetup} table ${_dm_name[${_dm_devices}]}", "noshell"
+          ),
+          "^\d+\s+\d+\s+crypt\s+(\S+)\s+.*$",
+          "\1",
+          ""
+        ),
         if => canonify("_dm_is_crypt_${_dm_devices}");
 
     # --- LUKS2 keyslot info via cached JSON metadata ---
@@ -163,22 +191,37 @@ bundle agent main
         string => filestat("${_luks2_cache[${_dm_devices}]}", "mtime"),
         if => and(
           canonify("_dm_is_luks2_${_dm_devices}"),
-          fileexists("${_luks2_cache[${_dm_devices}]}"));
+          fileexists("${_luks2_cache[${_dm_devices}]}")
+        );
 
     # --- LUKS1 keyslot info via text parsing ---
     _have_cryptsetup::
       "_luks1_slots" slist => { "0", "1", "2", "3", "4", "5", "6", "7" };
 
       "_luks1_dump[${_dm_devices}]"
-        string => execresult("${_cryptsetup} luksDump ${_dm_slave_dev[${_dm_devices}]}", "noshell"),
+        string => execresult(
+          "${_cryptsetup} luksDump ${_dm_slave_dev[${_dm_devices}]}",
+          "noshell"
+        ),
         if => canonify("_dm_is_luks1_${_dm_devices}");
 
       # LUKS1 global cipher: "Cipher name" + "Cipher mode"
       "_luks1_cipher_name[${_dm_devices}]"
-        string => regex_replace("${_luks1_dump[${_dm_devices}]}", "(?s).*Cipher name:\s+(\S+).*", "\1", ""),
+        string => regex_replace(
+          "${_luks1_dump[${_dm_devices}]}",
+          "(?s).*Cipher name:\s+(\S+).*",
+          "\1",
+          ""
+        ),
         if => canonify("_dm_is_luks1_${_dm_devices}");
+
       "_luks1_cipher_mode[${_dm_devices}]"
-        string => regex_replace("${_luks1_dump[${_dm_devices}]}", "(?s).*Cipher mode:\s+(\S+).*", "\1", ""),
+        string => regex_replace(
+          "${_luks1_dump[${_dm_devices}]}",
+          "(?s).*Cipher mode:\s+(\S+).*",
+          "\1",
+          ""
+        ),
         if => canonify("_dm_is_luks1_${_dm_devices}");
 
       # Build per-keyslot summary for each ENABLED slot
@@ -186,7 +229,8 @@ bundle agent main
         string => "${_luks1_slots}:${_luks1_cipher_name[${_dm_devices}]}-${_luks1_cipher_mode[${_dm_devices}]}/pbkdf2",
         if => and(
           canonify("_dm_is_luks1_${_dm_devices}"),
-          canonify("_luks1_slot_enabled_${_dm_devices}_${_luks1_slots}"));
+          canonify("_luks1_slot_enabled_${_dm_devices}_${_luks1_slots}")
+        );
 
       "_luks1_ks_entries[${_dm_devices}]"
         slist => getvalues("_luks1_ks_entry[${_dm_devices}]"),
@@ -197,12 +241,15 @@ bundle agent main
         if => canonify("_dm_is_luks1_${_dm_devices}");
 
     # --- Inventory attributes ---
-
     linux::
       "fde_enabled"
-        string => ifelse("_has_encrypted.!_has_unencrypted", "yes",
-                         "_has_encrypted._has_unencrypted", "partial",
-                         "no"),
+        string => ifelse(
+          "_has_encrypted.!_has_unencrypted",
+          "yes",
+          "_has_encrypted._has_unencrypted",
+          "partial",
+          "no"
+        ),
         meta => { "inventory", "attribute_name=Full disk encryption enabled" };
 
       "fde_method"
@@ -225,7 +272,8 @@ bundle agent main
         string => "${_dm_mountpoint[${_dm_devices}]} : ${_dm_active_cipher[${_dm_devices}]}",
         if => and(
           canonify("_dm_is_crypt_${_dm_devices}"),
-          isvariable("_dm_mountpoint[${_dm_devices}]"));
+          isvariable("_dm_mountpoint[${_dm_devices}]")
+        );
 
     _have_cryptsetup::
       "_keyslot_info_entry[${_dm_devices}]"
@@ -233,23 +281,29 @@ bundle agent main
         if => and(
           canonify("_dm_is_luks2_${_dm_devices}"),
           isvariable("_dm_mountpoint[${_dm_devices}]"),
-          isvariable("_luks2_ks_${_dm_devices}[keyslots]"));
+          isvariable("_luks2_ks_${_dm_devices}[keyslots]")
+        );
 
       "_keyslot_info_entry[${_dm_devices}]"
         string => "${_dm_mountpoint[${_dm_devices}]} : ${_dm_keyslot_info[${_dm_devices}]}",
         if => and(
           canonify("_dm_is_luks1_${_dm_devices}"),
-          isvariable("_dm_mountpoint[${_dm_devices}]"));
+          isvariable("_dm_mountpoint[${_dm_devices}]")
+        );
 
     _has_encrypted._have_dmsetup::
       "fde_volume_cipher"
         slist => getvalues(_volume_cipher_entry),
-        meta => { "inventory", "attribute_name=Full disk encryption volume ciphers" };
+        meta => {
+          "inventory", "attribute_name=Full disk encryption volume ciphers"
+        };
 
     _has_encrypted._have_cryptsetup::
       "fde_keyslot_info"
         slist => getvalues(_keyslot_info_entry),
-        meta => { "inventory", "attribute_name=Full disk encryption keyslot info" };
+        meta => {
+          "inventory", "attribute_name=Full disk encryption keyslot info"
+        };
 
   files:
     _have_cryptsetup::
@@ -260,20 +314,29 @@ bundle agent main
           canonify("_dm_is_luks2_${_dm_devices}"),
           fileexists("${_luks2_cache[${_dm_devices}]}"),
           isgreaterthan(
-            format("%d", eval("$(sys.systime) - ${_luks2_cache_mtime[${_dm_devices}]}")),
-            "86400"));
+            format(
+              "%d",
+              eval("$(sys.systime) - ${_luks2_cache_mtime[${_dm_devices}]}")
+            ),
+            "86400"
+          )
+        );
 
   commands:
     _have_cryptsetup::
       "${_cryptsetup}"
-        arglist => { "luksDump",
-                     "--dump-json-metadata",
-                     "${_dm_slave_dev[${_dm_devices}]}",
-                     ">", "${_luks2_cache[${_dm_devices}]}" },
+        arglist => {
+          "luksDump",
+          "--dump-json-metadata",
+          "${_dm_slave_dev[${_dm_devices}]}",
+          ">",
+          "${_luks2_cache[${_dm_devices}]}",
+        },
         contain => _in_shell,
         if => and(
           canonify("_dm_is_luks2_${_dm_devices}"),
-          not(fileexists("${_luks2_cache[${_dm_devices}]}")));
+          not(fileexists("${_luks2_cache[${_dm_devices}]}"))
+        );
 
   methods:
     _have_cryptsetup::
@@ -283,41 +346,35 @@ bundle agent main
         useresult => "_luks2_ks_${_dm_devices}",
         if => and(
           canonify("_dm_is_luks2_${_dm_devices}"),
-          fileexists("${_luks2_cache[${_dm_devices}]}"));
+          fileexists("${_luks2_cache[${_dm_devices}]}")
+        );
 
   reports:
-      !linux.verbose_mode::
-        "$(this.promise_filename): $(this.namespace):$(this.bundle) is currently only instrumented for Linux. Please consider making a pull request or filing a ticket to request your specific platform.";
+    !linux.verbose_mode::
+      "$(this.promise_filename): $(this.namespace):$(this.bundle) is currently only instrumented for Linux. Please consider making a pull request or filing a ticket to request your specific platform.";
 }
 
 bundle agent luks2_keyslot_info(cache_file)
 # @brief Parse LUKS2 JSON metadata and return keyslot summary
 {
   vars:
-      "_json"
-        data => readjson("${cache_file}");
+    "_json" data => readjson("${cache_file}");
+    "_ks_idx" slist => getindices("_json[keyslots]");
 
-      "_ks_idx"
-        slist => getindices("_json[keyslots]");
+    # Build per-keyslot summary: "<slot>:<cipher>/<kdf>"
+    "_ks_entry[${_ks_idx}]"
+      string => "${_ks_idx}:${_json[keyslots][${_ks_idx}][area][encryption]}/${_json[keyslots][${_ks_idx}][kdf][type]}";
 
-      # Build per-keyslot summary: "<slot>:<cipher>/<kdf>"
-      "_ks_entry[${_ks_idx}]"
-        string => "${_ks_idx}:${_json[keyslots][${_ks_idx}][area][encryption]}/${_json[keyslots][${_ks_idx}][kdf][type]}";
-
-      "_ks_entries"
-        slist => getvalues(_ks_entry);
-
-      "_keyslots"
-        string => join(", ", sort(_ks_entries, "lex"));
+    "_ks_entries" slist => getvalues(_ks_entry);
+    "_keyslots" string => join(", ", sort(_ks_entries, "lex"));
 
   reports:
-      "${_keyslots}"
-        bundle_return_value_index => "keyslots";
+    "${_keyslots}" bundle_return_value_index => "keyslots";
 }
 
 body file control
 {
-      namespace => "default";
+  namespace => "default";
 }
 
 bundle agent __main__

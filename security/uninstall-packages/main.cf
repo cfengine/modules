@@ -6,8 +6,7 @@ body file control
 bundle agent uninstall_packages
 {
   vars:
-    "i"
-      slist => getindices(package_names);
+    "i" slist => getindices(package_names);
 
   packages:
     "$(package_names[$(i)][name])"

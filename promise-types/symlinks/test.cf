@@ -2,28 +2,19 @@ body common control
 {
   inputs => { "$(sys.libdir)/stdlib.cf" };
   version => "1.0";
-  bundlesequence => { "init", "test", "check", "cleanup"};
+  bundlesequence => { "init", "test", "check", "cleanup" };
 }
-
 #######################################################
-
 bundle agent init
 {
   files:
-    "/tmp/my-file"
-      create => "true";
-    "/tmp/my-dir/."
-      create => "true";
-    "/tmp/other-dir/."
-      create => "true";
-    "/tmp/replaced-link"
-      link_from => ln_s("/tmp/other-dir");
-    "/tmp/already-existing-link"
-      link_from => ln_s("/tmp/other-dir");
+    "/tmp/my-file" create => "true";
+    "/tmp/my-dir/." create => "true";
+    "/tmp/other-dir/." create => "true";
+    "/tmp/replaced-link" link_from => ln_s("/tmp/other-dir");
+    "/tmp/already-existing-link" link_from => ln_s("/tmp/other-dir");
 }
-
 #######################################################
-
 promise agent symlinks
 {
   path => "$(this.promise_dirname)/symlinks.py";
@@ -46,36 +37,33 @@ bundle agent test
     "/tmp/file-link"
       file => "/tmp/my-file",
       classes => outcome("created_file");
+
     "/tmp/dir-link"
       directory => "/tmp/my-dir",
       classes => outcome("created_dir");
+
     "/tmp/replaced-link"
       directory => "/tmp/my-dir",
       classes => outcome("corrected");
+
     "/tmp/already-existing-link"
       directory => "/tmp/other-dir",
       classes => outcome("didnothing");
-
 }
-
 #######################################################
-
 bundle agent check
 {
-
   vars:
-    "my_file_stat"
-      string => filestat("/tmp/file-link", "linktarget");
-    "my_dir_stat"
-      string => filestat("/tmp/dir-link", "linktarget");
-    "replaced_link_stat"
-      string => filestat("/tmp/replaced-link", "linktarget");
+    "my_file_stat" string => filestat("/tmp/file-link", "linktarget");
+    "my_dir_stat" string => filestat("/tmp/dir-link", "linktarget");
+    "replaced_link_stat" string => filestat("/tmp/replaced-link", "linktarget");
+
     "already_existing_link_stat"
       string => filestat("/tmp/already-existing-link", "linktarget");
 
   classes:
     "ok"
-      expression => and (
+      expression => and(
         strcmp("$(my_file_stat)", "/tmp/my-file"),
         strcmp("$(my_dir_stat)", "/tmp/my-dir"),
         strcmp("$(replaced_link_stat)", "/tmp/my-dir"),
@@ -89,28 +77,19 @@ bundle agent check
   reports:
     ok::
       "$(this.promise_filename) Pass";
+
     !ok::
       "$(this.promise_filename) FAIL";
-
 }
-
 # #######################################################
-
 bundle agent cleanup
 {
   files:
-    "/tmp/file-link"
-      delete => tidy;
-    "/tmp/dir-link"
-      delete => tidy;
-    "/tmp/my-file"
-      delete => tidy;
-    "/tmp/my-dir/."
-      delete => tidy;
-    "/tmp/other-dir/."
-      delete => tidy;
-    "/tmp/replaced-link"
-      delete => tidy;
-    "/tmp/already-existing-link"
-      delete => tidy;
+    "/tmp/file-link" delete => tidy;
+    "/tmp/dir-link" delete => tidy;
+    "/tmp/my-file" delete => tidy;
+    "/tmp/my-dir/." delete => tidy;
+    "/tmp/other-dir/." delete => tidy;
+    "/tmp/replaced-link" delete => tidy;
+    "/tmp/already-existing-link" delete => tidy;
 }

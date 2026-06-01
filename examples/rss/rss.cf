@@ -1,4 +1,3 @@
-
 promise agent rss
 {
   path => "$(example_rss_promise_common.path)";
@@ -15,29 +14,36 @@ bundle agent example_rss_promise
 # @brief Promise a files content to be the =description= of an item selected from a channel in an RSS feed
 {
   rss:
-    "/tmp/ISS-oldest.txt" # Contains Item description
-    # REPAIRED if content on disk changes
-    # KEPT if content on disk does not need changed
-    # NOTKEPT if unable to fetch rss, unable to re-write content
+    "/tmp/ISS-oldest.txt"
+      # Contains Item description
+      # REPAIRED if content on disk changes
+      # KEPT if content on disk does not need changed
+      # NOTKEPT if unable to fetch rss, unable to re-write content
+      # Default to newest
       feed => "https://blogs.nasa.gov/stationreport/feed/",
-      select => "oldest"; # Default to newest
+      select => "oldest";
 
-    "/tmp/ISS-random.txt" # Contains Item description
-    # REPAIRED if content on disk changes
-    # KEPT if content on disk does not need changed
-    # NOTKEPT if unable to fetch rss, unable to re-write content
+    "/tmp/ISS-random.txt"
+      # Contains Item description
+      # REPAIRED if content on disk changes
+      # KEPT if content on disk does not need changed
+      # NOTKEPT if unable to fetch rss, unable to re-write content
+      # Default to newest
       feed => "https://blogs.nasa.gov/stationreport/feed/",
-      select => "random"; # Default to newest
+      select => "random";
 
-    "/tmp/ISS-newest-from-local-file-source.txt" # Contains Item description
-    # REPAIRED if content on disk changes
-    # KEPT if content on disk does not need changed
-    # NOTKEPT if unable to fetch rss, unable to re-write content
+    "/tmp/ISS-newest-from-local-file-source.txt"
+      # Contains Item description
+      # REPAIRED if content on disk changes
+      # KEPT if content on disk does not need changed
+      # NOTKEPT if unable to fetch rss, unable to re-write content
+      # Default to newest
       feed => "/tmp/iss.xml",
-      select => "newest"; # Default to newest
+      select => "newest";
 }
 
 bundle agent __main__
 {
-  methods: "example_rss_promise";
+  methods:
+    "example_rss_promise";
 }

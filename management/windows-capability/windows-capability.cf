@@ -1,12 +1,19 @@
 bundle agent windows_capability_installed(capability_name)
 {
   methods:
-    "Installed" usebundle => windows_capability:_windows_capability_state("${capability_name}", "Installed");
+    "Installed"
+      usebundle => windows_capability:_windows_capability_state(
+        "${capability_name}", "Installed"
+      );
 }
+
 bundle agent windows_optionial_capability_notpresent(capability_name)
 {
   methods:
-    "NotPresent" usebundle => windows_capability:_windows_capability_state("${capability_name}", "NotPresent");
+    "NotPresent"
+      usebundle => windows_capability:_windows_capability_state(
+        "${capability_name}", "NotPresent"
+      );
 }
 
 bundle agent windows_capability
@@ -20,7 +27,6 @@ body file control
 {
   namespace => "windows_capability";
 }
-
 # https://learn.microsoft.com/en-us/powershell/module/dism/get-windowscapability?view=windowsserver2022-ps
 # https://learn.microsoft.com/en-us/powershell/module/dism/remove-windowscapability?view=windowsserver2022-ps
 # https://learn.microsoft.com/en-us/powershell/module/dism/add-windowscapability?view=windowsserver2022-ps
@@ -28,12 +34,17 @@ bundle agent _inventory
 {
   vars:
     windows::
-      "cache_file" string => "${sys.statedir}${const.dirsep}${this.namespace}_cache.csv";
-      "command" string => "Get-WindowsCapability -Online | ConvertTo-Csv -notypeinformation | select-object -skip 1 | Set-Content -Path '${cache_file}'";
+      "cache_file"
+        string => "${sys.statedir}${const.dirsep}${this.namespace}_cache.csv";
+
+      "command"
+        string => "Get-WindowsCapability -Online | ConvertTo-Csv -notypeinformation | select-object -skip 1 | Set-Content -Path '${cache_file}'";
 
       "csv" data => readcsv("${cache_file}");
       "i" slist => getindices("csv");
-      "${this.namespace}[${i}]" string => "${csv[${i}][0]}:${csv[${i}][1]}",
+
+      "${this.namespace}[${i}]"
+        string => "${csv[${i}][0]}:${csv[${i}][1]}",
         meta => { "inventory", "attribute_name=Windows Capability" };
 
   files:
@@ -42,20 +53,27 @@ bundle agent _inventory
       delete => default:tidy;
 
   commands:
-   windows::
-     "${command}"
-       if => not(fileexists("${cache_file}")),
-       contain => default:powershell;
+    windows::
+      "${command}"
+        if => not(fileexists("${cache_file}")),
+        contain => default:powershell;
 }
-
 
 bundle agent _windows_capability_state(capability_name, desired_state)
 {
   vars:
-    "operation" string => ifelse(strcmp("${desired_state}", "Installed"), "Add", "Remove");
+    "operation"
+      string => ifelse(
+        strcmp("${desired_state}", "Installed"), "Add", "Remove"
+      );
+
   classes:
     windows::
-      "state_not_ok" expression => returnszero("if((Get-WindowsCapability -Online -Name ${capability_name} | select-object -expandproperty state) -ne '${desired_state}'){exit 0}else{exit 1}", "powershell");
+      "state_not_ok"
+        expression => returnszero(
+          "if((Get-WindowsCapability -Online -Name ${capability_name} | select-object -expandproperty state) -ne '${desired_state}'){exit 0}else{exit 1}",
+          "powershell"
+        );
 
   commands:
     windows.state_not_ok::
@@ -65,6 +83,5 @@ bundle agent _windows_capability_state(capability_name, desired_state)
 
   files:
     windows.state_repaired::
-      "${_inventory.cache_file}"
-        delete => default:tidy;
+      "${_inventory.cache_file}" delete => default:tidy;
 }
