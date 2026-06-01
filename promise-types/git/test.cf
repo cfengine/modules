@@ -2,9 +2,7 @@ body common control
 {
   version => "1.0";
 }
-
 #######################################################
-
 bundle agent init
 {
   files:
@@ -13,8 +11,7 @@ bundle agent init
       file_select => all,
       delete => init_delete;
 
-    "$(this.promise_dirname)/starter-pack/."
-      delete => init_delete;
+    "$(this.promise_dirname)/starter-pack/." delete => init_delete;
 }
 
 body depth_search aggressive
@@ -35,15 +32,13 @@ body file_select all
 body delete init_delete
 {
   dirlinks => "delete";
-  rmdirs   => "true";
+  rmdirs => "true";
 }
-
 #######################################################
-
 promise agent git
 {
-    path        => "$(this.promise_dirname)/git.py";
-    interpreter => "/usr/bin/python3";
+  path => "$(this.promise_dirname)/git.py";
+  interpreter => "/usr/bin/python3";
 }
 
 bundle agent test
@@ -54,34 +49,32 @@ bundle agent test
 
   git:
     "starter_pack_repo"
-      repository  => "https://github.com/cfengine/starter_pack",
+      repository => "https://github.com/cfengine/starter_pack",
       destination => "$(this.promise_dirname)/starter-pack",
-      version     => "master";
+      version => "master";
 
   classes:
-      "promise_repaired"
-        expression => canonify("starter_pack_repo_updated"),
-        scope => "namespace";
+    "promise_repaired"
+      expression => canonify("starter_pack_repo_updated"),
+      scope => "namespace";
 }
-
 #######################################################
-
 bundle agent check
 {
   classes:
-      "file_ok"
-        if => fileexists("$(this.promise_dirname)/starter-pack/.git");
-
-      "ok" expression => "file_ok.promise_repaired";
+    "file_ok" if => fileexists("$(this.promise_dirname)/starter-pack/.git");
+    "ok" expression => "file_ok.promise_repaired";
 
   reports:
     DEBUG.file_ok::
       "file_ok";
+
     DEBUG.promise_repaired::
       "promise_repaired";
 
     ok::
       "$(this.promise_filename) Pass";
+
     !ok::
       "$(this.promise_filename) FAIL";
 }

@@ -3,8 +3,6 @@
 # Note: As of 3.20.0, custom promise modules support the use of custom bodies.
 #       Versions before 3.20.0 uses JSON strings or data containers to define
 #       members instead.
-
-
 promise agent groups
 # @brief Define groups promise type.
 {
@@ -21,17 +19,16 @@ body members foo
   exclude => { "malcom" };
 }
 @else
+
 bundle common foo
 # @breif Define members using JSON string.
 {
   vars:
-      "members"
-        string => '{ "include": ["alice", "bob"],
+    "members"
+      string => '{ "include": ["alice", "bob"],
                      "exclude": ["malcom"] }';
 }
 @endif
-
-
 @if minimum_version(3.20)
 body members bar
 # @breif Define members for group bar using attribute `only`.
@@ -39,58 +36,51 @@ body members bar
   only => { "alice" };
 }
 @else
+
 bundle common bar
 # @brief Define members using data container.
 {
   vars:
-      "members"
-        data => '{ "only": ["alice"] }';
+    "members" data => '{ "only": ["alice"] }';
 }
 @endif
-
 
 bundle agent example_groups
 # @breif Example groups promise statements.
 {
   groups:
-      "foo"
-        policy => "present",
+    "foo"
+      policy => "present",
 @if minimum_version(3.20)
-        members => foo;
+      members => foo;
 @else
-        members => "$(foo.members)";
+      members => "$(foo.members)";
 @endif
 
-      "bar"
+    "bar"
       # policy defaults to present
 @if minimum_version(3.20)
-        members => bar,
+      members => bar,
 @else
-        members => "@(bar.members)",
+      members => "@(bar.members)",
 @endif
-        gid => "1234";
+      gid => "1234";
 
-      "baz"
-        policy => "absent";
+    "baz" policy => "absent";
 }
-
 
 bundle agent example_users
 # @breif Create users for the groups example.
 {
   users:
-      "alice"
-        policy => "present";
-      "bob"
-        policy => "present";
-      "malcom"
-        policy => "present";
+    "alice" policy => "present";
+    "bob" policy => "present";
+    "malcom" policy => "present";
 }
-
 
 bundle agent __main__
 {
   methods:
-      "example_users";
-      "example_groups";
+    "example_users";
+    "example_groups";
 }

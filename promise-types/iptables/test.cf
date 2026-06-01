@@ -1,49 +1,44 @@
 promise agent iptables
 {
-    path => "$(sys.workdir)/modules/promises/iptables.py";
-    interpreter => "/usr/bin/python3";
+  path => "$(sys.workdir)/modules/promises/iptables.py";
+  interpreter => "/usr/bin/python3";
 }
 
 body common control
 {
-    bundlesequence => {
-       aggressive_policy,
-       input_flushed,
-       all_flushed,
-    };
+  bundlesequence => { aggressive_policy, input_flushed, all_flushed };
 }
 
 bundle agent aggressive_policy
 {
   iptables:
-      "aggressive_policy"
-        command => "policy",
-        chain => "INPUT",
-        target => "DROP";
+    "aggressive_policy"
+      command => "policy",
+      chain => "INPUT",
+      target => "DROP";
 
   reports:
-      "--- ${this.bundle} ---";
+    "--- ${this.bundle} ---";
 }
 
 bundle agent input_flushed
 {
   iptables:
-      "input_flushed"
-        command => "flush",
-        chain => "INPUT";
+    "input_flushed"
+      command => "flush",
+      chain => "INPUT";
 
   reports:
-      "--- ${this.bundle} ---";
+    "--- ${this.bundle} ---";
 }
 
 bundle agent all_flushed
 {
   iptables:
-      "all_flushed"
-        command => "flush",
-        chain => "ALL";
+    "all_flushed"
+      command => "flush",
+      chain => "ALL";
 
   reports:
-      "--- ${this.bundle} ---";
+    "--- ${this.bundle} ---";
 }
-

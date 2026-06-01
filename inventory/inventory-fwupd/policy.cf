@@ -21,7 +21,6 @@
 #   UPDATES_AVAILABLE   - one or more devices have firmware updates pending
 #   NO_DEVICES          - fwupd present but reports no updatable devices
 #   FWUPD_MISSING       - fwupd not installed on the host
-
 bundle agent inventory_fwupd_main
 {
   vars:
@@ -29,41 +28,63 @@ bundle agent inventory_fwupd_main
       # Public API: referenced by manage-fwupd and other consumers.
       "fwupdmgr"
         string => ifelse(
-          fileexists("/usr/bin/fwupdmgr"), "/usr/bin/fwupdmgr",
-          fileexists("/usr/local/bin/fwupdmgr"), "/usr/local/bin/fwupdmgr",
-          "/usr/bin/fwupdmgr");
+          fileexists("/usr/bin/fwupdmgr"),
+          "/usr/bin/fwupdmgr",
+          fileexists("/usr/local/bin/fwupdmgr"),
+          "/usr/local/bin/fwupdmgr",
+          "/usr/bin/fwupdmgr"
+        );
 
-      "_fwupd_dir"   string => "$(sys.statedir)/fwupd";
+      "_fwupd_dir" string => "$(sys.statedir)/fwupd";
       "_devices_src" string => "/var/cache/fwupd/devices.json";
       "_updates_src" string => "$(_fwupd_dir)/inventory_updates.json";
       "_security_src" string => "$(_fwupd_dir)/inventory_security.json";
-      "_cache"       string => "$(_fwupd_dir)/inventory_cache";
-      "_template"    string => "$(this.promise_dirname)/fwupd-inventory.mustache";
+      "_cache" string => "$(_fwupd_dir)/inventory_cache";
+      "_template" string => "$(this.promise_dirname)/fwupd-inventory.mustache";
 
       # TTLs in seconds for the fwupdmgr-derived JSON caches.
-      "_updates_ttl"  string => "43200";   # 12 h
-      "_security_ttl" string => "86400";   # 24 h
+      "_updates_ttl" string => "43200";
 
+      # 12 h
+      "_security_ttl" string => "86400";
+
+      # 24 h
       # Pre-compute file mtimes here rather than calling filestat() inline
       # inside class expressions: nested $(filestat($(path), mtime)) does not
       # expand reliably inside isgreaterthan(), so the staleness comparisons
       # silently never match. Defaulting to "0" when a file is missing lets
       # the class expressions below stay simple and total.
       "_cache_mtime"
-        string => ifelse(fileexists("$(_cache)"),
-                         filestat("$(_cache)", "mtime"), "0");
-      "_devices_mtime"
-        string => ifelse(fileexists("$(_devices_src)"),
-                         filestat("$(_devices_src)", "mtime"), "0");
-      "_updates_mtime"
-        string => ifelse(fileexists("$(_updates_src)"),
-                         filestat("$(_updates_src)", "mtime"), "0");
-      "_security_mtime"
-        string => ifelse(fileexists("$(_security_src)"),
-                         filestat("$(_security_src)", "mtime"), "0");
+        string => ifelse(
+          fileexists("$(_cache)"), filestat("$(_cache)", "mtime"), "0"
+        );
 
-      "_updates_age"  string => eval("$(sys.systime) - $(_updates_mtime)", "math", "infix");
-      "_security_age" string => eval("$(sys.systime) - $(_security_mtime)", "math", "infix");
+      "_devices_mtime"
+        string => ifelse(
+          fileexists("$(_devices_src)"),
+          filestat("$(_devices_src)", "mtime"),
+          "0"
+        );
+
+      "_updates_mtime"
+        string => ifelse(
+          fileexists("$(_updates_src)"),
+          filestat("$(_updates_src)", "mtime"),
+          "0"
+        );
+
+      "_security_mtime"
+        string => ifelse(
+          fileexists("$(_security_src)"),
+          filestat("$(_security_src)", "mtime"),
+          "0"
+        );
+
+      "_updates_age"
+        string => eval("$(sys.systime) - $(_updates_mtime)", "math", "infix");
+
+      "_security_age"
+        string => eval("$(sys.systime) - $(_security_mtime)", "math", "infix");
 
       # /proc/1 mtime is when PID 1 (init) was exec'd, i.e., boot time on
       # Linux. Used below to force a refresh of the updates cache after a
@@ -71,15 +92,17 @@ bundle agent inventory_fwupd_main
       # snapshot that still lists devices whose updates have already been
       # activated.
       "_boot_mtime"
-        string => ifelse(fileexists("/proc/1"),
-                         filestat("/proc/1", "mtime"), "0");
+        string => ifelse(
+          fileexists("/proc/1"), filestat("/proc/1", "mtime"), "0"
+        );
 
   classes:
     linux::
       "have_fwupdmgr"
         scope => "namespace",
         expression => isexecutable("$(fwupdmgr)");
-      "_have_devices"  expression => fileexists("$(_devices_src)");
+
+      "_have_devices" expression => fileexists("$(_devices_src)");
 
       # CPU vendor classes for platform-specific compliance conditions.
       # /proc/cpuinfo vendor_id: "GenuineIntel" or "AuthenticAMD".
@@ -87,6 +110,7 @@ bundle agent inventory_fwupd_main
         scope => "namespace",
         meta => { "report" },
         expression => regline("vendor_id.*GenuineIntel", "/proc/cpuinfo");
+
       "fwupd_cpu_vendor_amd"
         scope => "namespace",
         meta => { "report" },
@@ -98,15 +122,17 @@ bundle agent inventory_fwupd_main
       "fwupd_oem_vendor_hp"
         scope => "namespace",
         meta => { "report" },
-        expression => regline("(HP Inc\.|Hewlett-Packard)",
-                              "/sys/class/dmi/id/sys_vendor");
+        expression => regline(
+          "(HP Inc\.|Hewlett-Packard)", "/sys/class/dmi/id/sys_vendor"
+        );
 
     linux.have_fwupdmgr::
-      "_updates_stale"
-        not => fileexists("$(_updates_src)");
+      "_updates_stale" not => fileexists("$(_updates_src)");
+
       "_updates_stale"
         expression => isgreaterthan("$(_updates_age)", "$(_updates_ttl)"),
         if => fileexists("$(_updates_src)");
+
       # Force refresh after a reboot: a pre-boot cache may still list
       # devices whose updates have been activated by the boot, and
       # consumers (manage-fwupd) would otherwise repeatedly re-apply
@@ -115,8 +141,8 @@ bundle agent inventory_fwupd_main
         expression => islessthan("$(_updates_mtime)", "$(_boot_mtime)"),
         if => fileexists("$(_updates_src)");
 
-      "_security_stale"
-        not => fileexists("$(_security_src)");
+      "_security_stale" not => fileexists("$(_security_src)");
+
       "_security_stale"
         expression => isgreaterthan("$(_security_age)", "$(_security_ttl)"),
         if => fileexists("$(_security_src)");
@@ -125,53 +151,69 @@ bundle agent inventory_fwupd_main
       # Module-protocol cache must be rebuilt when any of the source JSON
       # files is newer than the cache itself, or when the cache is missing.
       "_cache_missing" not => fileexists("$(_cache)");
+
       "_cache_stale_devices"
         expression => isgreaterthan("$(_devices_mtime)", "$(_cache_mtime)");
+
       "_cache_stale_updates"
         expression => isgreaterthan("$(_updates_mtime)", "$(_cache_mtime)"),
         if => "have_fwupdmgr";
+
       "_cache_stale_security"
         expression => isgreaterthan("$(_security_mtime)", "$(_cache_mtime)"),
         if => "have_fwupdmgr";
+
       "_rebuild_cache"
-        or => { "_cache_missing", "_cache_stale_devices",
-                "_cache_stale_updates", "_cache_stale_security" };
+        or => {
+          "_cache_missing",
+          "_cache_stale_devices",
+          "_cache_stale_updates",
+          "_cache_stale_security",
+        };
 
   vars:
     linux.have_fwupdmgr._updates_stale::
       "_updates_raw"
         string => execresult("$(fwupdmgr) get-updates --json", "noshell");
+
       "_updates_payload"
-        string => ifelse(regcmp("\s*\{.*", "$(_updates_raw)"),
-                         "$(_updates_raw)",
-                         '{"Devices":[]}');
+        string => ifelse(
+          regcmp("\s*\{.*", "$(_updates_raw)"),
+          "$(_updates_raw)",
+          '{"Devices":[]}'
+        );
 
     linux.have_fwupdmgr._security_stale::
       "_security_raw"
         string => execresult("$(fwupdmgr) security --json", "noshell");
+
       "_security_payload"
-        string => ifelse(regcmp("\s*\{.*", "$(_security_raw)"),
-                         "$(_security_raw)",
-                         '{"SecurityAttributes":[]}');
+        string => ifelse(
+          regcmp("\s*\{.*", "$(_security_raw)"),
+          "$(_security_raw)",
+          '{"SecurityAttributes":[]}'
+        );
 
   files:
     linux::
-      "$(_fwupd_dir)/."
-        create => "true";
+      "$(_fwupd_dir)/." create => "true";
 
     linux.have_fwupdmgr._updates_stale::
-      "$(_updates_src)"
-        content => "$(_updates_payload)";
+      "$(_updates_src)" content => "$(_updates_payload)";
 
     linux.have_fwupdmgr._security_stale::
-      "$(_security_src)"
-        content => "$(_security_payload)";
+      "$(_security_src)" content => "$(_security_payload)";
 
   methods:
     linux._have_devices._rebuild_cache::
-      "render" usebundle => inventory_fwupd_render(
-        "$(_devices_src)", "$(_updates_src)", "$(_security_src)",
-        "$(_template)", "$(_cache)");
+      "render"
+        usebundle => inventory_fwupd_render(
+          "$(_devices_src)",
+          "$(_updates_src)",
+          "$(_security_src)",
+          "$(_template)",
+          "$(_cache)"
+        );
 
     linux.have_fwupdmgr::
       # HSI rollup is small (typically <40 attributes) and computed inline.
@@ -179,17 +221,20 @@ bundle agent inventory_fwupd_main
       # cache because filtering objects out of a data container and reshaping
       # them into a mustache-iterable list is more code than just iterating
       # and tagging the few results with inventory meta.
-      "hsi" usebundle => inventory_fwupd_hsi("$(_security_src)"),
+      "hsi"
+        usebundle => inventory_fwupd_hsi("$(_security_src)"),
         if => fileexists("$(_security_src)");
 
       # Per-device pending firmware update inventory, emitted natively
       # from the updates JSON cache. Mirrors the HSI bundle idiom.
-      "updates" usebundle => inventory_fwupd_updates("$(_updates_src)"),
+      "updates"
+        usebundle => inventory_fwupd_updates("$(_updates_src)"),
         if => fileexists("$(_updates_src)");
 
       # Per-device firmware inventory, emitted natively from the devices
       # JSON cache. Mirrors the HSI bundle idiom.
-      "devices" usebundle => inventory_fwupd_devices("$(_devices_src)"),
+      "devices"
+        usebundle => inventory_fwupd_devices("$(_devices_src)"),
         if => fileexists("$(_devices_src)");
 
   classes:
@@ -221,65 +266,70 @@ bundle agent inventory_fwupd_render(devices_src, updates_src, security_src, temp
 # caller then loads every inventory variable in one shot.
 {
   vars:
-      "_template_body" string => readfile("$(template)", "inf");
+    "_template_body" string => readfile("$(template)", "inf");
+    "_devices_json" data => readjson("$(devices_src)");
+    "_dev_count" int => length("_devices_json[Devices]");
 
-      "_devices_json" data => readjson("$(devices_src)");
-      "_dev_count"    int  => length("_devices_json[Devices]");
+    "_updates_json"
+      data => readjson("$(updates_src)"),
+      if => fileexists("$(updates_src)");
 
-      "_updates_json"
-        data => readjson("$(updates_src)"),
-        if => fileexists("$(updates_src)");
-      "_updates_count"
-        int => length("_updates_json[Devices]"),
-        if => isvariable("_updates_json[Devices]");
+    "_updates_count"
+      int => length("_updates_json[Devices]"),
+      if => isvariable("_updates_json[Devices]");
 
-      "_security_json"
-        data => readjson("$(security_src)"),
-        if => fileexists("$(security_src)");
+    "_security_json"
+      data => readjson("$(security_src)"),
+      if => fileexists("$(security_src)");
 
-      # Default counters when fwupdmgr-derived data is not present.
-      "_updates_count"
-        int => "0",
-        if => not(isvariable("_updates_count"));
+    # Default counters when fwupdmgr-derived data is not present.
+    "_updates_count"
+      int => "0",
+      if => not(isvariable("_updates_count"));
 
-      # Status rollup
-      "_status"
-        string => ifelse(
-          isgreaterthan("$(_updates_count)", "0"), "UPDATES_AVAILABLE",
-          isgreaterthan("$(_dev_count)", "0"), "OK",
-          "NO_DEVICES");
+    # Status rollup
+    "_status"
+      string => ifelse(
+        isgreaterthan("$(_updates_count)", "0"),
+        "UPDATES_AVAILABLE",
+        isgreaterthan("$(_dev_count)", "0"),
+        "OK",
+        "NO_DEVICES"
+      );
 
-      # HSI inventory is emitted directly by inventory_fwupd_hsi rather than
-      # threaded through this cache, since reshaping filtered objects into a
-      # mustache-iterable list is more code than just tagging them in policy.
-      "_extra_json" string => format(
-        '{ "status": "%s" }',
-        "$(_status)");
-      "_extra" data => parsejson("$(_extra_json)");
+    # HSI inventory is emitted directly by inventory_fwupd_hsi rather than
+    # threaded through this cache, since reshaping filtered objects into a
+    # mustache-iterable list is more code than just tagging them in policy.
+    "_extra_json" string => format('{ "status": "%s" }', "$(_status)");
+    "_extra" data => parsejson("$(_extra_json)");
 
-      # Measurements file: one key=value per line, read by
-      # inventory_fwupd_monitor for time-series tracking.
-      "_measurements_path" string => "$(sys.statedir)/fwupd/inventory_measurements";
-      "_measurements_body" string => format(
+    # Measurements file: one key=value per line, read by
+    # inventory_fwupd_monitor for time-series tracking.
+    "_measurements_path"
+      string => "$(sys.statedir)/fwupd/inventory_measurements";
+
+    "_measurements_body"
+      string => format(
         "firmware_devices_total=%d$(const.n)firmware_updates_available=%d",
-        "$(_dev_count)", "$(_updates_count)");
+        "$(_dev_count)",
+        "$(_updates_count)"
+      );
 
-      # Mergedata combines device data, status counters, and optional
-      # extra top-level keys into a single data structure for mustache rendering.
-      # Note: pending-update inventory is emitted natively via
-      # inventory_fwupd_updates() rather than threaded through this cache,
-      # because Releases[0].Version cannot be accessed from mustache templates.
-      "_merged" data => mergedata("_devices_json", "_extra");
+    # Mergedata combines device data, status counters, and optional
+    # extra top-level keys into a single data structure for mustache rendering.
+    # Note: pending-update inventory is emitted natively via
+    # inventory_fwupd_updates() rather than threaded through this cache,
+    # because Releases[0].Version cannot be accessed from mustache templates.
+    "_merged" data => mergedata("_devices_json", "_extra");
 
   files:
-      "$(cache)"
-        create => "true",
-        template_method => "inline_mustache",
-        edit_template_string => "$(_template_body)",
-        template_data => @(_merged);
+    "$(cache)"
+      create => "true",
+      template_method => "inline_mustache",
+      edit_template_string => "$(_template_body)",
+      template_data => @(_merged);
 
-      "$(_measurements_path)"
-        content => "$(_measurements_body)";
+    "$(_measurements_path)" content => "$(_measurements_body)";
 }
 
 bundle agent inventory_fwupd_hsi(security_src)
@@ -303,90 +353,117 @@ bundle agent inventory_fwupd_hsi(security_src)
 # An attribute is failing when its HsiResult differs from HsiResultSuccess.
 {
   classes:
-      "inventory_fwupd_hsi_failing_$(_idxes)"
-        not => strcmp("$(_result[$(_idxes)])", "$(_success[$(_idxes)])");
+    "inventory_fwupd_hsi_failing_$(_idxes)"
+      not => strcmp("$(_result[$(_idxes)])", "$(_success[$(_idxes)])");
 
-      # Per-level failure/success classes for the HSI rollup.
-      # If ANY attribute at level N fails, _hsi_LN_fail is defined.
-      # If ANY attribute at level N passes, _hsi_LN_pass is defined.
-      "_hsi_L$(_level[$(_idxes)])_fail"
-        expression => "inventory_fwupd_hsi_failing_$(_idxes)";
-      "_hsi_L$(_level[$(_idxes)])_pass"
-        not => "inventory_fwupd_hsi_failing_$(_idxes)";
+    # Per-level failure/success classes for the HSI rollup.
+    # If ANY attribute at level N fails, _hsi_LN_fail is defined.
+    # If ANY attribute at level N passes, _hsi_LN_pass is defined.
+    "_hsi_L$(_level[$(_idxes)])_fail"
+      expression => "inventory_fwupd_hsi_failing_$(_idxes)";
+
+    "_hsi_L$(_level[$(_idxes)])_pass"
+      not => "inventory_fwupd_hsi_failing_$(_idxes)";
 
   vars:
-      "_sec"   data  => readjson("$(security_src)");
-      "_idxes" slist => getindices("_sec[SecurityAttributes]");
+    "_sec" data => readjson("$(security_src)");
+    "_idxes" slist => getindices("_sec[SecurityAttributes]");
+    "_name[$(_idxes)]" string => "$(_sec[SecurityAttributes][$(_idxes)][Name])";
 
-      "_name[$(_idxes)]"
-        string => "$(_sec[SecurityAttributes][$(_idxes)][Name])";
-      "_level[$(_idxes)]"
-        string => "$(_sec[SecurityAttributes][$(_idxes)][HsiLevel])";
-      "_result[$(_idxes)]"
-        string => "$(_sec[SecurityAttributes][$(_idxes)][HsiResult])";
-      "_success[$(_idxes)]"
-        string => "$(_sec[SecurityAttributes][$(_idxes)][HsiResultSuccess])";
+    "_level[$(_idxes)]"
+      string => "$(_sec[SecurityAttributes][$(_idxes)][HsiLevel])";
 
-      "_status[$(_idxes)]"
-        string => ifelse(strcmp("$(_result[$(_idxes)])", "$(_success[$(_idxes)])"),
-                         "PASS", "FAIL");
+    "_result[$(_idxes)]"
+      string => "$(_sec[SecurityAttributes][$(_idxes)][HsiResult])";
 
-      # Normalized name for per-attribute inventory: the CSME version
-      # attribute has a dynamic Name containing the firmware version
-      # (e.g. "csme v0:16.1.40.2765") which would create a different
-      # inventory attribute on every host. Normalize it to a fixed name
-      # so compliance conditions can reference it statically.
-      "_inv_name[$(_idxes)]"
-        string => ifelse(regcmp("csme v.*", "$(_name[$(_idxes)])"),
-                         "CSME version",
-                         "$(_name[$(_idxes)])");
+    "_success[$(_idxes)]"
+      string => "$(_sec[SecurityAttributes][$(_idxes)][HsiResultSuccess])";
 
-      # Normalized level for per-attribute inventory: fwupd marks some
-      # attributes as HsiLevel 0 with a "runtime-issue" flag even though
-      # they contribute to scored HSI levels. Map them to their HSI spec
-      # level so inventory attribute names match compliance conditions.
-      #   UEFI secure boot  (org.fwupd.hsi.Uefi.SecureBoot) → HSI:1
-      #   CET OS Support    (org.fwupd.hsi.IntelCet.Active)  → HSI:3
-      "_inv_level[$(_idxes)]"
-        string => ifelse(strcmp("$(_name[$(_idxes)])", "UEFI secure boot"),
-                         "1",
-                         strcmp("$(_name[$(_idxes)])", "CET OS Support"),
-                         "3",
-                         "$(_level[$(_idxes)])");
+    "_status[$(_idxes)]"
+      string => ifelse(
+        strcmp("$(_result[$(_idxes)])", "$(_success[$(_idxes)])"),
+        "PASS",
+        "FAIL"
+      );
 
-      # Per-attribute inventory: one string variable per HSI check,
-      # named "Firmware HSI L<level>: <name>" with value PASS or FAIL.
-      # This enables per-check compliance report conditions.
-      "fwupd_hsi_check[$(_idxes)]"
-        string => "$(_status[$(_idxes)])",
-        meta => { "inventory",
-                  "attribute_name=Firmware HSI L$(_inv_level[$(_idxes)]): $(_inv_name[$(_idxes)])" };
+    # Normalized name for per-attribute inventory: the CSME version
+    # attribute has a dynamic Name containing the firmware version
+    # (e.g. "csme v0:16.1.40.2765") which would create a different
+    # inventory attribute on every host. Normalize it to a fixed name
+    # so compliance conditions can reference it statically.
+    "_inv_name[$(_idxes)]"
+      string => ifelse(
+        regcmp("csme v.*", "$(_name[$(_idxes)])"),
+        "CSME version",
+        "$(_name[$(_idxes)])"
+      );
 
-      "fwupd_hsi_attr[$(_idxes)]"
-        string => "$(_name[$(_idxes)]) (HSI L$(_level[$(_idxes)])): $(_result[$(_idxes)]) [$(_status[$(_idxes)])]",
-        meta => { "inventory", "attribute_name=Firmware HSI attributes" };
+    # Normalized level for per-attribute inventory: fwupd marks some
+    # attributes as HsiLevel 0 with a "runtime-issue" flag even though
+    # they contribute to scored HSI levels. Map them to their HSI spec
+    # level so inventory attribute names match compliance conditions.
+    #   UEFI secure boot  (org.fwupd.hsi.Uefi.SecureBoot) → HSI:1
+    #   CET OS Support    (org.fwupd.hsi.IntelCet.Active)  → HSI:3
+    "_inv_level[$(_idxes)]"
+      string => ifelse(
+        strcmp("$(_name[$(_idxes)])", "UEFI secure boot"),
+        "1",
+        strcmp("$(_name[$(_idxes)])", "CET OS Support"),
+        "3",
+        "$(_level[$(_idxes)])"
+      );
 
-      "fwupd_hsi_failing_count"
-        int => countclassesmatching("inventory_fwupd_hsi_failing_[0-9]+");
+    # Per-attribute inventory: one string variable per HSI check,
+    # named "Firmware HSI L<level>: <name>" with value PASS or FAIL.
+    # This enables per-check compliance report conditions.
+    "fwupd_hsi_check[$(_idxes)]"
+      string => "$(_status[$(_idxes)])",
+      meta => {
+        "inventory",
+        "attribute_name=Firmware HSI L$(_inv_level[$(_idxes)]): $(_inv_name[$(_idxes)])",
+      };
 
-      # Rolled-up HSI level: highest level with a pass where no level
-      # at or below it has a failure. Checks highest first so the
-      # first match wins. Mirrors fwupd's fu_security_attrs_calculate_hsi().
-      "fwupd_hsi_level"
-        string => ifelse(
-          and("_hsi_L4_pass", not("_hsi_L1_fail"), not("_hsi_L2_fail"), not("_hsi_L3_fail"), not("_hsi_L4_fail")), "HSI:4",
-          and("_hsi_L3_pass", not("_hsi_L1_fail"), not("_hsi_L2_fail"), not("_hsi_L3_fail")), "HSI:3",
-          and("_hsi_L2_pass", not("_hsi_L1_fail"), not("_hsi_L2_fail")), "HSI:2",
-          and("_hsi_L1_pass", not("_hsi_L1_fail")), "HSI:1",
-          "HSI:0"),
-        meta => { "inventory", "attribute_name=Firmware HSI level" };
+    "fwupd_hsi_attr[$(_idxes)]"
+      string => "$(_name[$(_idxes)]) (HSI L$(_level[$(_idxes)])): $(_result[$(_idxes)]) [$(_status[$(_idxes)])]",
+      meta => { "inventory", "attribute_name=Firmware HSI attributes" };
+
+    "fwupd_hsi_failing_count"
+      int => countclassesmatching("inventory_fwupd_hsi_failing_[0-9]+");
+
+    # Rolled-up HSI level: highest level with a pass where no level
+    # at or below it has a failure. Checks highest first so the
+    # first match wins. Mirrors fwupd's fu_security_attrs_calculate_hsi().
+    "fwupd_hsi_level"
+      string => ifelse(
+        and(
+          "_hsi_L4_pass",
+          not("_hsi_L1_fail"),
+          not("_hsi_L2_fail"),
+          not("_hsi_L3_fail"),
+          not("_hsi_L4_fail")
+        ),
+        "HSI:4",
+        and(
+          "_hsi_L3_pass",
+          not("_hsi_L1_fail"),
+          not("_hsi_L2_fail"),
+          not("_hsi_L3_fail")
+        ),
+        "HSI:3",
+        and("_hsi_L2_pass", not("_hsi_L1_fail"), not("_hsi_L2_fail")),
+        "HSI:2",
+        and("_hsi_L1_pass", not("_hsi_L1_fail")),
+        "HSI:1",
+        "HSI:0"
+      ),
+      meta => { "inventory", "attribute_name=Firmware HSI level" };
 
   files:
-      # Write HSI failing count to its own measurements file so
-      # cf-monitord can track it as a time-series metric.
-      "$(sys.statedir)/fwupd/measurements_hsi"
-        content => "firmware_hsi_failing_attributes=$(fwupd_hsi_failing_count)",
-        if => isvariable("fwupd_hsi_failing_count");
+    # Write HSI failing count to its own measurements file so
+    # cf-monitord can track it as a time-series metric.
+    "$(sys.statedir)/fwupd/measurements_hsi"
+      content => "firmware_hsi_failing_attributes=$(fwupd_hsi_failing_count)",
+      if => isvariable("fwupd_hsi_failing_count");
 }
 
 bundle agent inventory_fwupd_updates(updates_src)
@@ -402,17 +479,18 @@ bundle agent inventory_fwupd_updates(updates_src)
 # into JSON arrays, so we flatten it natively in CFEngine).
 {
   vars:
-      "_upd"   data  => readjson("$(updates_src)");
-      "_idxes" slist => getindices("_upd[Devices]");
+    "_upd" data => readjson("$(updates_src)");
+    "_idxes" slist => getindices("_upd[Devices]");
+    "_did[$(_idxes)]" string => "$(_upd[Devices][$(_idxes)][DeviceId])";
+    "_name[$(_idxes)]" string => "$(_upd[Devices][$(_idxes)][Name])";
+    "_oldv[$(_idxes)]" string => "$(_upd[Devices][$(_idxes)][Version])";
 
-      "_did[$(_idxes)]"  string => "$(_upd[Devices][$(_idxes)][DeviceId])";
-      "_name[$(_idxes)]" string => "$(_upd[Devices][$(_idxes)][Name])";
-      "_oldv[$(_idxes)]" string => "$(_upd[Devices][$(_idxes)][Version])";
-      "_newv[$(_idxes)]" string => "$(_upd[Devices][$(_idxes)][Releases][0][Version])";
+    "_newv[$(_idxes)]"
+      string => "$(_upd[Devices][$(_idxes)][Releases][0][Version])";
 
-      "fwupd_dev_pending[$(_did[$(_idxes)])]"
-        string => "$(_name[$(_idxes)]): $(_oldv[$(_idxes)]) -> $(_newv[$(_idxes)])",
-        meta => { "inventory", "attribute_name=Firmware device pending update" };
+    "fwupd_dev_pending[$(_did[$(_idxes)])]"
+      string => "$(_name[$(_idxes)]): $(_oldv[$(_idxes)]) -> $(_newv[$(_idxes)])",
+      meta => { "inventory", "attribute_name=Firmware device pending update" };
 }
 
 bundle agent inventory_fwupd_devices(devices_src)
@@ -425,19 +503,18 @@ bundle agent inventory_fwupd_devices(devices_src)
 # Name silently skip via the if => not(strcmp(...)) guard.
 {
   vars:
-      "_dev"   data  => readjson("$(devices_src)");
-      "_idxes" slist => getindices("_dev[Devices]");
+    "_dev" data => readjson("$(devices_src)");
+    "_idxes" slist => getindices("_dev[Devices]");
+    "_did[$(_idxes)]" string => "$(_dev[Devices][$(_idxes)][DeviceId])";
+    "_name[$(_idxes)]" string => "$(_dev[Devices][$(_idxes)][Name])";
+    "_vend[$(_idxes)]" string => "$(_dev[Devices][$(_idxes)][Vendor])";
+    "_ver[$(_idxes)]" string => "$(_dev[Devices][$(_idxes)][Version])";
+    "_plug[$(_idxes)]" string => "$(_dev[Devices][$(_idxes)][Plugin])";
 
-      "_did[$(_idxes)]"  string => "$(_dev[Devices][$(_idxes)][DeviceId])";
-      "_name[$(_idxes)]" string => "$(_dev[Devices][$(_idxes)][Name])";
-      "_vend[$(_idxes)]" string => "$(_dev[Devices][$(_idxes)][Vendor])";
-      "_ver[$(_idxes)]"  string => "$(_dev[Devices][$(_idxes)][Version])";
-      "_plug[$(_idxes)]" string => "$(_dev[Devices][$(_idxes)][Plugin])";
-
-      "fwupd_dev[$(_did[$(_idxes)])]"
-        string => "$(_name[$(_idxes)]) | $(_vend[$(_idxes)]) | v$(_ver[$(_idxes)]) | [$(_plug[$(_idxes)])]",
-        meta   => { "inventory", "attribute_name=Firmware devices" },
-        if     => not(strcmp("$(_name[$(_idxes)])", ""));
+    "fwupd_dev[$(_did[$(_idxes)])]"
+      string => "$(_name[$(_idxes)]) | $(_vend[$(_idxes)]) | v$(_ver[$(_idxes)]) | [$(_plug[$(_idxes)])]",
+      meta => { "inventory", "attribute_name=Firmware devices" },
+      if => not(strcmp("$(_name[$(_idxes)])", ""));
 }
 
 bundle monitor inventory_fwupd_monitor
@@ -481,12 +558,12 @@ bundle monitor inventory_fwupd_monitor
 
 body match_value inventory_fwupd_kv(key)
 {
-      select_line_matching => "$(key)=.*";
-      extraction_regex => "$(key)=(\d+)";
+  select_line_matching => "$(key)=.*";
+  extraction_regex => "$(key)=(\d+)";
 }
 
 bundle agent __main__
 {
   methods:
-      "main" usebundle => inventory_fwupd_main;
+    "main" usebundle => inventory_fwupd_main;
 }

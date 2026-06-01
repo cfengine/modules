@@ -8,8 +8,6 @@ promise agent symlinks
 bundle agent main
 {
   symlinks:
-    "/tmp/myfilelink" 
-      file => "tmp/myfile";
-    "/tmp/mydirlink" 
-      directory => "tmp/mydirectory";
+    "/tmp/myfilelink" file => "tmp/myfile";
+    "/tmp/mydirlink" directory => "tmp/mydirectory";
 }

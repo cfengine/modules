@@ -7,18 +7,20 @@ bundle agent uninstall_bind
 {
   vars:
     redhat|suse::
-      "pkg_name" slist => { "bind" }; # Name in yum
-    debian::
-      "pkg_name" slist => { "bind", "bind9" }; # name in apt
+      "pkg_name" slist => { "bind" };
 
+    # Name in yum
+    debian::
+      "pkg_name" slist => { "bind", "bind9" };
+  # name in apt
   classes:
-      "bind_allowed"
-        or => {
-          "hardening_bind_allowed",
-          "data:hardening_bind_allowed",
-          "exception_uninstall_bind",
-          "data:exception_uninstall_bind",
-        };
+    "bind_allowed"
+      or => {
+        "hardening_bind_allowed",
+        "data:hardening_bind_allowed",
+        "exception_uninstall_bind",
+        "data:exception_uninstall_bind",
+      };
 
   packages:
     !bind_allowed::

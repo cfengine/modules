@@ -9,7 +9,7 @@ bundle agent main
 {
   ansible:
     "my_playbook"
-      playbook  => "/tmp/playbook.yaml",
+      playbook => "/tmp/playbook.yaml",
       inventory => "/tmp/inventory.yaml",
-      tags      => {"helloworld"};
+      tags => { "helloworld" };
 }

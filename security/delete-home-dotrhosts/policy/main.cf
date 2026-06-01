@@ -1,6 +1,6 @@
 body file control
 {
-    namespace => "delete_home_dotrhosts";
+  namespace => "delete_home_dotrhosts";
 }
 
 bundle agent main
@@ -9,7 +9,6 @@ bundle agent main
 # @inventory ~/.rhosts list of ~.rhosts files found.
 # @inventory ~/.rhosts Exception The string defined that records the details about why a host has an exception for this policy.
 {
-
   classes:
     "dotrhosts_management_disabled"
       or => {
@@ -21,30 +20,29 @@ bundle agent main
 
   vars:
     dotrhosts_management_disabled::
-      "exception" # Fill in exception reason if missing (class was used)
+      "exception"
+        # Fill in exception reason if missing (class was used)
         string => "Unknown reason",
         if => not(isvariable("delete_home_dotrhosts:main.exception"));
 
     !default:windows::
-
       # /home and /root are common default home dir roots, but it's not uncommon
       # to have other home dir roots
-
       "home_dir_roots"
         slist => { "/home" },
         meta => { "noreport" },
-        if => not( isvariable( "home_dir_roots" ));
+        if => not(isvariable("home_dir_roots"));
 
-    # Find .rhosts files in the root of peoples home directories.
+      # Find .rhosts files in the root of peoples home directories.
       "_found[$(home_dir_roots)]"
-        slist => findfiles( "$(home_dir_roots)/*/.rhosts" ),
-        if => isdir( $(home_dir_roots) );
+        slist => findfiles("$(home_dir_roots)/*/.rhosts"),
+        if => isdir($(home_dir_roots));
+
       "_found[/root]"
         slist => { "/root/.rhosts" },
-        if => fileexists( "/root/.rhosts" );
+        if => fileexists("/root/.rhosts");
 
-      "_found"
-        slist => getvalues( _found );
+      "_found" slist => getvalues(_found);
 
       # We inventory the found files so that we easily know where they are.
       # This way, even hosts with exceptions will report the inventory, but not
@@ -60,16 +58,15 @@ bundle agent main
 
       "inv_exception"
         string => "$(exception)",
-        if => isvariable( "exception" ),
+        if => isvariable("exception"),
         meta => { "inventory", "attribute_name=~/.rhosts exception reason" };
 
   files:
     !dotrhosts_management_disabled.!default:windows::
-      "$(_found)"
-        delete => default:tidy;
+      "$(_found)" delete => default:tidy;
 
   reports:
     dotrhosts_management_disabled.(default:inform_mode|default:verbose_mode)::
       "Found $(with), but not removing because of exception: $(exception)"
-        with => join( ", ", _found );
+        with => join(", ", _found);
 }

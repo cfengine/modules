@@ -7,7 +7,9 @@ bundle agent main
 {
   classes:
     "enabled"
-      if => and(isvariable(packages_to_install), isvariable(packages_to_uninstall));
+      if => and(
+        isvariable(packages_to_install), isvariable(packages_to_uninstall)
+      );
 
   vars:
     # Mock data, should be based on input:
@@ -21,14 +23,16 @@ bundle agent main
     #   ]';
     enabled::
       # Determine packages to install:
-      "i"
-        slist => getindices(packages_to_install);
+      "i" slist => getindices(packages_to_install);
+
       "_packages_to_install_lists[$(i)]"
-        slist => string_split("$(packages_to_install[$(i)][packages])", ",", 100),
+        slist => string_split(
+          "$(packages_to_install[$(i)][packages])", ",", 100
+        ),
         if => "$(packages_to_install[$(i)][condition])",
         comment => "$(packages_to_install[$(i)][why])";
-      "_packages_to_install"
-        slist => getvalues(_packages_to_install_lists);
+
+      "_packages_to_install" slist => getvalues(_packages_to_install_lists);
 
       # Determine packages to uninstall:
       "_packages_to_uninstall_unfiltered"
@@ -36,16 +40,13 @@ bundle agent main
 
       "_packages_to_uninstall"
         slist => difference(
-          _packages_to_uninstall_unfiltered,
-          _packages_to_install
+          _packages_to_uninstall_unfiltered, _packages_to_install
         );
 
   packages:
     enabled::
-      "$(_packages_to_uninstall)"
-        policy => "absent";
-      "$(_packages_to_install)"
-        policy => "present";
+      "$(_packages_to_uninstall)" policy => "absent";
+      "$(_packages_to_install)" policy => "present";
 }
 
 body file control

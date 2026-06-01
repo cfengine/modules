@@ -7,18 +7,20 @@ bundle agent uninstall_talk
 {
   vars:
     redhat|suse::
-      "pkg_name" slist => { "talk", "talk-server" }; # Name in yum
-    debian::
-      "pkg_name" slist => { "talk", "talkd" }; # name in apt
+      "pkg_name" slist => { "talk", "talk-server" };
 
+    # Name in yum
+    debian::
+      "pkg_name" slist => { "talk", "talkd" };
+  # name in apt
   classes:
-      "talk_allowed"
-        or => {
-          "hardening_talk_allowed",
-          "data:hardening_talk_allowed",
-          "exception_uninstall_talk",
-          "data:exception_uninstall_talk",
-        };
+    "talk_allowed"
+      or => {
+        "hardening_talk_allowed",
+        "data:hardening_talk_allowed",
+        "exception_uninstall_talk",
+        "data:exception_uninstall_talk",
+      };
 
   packages:
     !talk_allowed::

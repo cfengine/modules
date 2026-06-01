@@ -7,18 +7,20 @@ bundle agent uninstall_samba
 {
   vars:
     redhat|suse::
-      "pkg_name" slist => { "samba" }; # Name in yum
-    debian::
-      "pkg_name" slist => { "samba" }; # name in apt
+      "pkg_name" slist => { "samba" };
 
+    # Name in yum
+    debian::
+      "pkg_name" slist => { "samba" };
+  # name in apt
   classes:
-      "samba_allowed"
-        or => {
-          "hardening_samba_allowed",
-          "data:hardening_samba_allowed",
-          "exception_uninstall_samba",
-          "data:exception_uninstall_samba",
-        };
+    "samba_allowed"
+      or => {
+        "hardening_samba_allowed",
+        "data:hardening_samba_allowed",
+        "exception_uninstall_samba",
+        "data:exception_uninstall_samba",
+      };
 
   packages:
     !samba_allowed::

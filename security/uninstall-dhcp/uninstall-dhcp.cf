@@ -7,18 +7,20 @@ bundle agent uninstall_dhcp
 {
   vars:
     redhat|suse::
-      "pkg_name" slist => { "dhcp" }; # Name in yum
-    debian::
-      "pkg_name" slist => { "isc-dhcp-server" }; # name in apt
+      "pkg_name" slist => { "dhcp" };
 
+    # Name in yum
+    debian::
+      "pkg_name" slist => { "isc-dhcp-server" };
+  # name in apt
   classes:
-      "dhcp_allowed"
-        or => {
-          "hardening_dhcp_allowed",
-          "data:hardening_dhcp_allowed",
-          "exception_uninstall_dhcp",
-          "data:exception_uninstall_dhcp",
-        };
+    "dhcp_allowed"
+      or => {
+        "hardening_dhcp_allowed",
+        "data:hardening_dhcp_allowed",
+        "exception_uninstall_dhcp",
+        "data:exception_uninstall_dhcp",
+      };
 
   packages:
     !dhcp_allowed::

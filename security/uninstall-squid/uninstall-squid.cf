@@ -7,18 +7,20 @@ bundle agent uninstall_squid
 {
   vars:
     redhat|suse::
-      "pkg_name" slist => { "squid" }; # Name in yum
-    debian::
-      "pkg_name" slist => { "squid" }; # name in apt
+      "pkg_name" slist => { "squid" };
 
+    # Name in yum
+    debian::
+      "pkg_name" slist => { "squid" };
+  # name in apt
   classes:
-      "squid_allowed"
-        or => {
-          "hardening_squid_allowed",
-          "data:hardening_squid_allowed",
-          "exception_uninstall_squid",
-          "data:exception_uninstall_squid",
-        };
+    "squid_allowed"
+      or => {
+        "hardening_squid_allowed",
+        "data:hardening_squid_allowed",
+        "exception_uninstall_squid",
+        "data:exception_uninstall_squid",
+      };
 
   packages:
     !squid_allowed::

@@ -1,6 +1,6 @@
 body file control
 {
-      namespace => "inventory_smartctl";
+  namespace => "inventory_smartctl";
 }
 
 bundle agent main
@@ -22,25 +22,35 @@ bundle agent main
 {
   vars:
     linux::
-      "_smartctl" string => ifelse(
-        fileexists("/usr/sbin/smartctl"), "/usr/sbin/smartctl",
-        fileexists("/sbin/smartctl"), "/sbin/smartctl",
-        "/usr/sbin/smartctl"  # default fallback
-      );
-      "_sdir"     string => "$(sys.statedir)";
-      "_cache_ttl" string => "3600";  # 1 hour
+      "_smartctl"
+        string => ifelse(
+          fileexists("/usr/sbin/smartctl"),
+          "/usr/sbin/smartctl",
+          fileexists("/sbin/smartctl"),
+          "/sbin/smartctl",
+          "/usr/sbin/smartctl"
+          # default fallback
+        );
 
+      "_sdir" string => "$(sys.statedir)";
+      "_cache_ttl" string => "3600";
+
+      # 1 hour
       # Enumerate drives - extract first field from each line of smartctl --scan
       "_scan_lines"
         slist => splitstring(
-          execresult("$(_smartctl) --scan 2>/dev/null", "useshell"),
-          "\n", 32);
+          execresult("$(_smartctl) --scan 2>/dev/null", "useshell"), "\n", 32
+        );
 
       "_drives"
-        slist => maplist(regex_replace("$(this)", "^(\S+).*", "\1", ""), "_scan_lines");
+        slist => maplist(
+          regex_replace("$(this)", "^(\S+).*", "\1", ""), "_scan_lines"
+        );
 
       "_id[${_drives}]" string => canonify("${_drives}");
-      "_cache[${_drives}]" string => "$(_sdir)/inventory_smartctl_${_id[${_drives}]}.json";
+
+      "_cache[${_drives}]"
+        string => "$(_sdir)/inventory_smartctl_${_id[${_drives}]}.json";
 
     linux._have_smartctl::
       # Rolled-up status: OK or DEGRADED (SMARTCTL_MISSING when smartctl absent)
@@ -115,20 +125,23 @@ bundle agent main
       "_cache_stale_${_id[${_drives}]}"
         expression => isgreaterthan(
           eval("$(sys.systime) - $(filestat(${_cache[${_drives}]}, mtime))"),
-          "$(_cache_ttl)"),
+          "$(_cache_ttl)"
+        ),
         if => fileexists("${_cache[${_drives}]}");
 
       # Refresh if missing or stale
       "_refresh_${_id[${_drives}]}"
         or => {
           "_cache_missing_${_id[${_drives}]}",
-          "_cache_stale_${_id[${_drives}]}"
+          "_cache_stale_${_id[${_drives}]}",
         };
 
   files:
     linux._have_smartctl::
       "${_cache[${_drives}]}"
-        content => execresult("$(_smartctl) -j -a ${_drives}", "noshell", "stdout"),
+        content => execresult(
+          "$(_smartctl) -j -a ${_drives}", "noshell", "stdout"
+        ),
         if => "_refresh_${_id[${_drives}]}";
 
   methods:
@@ -142,6 +155,7 @@ bundle agent main
   reports:
     linux._have_smartctl.verbose_mode::
       "inventory_smartctl: monitoring ${_drives}";
+
       "inventory_smartctl: ${_drives} health=${_d_${_id[${_drives}]}[health]}"
         if => isvariable("_d_${_id[${_drives}]}[health]");
 
@@ -153,58 +167,82 @@ bundle agent parse(drive, cache_file)
 # @brief Parse smartctl JSON and return key metrics via bundle_return_value_index
 {
   vars:
-      "_json" data => readjson("$(cache_file)");
+    "_json" data => readjson("$(cache_file)");
 
-      # Extract metrics directly from JSON
-      "_health"
-        string => ifelse(strcmp("${_json[smart_status][passed]}", "true"), "PASSED", "FAILED"),
-        if => isvariable("_json[smart_status][passed]");
+    # Extract metrics directly from JSON
+    "_health"
+      string => ifelse(
+        strcmp("${_json[smart_status][passed]}", "true"), "PASSED", "FAILED"
+      ),
+      if => isvariable("_json[smart_status][passed]");
 
-      "_model"
-        string => "${_json[model_name]}",
-        if => isvariable("_json[model_name]");
+    "_model"
+      string => "${_json[model_name]}",
+      if => isvariable("_json[model_name]");
 
-      "_temp"
-        string => "${_json[temperature][current]}",
-        if => isvariable("_json[temperature][current]");
+    "_temp"
+      string => "${_json[temperature][current]}",
+      if => isvariable("_json[temperature][current]");
 
-      "_hours"
-        string => "${_json[power_on_time][hours]}",
-        if => isvariable("_json[power_on_time][hours]");
+    "_hours"
+      string => "${_json[power_on_time][hours]}",
+      if => isvariable("_json[power_on_time][hours]");
 
-      "_nvme_spare"
-        string => "${_json[nvme_smart_health_information_log][available_spare]}",
-        if => isvariable("_json[nvme_smart_health_information_log][available_spare]");
+    "_nvme_spare"
+      string => "${_json[nvme_smart_health_information_log][available_spare]}",
+      if => isvariable(
+        "_json[nvme_smart_health_information_log][available_spare]"
+      );
 
-      "_nvme_pct_used"
-        string => "${_json[nvme_smart_health_information_log][percentage_used]}",
-        if => isvariable("_json[nvme_smart_health_information_log][percentage_used]");
+    "_nvme_pct_used"
+      string => "${_json[nvme_smart_health_information_log][percentage_used]}",
+      if => isvariable(
+        "_json[nvme_smart_health_information_log][percentage_used]"
+      );
 
-      "_nvme_media_errors"
-        string => "${_json[nvme_smart_health_information_log][media_errors]}",
-        if => isvariable("_json[nvme_smart_health_information_log][media_errors]");
+    "_nvme_media_errors"
+      string => "${_json[nvme_smart_health_information_log][media_errors]}",
+      if => isvariable(
+        "_json[nvme_smart_health_information_log][media_errors]"
+      );
 
   reports:
-      "$(_health)" bundle_return_value_index => "health",
-        if => isvariable("_health");
-      "$(_model)" bundle_return_value_index => "model",
-        if => isvariable("_model");
-      "$(_temp)" bundle_return_value_index => "temp",
-        if => isvariable("_temp");
-      "$(_hours)" bundle_return_value_index => "hours",
-        if => isvariable("_hours");
-      "$(_nvme_spare)" bundle_return_value_index => "nvme_spare",
-        if => isvariable("_nvme_spare");
-      "$(_nvme_pct_used)" bundle_return_value_index => "nvme_pct_used",
-        if => isvariable("_nvme_pct_used");
-      "$(_nvme_media_errors)" bundle_return_value_index => "nvme_media_errors",
-        if => isvariable("_nvme_media_errors");
+    "$(_health)"
+      bundle_return_value_index => "health",
+      if => isvariable("_health");
+
+    "$(_model)"
+      bundle_return_value_index => "model",
+      if => isvariable("_model");
+
+    "$(_temp)"
+      bundle_return_value_index => "temp",
+      if => isvariable("_temp");
+
+    "$(_hours)"
+      bundle_return_value_index => "hours",
+      if => isvariable("_hours");
+
+    "$(_nvme_spare)"
+      bundle_return_value_index => "nvme_spare",
+      if => isvariable("_nvme_spare");
+
+    "$(_nvme_pct_used)"
+      bundle_return_value_index => "nvme_pct_used",
+      if => isvariable("_nvme_pct_used");
+
+    "$(_nvme_media_errors)"
+      bundle_return_value_index => "nvme_media_errors",
+      if => isvariable("_nvme_media_errors");
 }
 
-body file control { namespace => "default"; }
+body file control
+{
+  namespace => "default";
+}
 
 bundle agent __main__
 {
   methods:
-      "inventory_smartctl:main";
+    "inventory_smartctl:main";
 }

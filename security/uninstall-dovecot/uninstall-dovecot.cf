@@ -7,18 +7,20 @@ bundle agent uninstall_dovecot
 {
   vars:
     redhat|suse::
-      "pkg_name" slist => { "dovecot" }; # Name in yum
-    debian::
-      "pkg_name" slist => { "dovecot-core" }; # name in apt
+      "pkg_name" slist => { "dovecot" };
 
+    # Name in yum
+    debian::
+      "pkg_name" slist => { "dovecot-core" };
+  # name in apt
   classes:
-      "dovecot_allowed"
-        or => {
-          "hardening_dovecot_allowed",
-          "data:hardening_dovecot_allowed",
-          "exception_uninstall_dovecot",
-          "data:exception_uninstall_dovecot",
-        };
+    "dovecot_allowed"
+      or => {
+        "hardening_dovecot_allowed",
+        "data:hardening_dovecot_allowed",
+        "exception_uninstall_dovecot",
+        "data:exception_uninstall_dovecot",
+      };
 
   packages:
     !dovecot_allowed::
