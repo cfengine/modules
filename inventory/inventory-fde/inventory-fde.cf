@@ -2,6 +2,7 @@ body file control
 {
   namespace => "inventory_fde";
 }
+
 # Duplicated from the CFEngine standard library so this module can be parsed
 # and tested standalone without loading the full masterfiles.
 # _tidy: lib/files.cf body delete tidy
@@ -200,8 +201,7 @@ bundle agent main
 
       "_luks1_dump[${_dm_devices}]"
         string => execresult(
-          "${_cryptsetup} luksDump ${_dm_slave_dev[${_dm_devices}]}",
-          "noshell"
+          "${_cryptsetup} luksDump ${_dm_slave_dev[${_dm_devices}]}", "noshell"
         ),
         if => canonify("_dm_is_luks1_${_dm_devices}");
 

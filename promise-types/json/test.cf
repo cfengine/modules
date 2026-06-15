@@ -4,6 +4,7 @@ body common control
   version => "1.0";
   bundlesequence => { "init", "test", "check", "cleanup" };
 }
+
 #######################################################
 bundle agent init
 {
@@ -29,6 +30,7 @@ bundle agent init
 
     "$(this.promise_dirname)/tests/to_append_1.json" create => "true";
 }
+
 #######################################################
 promise agent json
 {
@@ -73,14 +75,13 @@ bundle agent test
     "$(this.promise_dirname)/tests/to_append_2.json:f" primitive => "true";
     "$(this.promise_dirname)/tests/to_append_2.json:g" primitive => "null";
 }
+
 #######################################################
 bundle agent check
 {
   vars:
     "to_overwrite_content"
-      data => readjson(
-        "$(this.promise_dirname)/tests/to_overwrite.json", 100k
-      );
+      data => readjson("$(this.promise_dirname)/tests/to_overwrite.json", 100k);
 
     "to_modify_content"
       data => readjson("$(this.promise_dirname)/tests/to_modify.json", 100k);
@@ -148,6 +149,7 @@ bundle agent check
     !ok::
       "$(this.promise_filename) FAIL";
 }
+
 # #######################################################
 bundle agent cleanup
 {

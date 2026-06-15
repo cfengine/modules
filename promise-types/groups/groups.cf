@@ -9,7 +9,6 @@ promise agent groups
   path => "$(sys.workdir)/modules/promises/groups.py";
   interpreter => "/usr/bin/python3";
 }
-
 @if minimum_version(3.20)
 body members foo
 # @breif Define members for group foo using attributes `include` and
@@ -19,7 +18,6 @@ body members foo
   exclude => { "malcom" };
 }
 @else
-
 bundle common foo
 # @breif Define members using JSON string.
 {
@@ -36,7 +34,6 @@ body members bar
   only => { "alice" };
 }
 @else
-
 bundle common bar
 # @brief Define members using data container.
 {
@@ -44,7 +41,6 @@ bundle common bar
     "members" data => '{ "only": ["alice"] }';
 }
 @endif
-
 bundle agent example_groups
 # @breif Example groups promise statements.
 {
@@ -56,7 +52,6 @@ bundle agent example_groups
 @else
       members => "$(foo.members)";
 @endif
-
     "bar"
       # policy defaults to present
 @if minimum_version(3.20)

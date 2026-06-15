@@ -144,16 +144,12 @@ bundle agent main
   commands:
     linux.default:have_fwupdmgr.manage_fwupd:apply_updates::
       "$(default:inventory_fwupd_main.fwupdmgr)"
-        arglist => {
-          "update", "--no-reboot-check", "$(_dev_id[$(_dev_idx)])"
-        },
+        arglist => { "update", "--no-reboot-check", "$(_dev_id[$(_dev_idx)])" },
         handle => canonify(
           "manage_fwupd_apply_device_$(_dev_idx)_$(_dev_name[$(_dev_idx)])"
         ),
         if => and("_device_allowed_$(_dev_idx)", not("_update_applied")),
-        classes => default:results(
-          "bundle", "manage_fwupd_update_$(_dev_idx)"
-        ),
+        classes => default:results("bundle", "manage_fwupd_update_$(_dev_idx)"),
         comment => "Apply firmware update to allowed device $(_dev_name[$(_dev_idx)])";
   # --- Post-update marker and reboot --------------------------------
   files:

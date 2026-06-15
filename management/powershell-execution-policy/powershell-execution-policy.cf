@@ -21,6 +21,7 @@ bundle agent powershell_execution_policy_inventory
     windows::
       "${execution_policy_list_cache_command}" contain => powershell;
 }
+
 # see link below for valid values for scope and policy
 # https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.4
 # This bundle runs a powershell command: Set-ExecutionPolicy -ExecutionPolicy <policy> -Scope <scope>

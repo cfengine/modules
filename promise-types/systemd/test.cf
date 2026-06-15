@@ -2,10 +2,12 @@ body common control
 {
   version => "1.0";
 }
+
 #######################################################
 bundle agent init
 {
 }
+
 #######################################################
 promise agent systemd
 {
@@ -35,6 +37,7 @@ bundle agent test
       expression => canonify("sample_restarted"),
       scope => "namespace";
 }
+
 #######################################################
 bundle agent check
 {
@@ -55,6 +58,7 @@ bundle agent check
     !ok::
       "$(this.promise_filename) FAIL";
 }
+
 #######################################################
 bundle agent cleanup
 {

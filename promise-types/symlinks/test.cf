@@ -4,6 +4,7 @@ body common control
   version => "1.0";
   bundlesequence => { "init", "test", "check", "cleanup" };
 }
+
 #######################################################
 bundle agent init
 {
@@ -14,6 +15,7 @@ bundle agent init
     "/tmp/replaced-link" link_from => ln_s("/tmp/other-dir");
     "/tmp/already-existing-link" link_from => ln_s("/tmp/other-dir");
 }
+
 #######################################################
 promise agent symlinks
 {
@@ -50,6 +52,7 @@ bundle agent test
       directory => "/tmp/other-dir",
       classes => outcome("didnothing");
 }
+
 #######################################################
 bundle agent check
 {
@@ -81,6 +84,7 @@ bundle agent check
     !ok::
       "$(this.promise_filename) FAIL";
 }
+
 # #######################################################
 bundle agent cleanup
 {

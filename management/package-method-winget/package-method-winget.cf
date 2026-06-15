@@ -17,18 +17,22 @@ body package_method winget
   # Here we use the Get-WinGetPackage Cmdlet because it is easier to produce easily parsed information that way
   package_list_command => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"Get-WinGetPackage | Select Id,InstalledVersion | ConvertTo-Csv ";
   package_delete_command => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"Uninstall-WinGetPackage ";
+
   # Here we use winget instead of PowerShell Cmdlets because we can provide the --accept-source-agreements and --accept-package-agreements this way which gets around dialog prompts
   package_method_winget:accept_source_agreements.package_method_winget:accept_package_agreements::
     package_add_command => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"winget install --accept-source-agreements --accept-package-agreements ";
+
   !package_method_winget:accept_source_agreements|!package_method_winget:accept_package_agreements::
     # the package name is appended to the end of this command, so we try here to make a command which conveys information only
     package_add_command => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"Write-Host You must set some vars for package-method-winget to work;exit 1; rem Trying to add package:";
 }
+
 # switch to module specific namespace to avoid name collisions
 body file control
 {
   namespace => "package_method_winget";
 }
+
 # package_method_winget bundle's purpose is to look at inputs/data for acceptance of source and package agreements
 # these MUST be agreed to in order for this package method to work properly.
 bundle agent package_method_winget

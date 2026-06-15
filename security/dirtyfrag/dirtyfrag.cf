@@ -222,8 +222,7 @@ bundle agent main
     "inventory_dirtyfrag_rxrpc"
       string => "$(_rxrpc_status)",
       meta => {
-        "inventory",
-        "attribute_name=Dirty Frag CVE-2026-43500 (RxRPC) status",
+        "inventory", "attribute_name=Dirty Frag CVE-2026-43500 (RxRPC) status",
       },
       comment => "CVE-2026-43500 RxRPC mitigation status";
 
@@ -314,9 +313,7 @@ bundle agent main
     # admin override. Userns mitigation is handled in the
     # vulnerability condition (see dirtyfrag_esp_needs_mitigation).
     "_esp_mitigated"
-      or => {
-        "_esp_conf_exists", "_esp_kernel_patched", "_esp_admin_patched",
-      };
+      or => { "_esp_conf_exists", "_esp_kernel_patched", "_esp_admin_patched" };
 
     # RxRPC is mitigated by the modprobe blacklist, patched kernel,
     # or admin override.
