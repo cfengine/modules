@@ -397,6 +397,48 @@
         }
       ]
     },
+    "policy-dispatcher": {
+      "description": "Policy dispatcher for saving policy snippets to files and running them with cf-agent",
+      "subdirectory": "management/policy-dispatcher",
+      "steps": [
+        "copy main.cf services/cfbs/modules/policy-dispatcher/main.cf",
+        "policy_files services/cfbs/modules/policy-dispatcher/main.cf",
+        "bundles policy_dispatcher:main",
+        "input ./input.json def.json"
+      ],
+      "input": [
+        {
+          "type": "list",
+          "variable": "policy_files_to_run",
+          "namespace": "policy_dispatcher",
+          "bundle": "main",
+          "label": "Policy",
+          "subtype": [
+            {
+              "key": "policy",
+              "type": "string",
+              "label": "Policy",
+              "question": "Policy snippet to save and run (must contain a 'main' bundle)"
+            },
+            {
+              "key": "condition",
+              "type": "string",
+              "label": "Condition",
+              "question": "Condition for when to run",
+              "default": "any"
+            },
+            {
+              "key": "ifelapsed",
+              "type": "string",
+              "label": "ifelapsed",
+              "question": "Number of minutes between promise assessments",
+              "default": "5"
+            }
+          ],
+          "while": "Do you want to specify more policy snippets to be run?"
+        }
+      ]
+    },
     "promise-type-ansible": {
       "description": "Promise type to manage systemd services.",
       "subdirectory": "promise-types/ansible",
