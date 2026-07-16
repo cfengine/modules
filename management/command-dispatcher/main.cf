@@ -31,13 +31,6 @@ bundle agent main
           "5"
         );
 
-  reports:
-    enabled::
-      "Command [$(i)]: $(_command[$(i)]), condition: $(_condition[$(i)]), ifelapsed: $(_ifelapsed[$(i)])";
-
-    !enabled::
-      "Command-dispatcher: commands_to_run variable not found";
-
   commands:
     enabled::
       "$(_command[$(i)])"
