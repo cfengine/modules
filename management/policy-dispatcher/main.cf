@@ -31,7 +31,7 @@ bundle agent main
           "5"
         );
 
-      "_file[$(i)]" string => "$(sys.statedir)/policy-dispatcher-$(i).cf";
+      "_file[$(i)]" string => "$(sys.statedir)/policy-dispatcher/$(i).cf";
 
   files:
     enabled::
