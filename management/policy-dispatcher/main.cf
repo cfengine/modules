@@ -32,6 +32,14 @@ bundle agent main
 
       "_file[$(i)]" string => "$(sys.statedir)/policy-dispatcher/$(i).cf";
 
+      "_expected_files"
+        slist => maplist("$(sys.statedir)/policy-dispatcher/$(this).cf", @(i));
+
+      "_actual_files"
+        slist => findfiles("$(sys.statedir)/policy-dispatcher/*.cf");
+
+      "_unexpected_files" slist => difference(_actual_files, _expected_files);
+
   files:
     enabled::
       "$(_file[$(i)])"
@@ -39,6 +47,8 @@ bundle agent main
         content => "$(_policy_file[$(i)])",
         perms => mo("600", "root"),
         if => "$(_condition[$(i)])";
+
+      "$(_unexpected_files)" delete => tidy;
 
   reports:
     enabled.DEBUG::
@@ -52,6 +62,14 @@ bundle agent main
       "$(sys.cf_agent) --no-lock --file $(_file[$(i)])"
         if => "$(_condition[$(i)])",
         action => ifelapsed("$(_ifelapsed[$(i)])");
+}
+
+body delete tidy
+# @brief Delete the file and remove empty directories
+# and links to directories
+{
+  dirlinks => "delete";
+  rmdirs => "true";
 }
 
 body perms mo(mode, owner)
