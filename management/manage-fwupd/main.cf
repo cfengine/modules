@@ -133,6 +133,7 @@ bundle agent main
       "fwupd-refresh.timer"
         service_policy => "enabled",
         comment => "Ensure the fwupd metadata refresh timer is enabled so the LVFS firmware catalog stays current";
+
   # --- Stale marker cleanup ----------------------------------------
   files:
     linux::
@@ -140,6 +141,7 @@ bundle agent main
         delete => default:tidy,
         if => not("_update_applied"),
         comment => "Remove stale marker from a previous boot cycle";
+
   # --- Apply firmware updates --------------------------------------
   commands:
     linux.default:have_fwupdmgr.manage_fwupd:apply_updates::
@@ -151,6 +153,7 @@ bundle agent main
         if => and("_device_allowed_$(_dev_idx)", not("_update_applied")),
         classes => default:results("bundle", "manage_fwupd_update_$(_dev_idx)"),
         comment => "Apply firmware update to allowed device $(_dev_name[$(_dev_idx)])";
+
   # --- Post-update marker and reboot --------------------------------
   files:
     linux.default:have_fwupdmgr.manage_fwupd:apply_updates::
@@ -184,6 +187,7 @@ bundle agent main
         },
         handle => "manage_fwupd_reboot_after_update_fallback",
         comment => "Fallback reboot for non-systemd systems (shutdown -r +1)";
+
   # --- Inventory --------------------------------------------------
   vars:
     linux.default:have_fwupdmgr::
