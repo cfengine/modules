@@ -6,6 +6,7 @@ body package_method winget
   package_name_convention => "$(name)";
   package_delete_convention => "$(name)";
   package_installed_regex => ".*";
+
   # Note that package_list_name_regex does not allow for commas inside of package names as parsing that from ConvertTo-Csv below would be too complex
   # an example of output of the package_list_command below is
   #
@@ -14,6 +15,7 @@ body package_method winget
   # so the matches below simply grab the thing before or after the comma separating Id and InstalledVersion fields.
   package_list_name_regex => '^"([^"]*)",.*';
   package_list_version_regex => '.*,"([^"]*)".*';
+
   # Here we use the Get-WinGetPackage Cmdlet because it is easier to produce easily parsed information that way
   package_list_command => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"Get-WinGetPackage | Select Id,InstalledVersion | ConvertTo-Csv ";
   package_delete_command => "$(sys.winsysdir)\\WindowsPowerShell\\v1.0\\powershell.exe -Command \"Uninstall-WinGetPackage ";
