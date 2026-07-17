@@ -1,0 +1,96 @@
+body file control
+{
+  namespace => "policy_dispatcher";
+}
+
+bundle agent main
+{
+  classes:
+    "enabled" expression => isvariable("policy_files_to_run");
+
+  vars:
+    enabled::
+      "i" slist => getindices(policy_files_to_run);
+
+      "_policy_file[$(i)]"
+        string => "$(policy_files_to_run[$(i)][policy])",
+        if => isvariable("policy_files_to_run[$(i)][policy]");
+
+      "_condition[$(i)]"
+        string => ifelse(
+          not(strcmp("$(policy_files_to_run[$(i)][condition])", "")),
+          "$(policy_files_to_run[$(i)][condition])",
+          "any"
+        );
+
+      "_ifelapsed[$(i)]"
+        string => ifelse(
+          not(strcmp("$(policy_files_to_run[$(i)][ifelapsed])", "")),
+          "$(policy_files_to_run[$(i)][ifelapsed])",
+          "5"
+        );
+
+      "_file[$(i)]" string => "$(sys.statedir)/policy-dispatcher/$(i).cf";
+
+      "_expected_files"
+        slist => maplist("$(sys.statedir)/policy-dispatcher/$(this).cf", @(i));
+
+      "_actual_files"
+        slist => findfiles("$(sys.statedir)/policy-dispatcher/*.cf");
+
+      "_unexpected_files" slist => difference(_actual_files, _expected_files);
+
+  files:
+    enabled::
+      "$(_file[$(i)])"
+        create => "true",
+        content => "$(_policy_file[$(i)])",
+        perms => mo("600", "root"),
+        if => "$(_condition[$(i)])";
+
+      "$(_unexpected_files)" delete => tidy;
+
+  reports:
+    enabled.DEBUG::
+      "Policy file [$(i)]: $(_file[$(i)]), condition: $(_condition[$(i)]), ifelapsed: $(_ifelapsed[$(i)])";
+
+    !enabled.DEBUG::
+      "policy-dispatcher: policy_files_to_run variable not found";
+
+  commands:
+    enabled::
+      "$(sys.cf_agent) --no-lock --file $(_file[$(i)])"
+        if => "$(_condition[$(i)])",
+        action => ifelapsed("$(_ifelapsed[$(i)])");
+}
+
+body delete tidy
+# @brief Delete the file and remove empty directories
+# and links to directories
+{
+  dirlinks => "delete";
+  rmdirs => "true";
+}
+
+body perms mo(mode, owner)
+{
+  mode => "$(mode)";
+  owners => { "$(owner)" };
+  rxdirs => "false";
+}
+
+body action ifelapsed(x)
+{
+  ifelapsed => "$(x)";
+}
+
+body file control
+{
+  namespace => "default";
+}
+
+bundle agent __main__
+{
+  methods:
+    "policy_dispatcher:main";
+}
