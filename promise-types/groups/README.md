@@ -4,21 +4,21 @@ The `groups` promise type helps managing local groups, letting you ensure some u
 
 ## Requirements
 
-* Unix-like system.
+- Unix-like system.
 
 ## Attributes
 
-| Name      | Type                        | Description                                                                                     | Mandatory | Default |
-| --------- | --------------------------- | ----------------------------------------------------------------------------------------------- | --------- | ------- |
-| `policy`  | `string`                    | Whether group should be present or absent on the local host                                     | no        | present |
-| `members` | `string` / `data` / `body`  | JSON string / data container / custom body containing attributes "include", "exclude" & "only"  | no        | -       |
-| `gid`     | `integer`                   | The GID of the group                                                                            | no        | -       |
+| Name      | Type                       | Description                                                                                    | Mandatory | Default |
+| --------- | -------------------------- | ---------------------------------------------------------------------------------------------- | --------- | ------- |
+| `policy`  | `string`                   | Whether group should be present or absent on the local host                                    | no        | present |
+| `members` | `string` / `data` / `body` | JSON string / data container / custom body containing attributes "include", "exclude" & "only" | no        | -       |
+| `gid`     | `integer`                  | The GID of the group                                                                           | no        | -       |
 
 ## Examples
 
 Present group `foo` including user `alice` and `bob`, but excluding user `malcom`:
 
-```
+```cf3
 @if minimum_version(3.20)
 body members foo
 {
@@ -43,7 +43,7 @@ bundle agent main
 
 Present group `bar` with GID `123` including only user `alice`:
 
-```
+```cf3
 @if minimum_version(3.20)
 body members bar
 {
@@ -66,7 +66,7 @@ bundle agent main
 
 Absent group `baz`:
 
-```
+```cf3
 bundle agent main
 {
   groups:
