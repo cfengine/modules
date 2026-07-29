@@ -4,15 +4,15 @@ The `groups` promise type helps managing local groups, letting you ensure some u
 
 ## Requirements
 
-* Unix-like system.
+- Unix-like system.
 
 ## Attributes
 
-| Name      | Type                        | Description                                                                                     | Mandatory | Default |
-| --------- | --------------------------- | ----------------------------------------------------------------------------------------------- | --------- | ------- |
-| `policy`  | `string`                    | Whether group should be present or absent on the local host                                     | no        | present |
-| `members` | `string` / `data` / `body`  | JSON string / data container / custom body containing attributes "include", "exclude" & "only"  | no        | -       |
-| `gid`     | `integer`                   | The GID of the group                                                                            | no        | -       |
+| Name      | Type                       | Description                                                                                    | Mandatory | Default |
+| --------- | -------------------------- | ---------------------------------------------------------------------------------------------- | --------- | ------- |
+| `policy`  | `string`                   | Whether group should be present or absent on the local host                                    | no        | present |
+| `members` | `string` / `data` / `body` | JSON string / data container / custom body containing attributes "include", "exclude" & "only" | no        | -       |
+| `gid`     | `integer`                  | The GID of the group                                                                           | no        | -       |
 
 ## Examples
 
