@@ -18,7 +18,7 @@ The `groups` promise type helps managing local groups, letting you ensure some u
 
 Present group `foo` including user `alice` and `bob`, but excluding user `malcom`:
 
-```
+```cf3
 @if minimum_version(3.20)
 body members foo
 {
@@ -43,7 +43,7 @@ bundle agent main
 
 Present group `bar` with GID `123` including only user `alice`:
 
-```
+```cf3
 @if minimum_version(3.20)
 body members bar
 {
@@ -66,7 +66,7 @@ bundle agent main
 
 Absent group `baz`:
 
-```
+```cf3
 bundle agent main
 {
   groups:
