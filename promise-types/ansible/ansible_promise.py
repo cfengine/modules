@@ -161,7 +161,11 @@ class AnsiblePromiseTypeModule(PromiseModule):
             passwords={},
         )
         callback = CallbackModule(promise=self)
-        pbex._tqm._stdout_callback = callback  # type: ignore
+        if hasattr(callback, "_init_callback_methods"):
+            # Required on ansible-core >= 2.19 after https://github.com/ansible/ansible/pull/85344
+            callback._init_callback_methods()
+        pbex._tqm._callback_plugins = [callback]
+        pbex._tqm._callbacks_loaded = True
 
         exit_code = pbex.run()
         if exit_code != 0:
