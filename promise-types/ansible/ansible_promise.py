@@ -94,7 +94,7 @@ class AnsiblePromiseTypeModule(PromiseModule):
             "playbook", str, default_to_promiser=True, validator=must_be_absolute
         )
         self.add_attribute("inventory", str, validator=must_be_absolute)
-        self.add_attribute("limit", list, default=["localhost"])
+        self.add_attribute("limit", list, default=[])
         self.add_attribute("tags", list, default=[])
         self.add_attribute("become", bool, default=False)
         self.add_attribute("become_method", str, default="sudo")
@@ -147,6 +147,10 @@ class AnsiblePromiseTypeModule(PromiseModule):
             loader=loader,
             sources=(model.inventory,) if model.inventory else (),
         )
+        # An empty subset means no host matches, so leave it alone to target
+        # everything, the way ansible-playbook does without --limit.
+        if model.limit:
+            inventory.subset(model.limit)
 
         variable_manager = VariableManager(
             loader=loader,
