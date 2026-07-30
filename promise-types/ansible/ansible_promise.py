@@ -64,7 +64,7 @@ class CallbackModule(CallbackBase):
         self.promise.log_error("Task '" + result.task_name + "' failed")
 
     def v2_runner_on_skipped(self, result):
-        self.promise.log_error("Task '" + result.task_name + "' was skipped")
+        self.promise.log_verbose("Task '" + result.task_name + "' was skipped")
 
     def v2_playbook_on_stats(self, stats):
         for host in self.hosts:
