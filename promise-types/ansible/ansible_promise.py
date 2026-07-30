@@ -154,7 +154,7 @@ class AnsiblePromiseTypeModule(PromiseModule):
             version_info=CLI.version_info(gitinfo=False),
         )
         pbex = PlaybookExecutor(
-            playbooks=[attributes["playbook"]],
+            playbooks=[model.playbook],
             inventory=inventory,
             variable_manager=variable_manager,
             loader=loader,
