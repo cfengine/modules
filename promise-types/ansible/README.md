@@ -23,7 +23,7 @@ bundle agent main
 | ------------------ | --------- | ------------------------------------------------------------ | --------- | --------------- |
 | `playbook`         | `string`  | Absolute path of the Ansible playbook                        | No        | Promiser        |
 | `inventory`        | `string`  | Absolute path of the inventory file                          | No        | -               |
-| `limit`            | `slist`   | List of host names to target                                 | No        | `{"localhost"}` |
+| `limit`            | `slist`   | List of hosts and groups to target                           | No        | `{}` (no limit) |
 | `tags`             | `slist`   | List of tags to play                                         | No        | `{}`            |
 | `become`           | `boolean` | Set the `become` option                                      | No        | `False`         |
 | `become_method`    | `string`  | Set the `become_method` option                               | No        | `"sudo"`        |
