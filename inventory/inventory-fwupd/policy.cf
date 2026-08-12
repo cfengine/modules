@@ -4,12 +4,11 @@
 # Host Security Identifier (HSI) attribute scores reported by fwupd.
 #
 # Implementation notes:
-#  - Device list is read directly from /var/cache/fwupd/devices.json, which
-#    fwupd's own systemd timer (fwupd-refresh.timer) keeps up to date. No
-#    fwupdmgr call is needed for the common steady-state inventory.
-#  - Pending updates and HSI attributes are not cached as files by fwupd, so
-#    they are sourced via fwupdmgr and re-fetched only when their respective
-#    JSON caches age past their TTL.
+#  - Device list, pending updates and HSI attributes come from fwupdmgr, into
+#    JSON caches refreshed past their TTL. validjson() checks each payload
+#    before caching, so readjson() never sees a bad file.
+#  - fwupd's own /var/cache/fwupd/devices.json is often zero-length, so it is
+#    not used (ENT-14409).
 #  - All inventory variables are emitted via a single module-protocol cache
 #    rendered from JSON with an inline_mustache template. The cache is
 #    consumed in one call to read_module_protocol(), which loads dozens of
@@ -36,7 +35,7 @@ bundle agent inventory_fwupd_main
         );
 
       "_fwupd_dir" string => "$(sys.statedir)/fwupd";
-      "_devices_src" string => "/var/cache/fwupd/devices.json";
+      "_devices_src" string => "$(_fwupd_dir)/inventory_devices.json";
       "_updates_src" string => "$(_fwupd_dir)/inventory_updates.json";
       "_security_src" string => "$(_fwupd_dir)/inventory_security.json";
       "_cache" string => "$(_fwupd_dir)/inventory_cache";
@@ -44,6 +43,7 @@ bundle agent inventory_fwupd_main
 
       # TTLs in seconds for the fwupdmgr-derived JSON caches.
       # 12 h:
+      "_devices_ttl" string => "43200";
       "_updates_ttl" string => "43200";
 
       # 24 h:
@@ -79,6 +79,9 @@ bundle agent inventory_fwupd_main
           filestat("$(_security_src)", "mtime"),
           "0"
         );
+
+      "_devices_age"
+        string => eval("$(sys.systime) - $(_devices_mtime)", "math", "infix");
 
       "_updates_age"
         string => eval("$(sys.systime) - $(_updates_mtime)", "math", "infix");
@@ -127,6 +130,17 @@ bundle agent inventory_fwupd_main
         );
 
     linux.have_fwupdmgr::
+      "_devices_stale" not => fileexists("$(_devices_src)");
+
+      "_devices_stale"
+        expression => isgreaterthan("$(_devices_age)", "$(_devices_ttl)"),
+        if => fileexists("$(_devices_src)");
+
+      # Firmware updates activate on boot, so device versions change then.
+      "_devices_stale"
+        expression => islessthan("$(_devices_mtime)", "$(_boot_mtime)"),
+        if => fileexists("$(_devices_src)");
+
       "_updates_stale" not => fileexists("$(_updates_src)");
 
       "_updates_stale"
@@ -172,13 +186,24 @@ bundle agent inventory_fwupd_main
         };
 
   vars:
+    linux.have_fwupdmgr._devices_stale::
+      "_devices_raw"
+        string => execresult("$(fwupdmgr) get-devices --json", "noshell");
+
+      "_devices_payload"
+        string => ifelse(
+          validjson("$(_devices_raw)", "true"),
+          "$(_devices_raw)",
+          '{"Devices":[]}'
+        );
+
     linux.have_fwupdmgr._updates_stale::
       "_updates_raw"
         string => execresult("$(fwupdmgr) get-updates --json", "noshell");
 
       "_updates_payload"
         string => ifelse(
-          regcmp("\s*\{.*", "$(_updates_raw)"),
+          validjson("$(_updates_raw)", "true"),
           "$(_updates_raw)",
           '{"Devices":[]}'
         );
@@ -189,7 +214,7 @@ bundle agent inventory_fwupd_main
 
       "_security_payload"
         string => ifelse(
-          regcmp("\s*\{.*", "$(_security_raw)"),
+          validjson("$(_security_raw)", "true"),
           "$(_security_raw)",
           '{"SecurityAttributes":[]}'
         );
@@ -198,11 +223,23 @@ bundle agent inventory_fwupd_main
     linux::
       "$(_fwupd_dir)/." create => "true";
 
+    # The mtime is the TTL clock. content only writes when the file differs,
+    # so without touch an unchanged cache stays stale and fwupdmgr runs
+    # again on every agent run.
+    linux.have_fwupdmgr._devices_stale::
+      "$(_devices_src)"
+        content => "$(_devices_payload)",
+        touch => "true";
+
     linux.have_fwupdmgr._updates_stale::
-      "$(_updates_src)" content => "$(_updates_payload)";
+      "$(_updates_src)"
+        content => "$(_updates_payload)",
+        touch => "true";
 
     linux.have_fwupdmgr._security_stale::
-      "$(_security_src)" content => "$(_security_payload)";
+      "$(_security_src)"
+        content => "$(_security_payload)",
+        touch => "true";
 
   methods:
     linux._have_devices._rebuild_cache::
@@ -241,12 +278,13 @@ bundle agent inventory_fwupd_main
     linux._have_devices::
       "_cache_was_read" if => read_module_protocol("$(_cache)");
 
-    linux.!_have_devices::
-      # No source file from fwupd - emit a single status attribute.
+    linux.!have_fwupdmgr::
+      # vars run before classes, so guarding the variable on !have_fwupdmgr
+      # directly would set it on pass 1, before that class is evaluated.
       "_emit_missing_status";
 
   vars:
-    linux.!_have_devices._emit_missing_status::
+    linux._emit_missing_status::
       "fwupd_status"
         string => "FWUPD_MISSING",
         meta => { "inventory", "attribute_name=Firmware update status" };
@@ -268,7 +306,11 @@ bundle agent inventory_fwupd_render(devices_src, updates_src, security_src, temp
   vars:
     "_template_body" string => readfile("$(template)", "inf");
     "_devices_json" data => readjson("$(devices_src)");
-    "_dev_count" int => length("_devices_json[Devices]");
+
+    # fwupdmgr emits {} when it tracks no devices.
+    "_dev_count"
+      int => length("_devices_json[Devices]"),
+      if => isvariable("_devices_json[Devices]");
 
     "_updates_json"
       data => readjson("$(updates_src)"),
@@ -283,6 +325,10 @@ bundle agent inventory_fwupd_render(devices_src, updates_src, security_src, temp
       if => fileexists("$(security_src)");
 
     # Default counters when fwupdmgr-derived data is not present.
+    "_dev_count"
+      int => "0",
+      if => not(isvariable("_dev_count"));
+
     "_updates_count"
       int => "0",
       if => not(isvariable("_updates_count"));
