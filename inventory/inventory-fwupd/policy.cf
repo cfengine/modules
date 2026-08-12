@@ -417,6 +417,13 @@ bundle agent inventory_fwupd_hsi(security_src)
     "_level[$(_idxes)]"
       string => "$(_sec[SecurityAttributes][$(_idxes)][HsiLevel])";
 
+    # fwupd omits HsiLevel on runtime-issue checks (Linux kernel, UEFI db,
+    # ...). Default those to L0, otherwise the unresolved level skips
+    # every promise that builds on it and the check vanishes entirely.
+    "_level[$(_idxes)]"
+      string => "0",
+      unless => isvariable("_level[$(_idxes)]");
+
     "_result[$(_idxes)]"
       string => "$(_sec[SecurityAttributes][$(_idxes)][HsiResult])";
 
