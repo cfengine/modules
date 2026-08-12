@@ -185,9 +185,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: UEFI secure boot",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: UEFI secure boot"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -202,9 +202,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: TPM v2.0",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: TPM v2.0"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -219,9 +219,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: TPM empty PCRs",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: TPM empty PCRs"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -236,9 +236,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: UEFI platform key",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: UEFI platform key"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -253,9 +253,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: BIOS firmware updates",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: BIOS firmware updates"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -270,9 +270,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: SPI write",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: SPI write"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -287,9 +287,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: SPI lock",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: SPI lock"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -304,9 +304,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: SPI BIOS region",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: SPI BIOS region"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -321,9 +321,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: SPI descriptor",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: SPI descriptor"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -338,9 +338,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: Supported CPU",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: Supported CPU"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -355,9 +355,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: Platform debugging",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: Platform debugging"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -372,9 +372,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: csme manufacturing mode",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: csme manufacturing mode"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -389,9 +389,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: csme override",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: csme override"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -406,9 +406,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: MEI key manifest",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: MEI key manifest"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -423,9 +423,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: CSME version",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: CSME version"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -440,9 +440,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: UEFI bootservice variables",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: UEFI bootservice variables"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -457,9 +457,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: AMD microcode signature",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: AMD microcode signature"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -474,9 +474,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: Part is fused",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: Part is fused"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -491,9 +491,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L1: SMM locked down",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L1: SMM locked down"
         }
       ],
       "category": "HSI Level 1 - Critical",
@@ -508,9 +508,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: IOMMU",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: IOMMU"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -525,9 +525,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: Intel BootGuard",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: Intel BootGuard"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -542,9 +542,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: Intel BootGuard verified boot",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: Intel BootGuard verified boot"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -559,9 +559,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: Intel BootGuard ACM protected",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: Intel BootGuard ACM protected"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -576,9 +576,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: Intel BootGuard OTP fuse",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: Intel BootGuard OTP fuse"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -593,9 +593,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: TPM PCR0 reconstruction",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: TPM PCR0 reconstruction"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -610,9 +610,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: BIOS rollback protection",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: BIOS rollback protection"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -627,9 +627,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: Platform debugging",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: Platform debugging"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -644,9 +644,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: Intel GDS mitigation",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: Intel GDS mitigation"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -661,9 +661,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: AMD platform secure boot",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: AMD platform secure boot"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -678,9 +678,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: AMD SPI write protections",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: AMD SPI write protections"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -695,9 +695,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L2: HP SureStart",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L2: HP SureStart"
         }
       ],
       "category": "HSI Level 2 - Important",
@@ -712,9 +712,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L3: Suspend-to-idle",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L3: Suspend-to-idle"
         }
       ],
       "category": "HSI Level 3 - Recommended",
@@ -729,9 +729,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L3: Suspend-to-ram",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L3: Suspend-to-ram"
         }
       ],
       "category": "HSI Level 3 - Recommended",
@@ -746,9 +746,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L3: Pre-boot DMA protection",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L3: Pre-boot DMA protection"
         }
       ],
       "category": "HSI Level 3 - Recommended",
@@ -763,9 +763,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L3: Intel BootGuard error policy",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L3: Intel BootGuard error policy"
         }
       ],
       "category": "HSI Level 3 - Recommended",
@@ -780,9 +780,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L3: CET Platform",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L3: CET Platform"
         }
       ],
       "category": "HSI Level 3 - Recommended",
@@ -797,9 +797,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L3: AMD SPI replay protections",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L3: AMD SPI replay protections"
         }
       ],
       "category": "HSI Level 3 - Recommended",
@@ -814,9 +814,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L3: UEFI memory protections",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L3: UEFI memory protections"
         }
       ],
       "category": "HSI Level 3 - Recommended",
@@ -831,9 +831,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L4: Encrypted RAM",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L4: Encrypted RAM"
         }
       ],
       "category": "HSI Level 4 - Complete",
@@ -848,9 +848,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L4: SMAP",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L4: SMAP"
         }
       ],
       "category": "HSI Level 4 - Complete",
@@ -865,9 +865,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L3: CET OS Support",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L3: CET OS Support"
         }
       ],
       "category": "HSI Level 3 - Recommended",
@@ -882,9 +882,9 @@
       "condition_for": "failing",
       "rules": [
         {
-          "attribute": "Firmware HSI L4: AMD rollback protection",
+          "attribute": "Firmware HSI failing",
           "operator": "matches",
-          "value": "FAIL"
+          "value": "L4: AMD rollback protection"
         }
       ],
       "category": "HSI Level 4 - Complete",
