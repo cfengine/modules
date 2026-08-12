@@ -19,7 +19,7 @@ devices matching an allow-list.
 The inventory attributes appear in Mission Portal's column selector
 under "fwupd":
 
-[[file:mp-inventory-fwupd-columns.png]]
+[[https://raw.githubusercontent.com/cfengine/modules/master/inventory/inventory-fwupd/mp-inventory-fwupd-columns.png]]
 
 * Inventory Attributes
 
@@ -85,7 +85,7 @@ These appear in Mission Portal monitoring graphs as
 =firmware_devices_total=, =firmware_updates_available=, and
 =firmware_hsi_failing=.
 
-[[file:mp-monitoring-firmware-devices.png]]
+[[https://raw.githubusercontent.com/cfengine/modules/master/inventory/inventory-fwupd/mp-monitoring-firmware-devices.png]]
 
 * Classes
 

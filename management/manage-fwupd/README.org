@@ -95,7 +95,7 @@ first.
 The module reports =fwupd management status= as an inventory attribute
 visible in Mission Portal's inventory reports:
 
-[[file:mp-inventory-fwupd-status.png]]
+[[https://raw.githubusercontent.com/cfengine/modules/master/management/manage-fwupd/mp-inventory-fwupd-status.png]]
 
 * Behavior
 

@@ -10,7 +10,7 @@ checks covering every individual HSI firmware security test.
 
 * Mission Portal
 
-[[file:mp-compliance-report-fwupd.png]]
+[[https://raw.githubusercontent.com/cfengine/modules/master/reporting/compliance-report-fwupd/mp-compliance-report-fwupd.png]]
 
 * Requirements
 
