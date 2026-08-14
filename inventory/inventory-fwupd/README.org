@@ -46,29 +46,30 @@ For every device fwupd reports (keyed by DeviceId):
 | Attribute                       | Format                                                     |
 |---------------------------------+------------------------------------------------------------|
 | *Firmware HSI level*            | =HSI:0= through =HSI:4=                                   |
-| *Firmware HSI L<n>: <Name>*     | =PASS= or =FAIL= (one per security check)                 |
-| *Firmware HSI attributes*       | =Name (HSI L<level>): <result> [PASS|FAIL]= (slist)       |
+| *Firmware HSI failing*          | =L<n>: <Name>= (slist)                                    |
+| *Firmware HSI passing*          | =L<n>: <Name>= (slist)                                    |
 
 *Firmware HSI level* is the rolled-up Host Security Identifier level.
 fwupd walks levels 1--4 sequentially; the result is the highest level
 where all attributes pass, stopping at the first level with any failure.
 
-*Firmware HSI L<n>: <Name>* variables (e.g. =Firmware HSI L1: TPM v2.0=)
-are individual string attributes with value =PASS= or =FAIL=. These are
-consumed by *compliance-report-fwupd* for per-check compliance conditions.
-Two normalizations are applied to keep inventory attribute names stable
-and aligned with the HSI specification:
+*Firmware HSI failing* and *Firmware HSI passing* are slists of the
+security checks fwupd reported, split by outcome (e.g. =L1: TPM v2.0=).
+The check set is hardware dependent, so a check in neither list is not
+applicable to this host. *compliance-report-fwupd* matches an exact item
+against *Firmware HSI failing* for its per-check conditions.
+
+Items keep the =L<n>:= prefix because the name alone is not unique:
+fwupd reports two distinct checks named =Platform debugging=, at L1
+(Intel DCI) and L2 (debug locked). Two normalizations keep items stable:
 
 - *Name normalization:* The CSME version attribute is emitted as
-  =Firmware HSI L1: CSME version= regardless of the firmware version
-  string fwupd reports (which varies per host).
+  =L1: CSME version= regardless of the firmware version string fwupd
+  reports (which varies per host).
 - *Level normalization:* fwupd marks some runtime checks at HsiLevel 0
   even though they contribute to scored HSI levels. The module maps
   these to their specification levels: =UEFI secure boot= is emitted
   at L1 (not L0) and =CET OS Support= at L3 (not L0).
-
-*Firmware HSI attributes* is an slist with one detailed entry per
-security check, useful for drill-down in Mission Portal inventory views.
 
 * Measurements
 

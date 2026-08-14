@@ -383,10 +383,8 @@ bundle agent inventory_fwupd_hsi(security_src)
 #   compute the rolled-up HSI level.
 #
 # Emits:
-#  - Per-attribute PASS/FAIL strings named "Firmware HSI L<n>: <Name>"
-#    for use in compliance report conditions.
-#  - An slist of detailed results formatted "Name (HSI L<level>):
-#    <result> [PASS|FAIL]" for inventory drill-down.
+#  - "Firmware HSI failing" and "Firmware HSI passing", slists of
+#    "L<level>: <name>" check names split by outcome.
 #  - A count of failing attributes.
 #  - The rolled-up HSI level (e.g. "HSI:3").
 #
@@ -419,6 +417,13 @@ bundle agent inventory_fwupd_hsi(security_src)
     "_level[$(_idxes)]"
       string => "$(_sec[SecurityAttributes][$(_idxes)][HsiLevel])";
 
+    # fwupd omits HsiLevel on runtime-issue checks (Linux kernel, UEFI db,
+    # ...). Default those to L0, otherwise the unresolved level skips
+    # every promise that builds on it and the check vanishes entirely.
+    "_level[$(_idxes)]"
+      string => "0",
+      unless => isvariable("_level[$(_idxes)]");
+
     "_result[$(_idxes)]"
       string => "$(_sec[SecurityAttributes][$(_idxes)][HsiResult])";
 
@@ -444,10 +449,9 @@ bundle agent inventory_fwupd_hsi(security_src)
         "$(_name[$(_idxes)])"
       );
 
-    # Normalized level for per-attribute inventory: fwupd marks some
-    # attributes as HsiLevel 0 with a "runtime-issue" flag even though
-    # they contribute to scored HSI levels. Map them to their HSI spec
-    # level so inventory attribute names match compliance conditions.
+    # Normalized level: fwupd marks some attributes as HsiLevel 0 with a
+    # "runtime-issue" flag even though they contribute to scored HSI
+    # levels. Map them to their HSI spec level so list items are stable.
     #   UEFI secure boot  (org.fwupd.hsi.Uefi.SecureBoot) → HSI:1
     #   CET OS Support    (org.fwupd.hsi.IntelCet.Active)  → HSI:3
     "_inv_level[$(_idxes)]"
@@ -459,19 +463,35 @@ bundle agent inventory_fwupd_hsi(security_src)
         "$(_level[$(_idxes)])"
       );
 
-    # Per-attribute inventory: one string variable per HSI check,
-    # named "Firmware HSI L<level>: <name>" with value PASS or FAIL.
-    # This enables per-check compliance report conditions.
-    "fwupd_hsi_check[$(_idxes)]"
-      string => "$(_status[$(_idxes)])",
-      meta => {
-        "inventory",
-        "attribute_name=Firmware HSI L$(_inv_level[$(_idxes)]): $(_inv_name[$(_idxes)])",
-      };
+    # Check names split by outcome into two lists, rather than one
+    # inventory attribute per check.
+    #
+    # Inventory attribute names are fleet wide: an attribute any host
+    # defines is offered as a column for every host. fwupd's check set
+    # is hardware dependent, so one attribute per check grew that list
+    # with every distinct chipset in the fleet while each host filled in
+    # only its own subset. Two lists keep this module at two stable
+    # attribute names regardless of the hardware, and carry the same
+    # information: a check in neither list is not applicable to this
+    # host.
+    #
+    # The level prefix disambiguates fwupd's two distinct checks both
+    # named "Platform debugging" (L1 Intel DCI, L2 debug locked).
+    "_failing_name[$(_idxes)]"
+      string => "L$(_inv_level[$(_idxes)]): $(_inv_name[$(_idxes)])",
+      if => strcmp("$(_status[$(_idxes)])", "FAIL");
 
-    "fwupd_hsi_attr[$(_idxes)]"
-      string => "$(_name[$(_idxes)]) (HSI L$(_level[$(_idxes)])): $(_result[$(_idxes)]) [$(_status[$(_idxes)])]",
-      meta => { "inventory", "attribute_name=Firmware HSI attributes" };
+    "_passing_name[$(_idxes)]"
+      string => "L$(_inv_level[$(_idxes)]): $(_inv_name[$(_idxes)])",
+      if => strcmp("$(_status[$(_idxes)])", "PASS");
+
+    "fwupd_hsi_failing"
+      slist => getvalues("_failing_name"),
+      meta => { "inventory", "attribute_name=Firmware HSI failing" };
+
+    "fwupd_hsi_passing"
+      slist => getvalues("_passing_name"),
+      meta => { "inventory", "attribute_name=Firmware HSI passing" };
 
     "fwupd_hsi_failing_count"
       int => countclassesmatching("inventory_fwupd_hsi_failing_[0-9]+");
