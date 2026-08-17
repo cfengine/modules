@@ -497,10 +497,10 @@
       "description": "Allows you to specify a list of packages you want uninstalled on your hosts.",
       "subdirectory": "security/uninstall-packages",
       "steps": [
-        "copy uninstall-packages.cf services/cfbs/modules/uninstall-packages/uninstall-packages.cf",
+        "copy main.cf services/cfbs/modules/uninstall-packages/main.cf",
         "input uninstall-packages/input.json def.json",
         "bundles uninstall_packages:uninstall_packages",
-        "policy_files services/cfbs/modules/uninstall-packages/uninstall-packages.cf"
+        "policy_files services/cfbs/modules/uninstall-packages/main.cf"
       ],
       "input": [
         {
