@@ -1,0 +1,35 @@
+bundle agent install_pipx
+{
+  methods:
+    linux.data:install_pipx::
+      "install_pipx_main";
+
+  reports:
+    windows::
+      "Use WSL to install software";
+
+    !linux::
+      "Installing Ansible on a non-Linux host is not currently supported";
+}
+
+bundle agent install_pipx_main
+{
+  classes:
+    "pipx_installed"
+      expression => returnszero("command -v pipx >/dev/null", "useshell");
+
+  packages:
+    "pipx" classes => if_ok("pipx_installed");
+
+  files:
+    pipx_installed::
+      "/opt/pipx/."
+        perms => mog("755", "root", "root"),
+        comment => "/opt/pipx in some cases will be 700 which prevents non-root users from running installed commands.";
+
+      "/opt/pipx/venvs"
+        perms => mog("755", "root", "root"),
+        comment => "/opt/pipx/venvs in some cases will be 700 which prevents non-root users from running installed commands.";
+
+  reports:
+}

@@ -1,0 +1,57 @@
+# Steps here based on this guide: https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html
+#
+# host specific data supported, in the data bundle context
+#
+# ansible_installed: class, if defined, installed ansible
+# ansible_minimal_install: class, if defined, minimal install aka ansible-core
+# ansible_full_install: class, if defined, full install. This is the default if neither minimal or full classes are defined.
+bundle agent install_ansible
+{
+  methods:
+    linux.data:install_ansible::
+      "install_ansible_main";
+
+  reports:
+    windows::
+      "Use WSL to install Ansible on Windows. See https://blog.rolpdog.com/2020/03/why-no-ansible-controller-for-windows.html";
+
+    !linux::
+      "Installing Ansible on a non-Linux host is not currently supported";
+}
+
+bundle agent install_ansible_main
+{
+  classes:
+    "ansible_installed"
+      expression => returnszero("command -v ansible >/dev/null", "useshell");
+
+  vars:
+    "ansible_version"
+      string => "${data:install_ansible.version}",
+      if => isvariable("data:install_ansible.version");
+
+    "install_ansible_command"
+      string => "${base_command}==${ansible_version}",
+      if => isvariable(ansible_version);
+
+    "install_ansible_command"
+      string => "${base_command}",
+      if => not(isvariable(ansible_version));
+
+    data:ansible_minimal_install::
+      "base_command" string => "pipx install --global ansible-core";
+
+    data:ansible_full_install|!data:ansible_minimal_install::
+      "base_command" string => "pipx install --global --include-deps ansible";
+
+  methods:
+    "install_pipx_main" classes => if_ok("pipx_installed");
+
+  commands:
+    pipx_installed.!ansible_installed::
+      "${install_ansible_command}" contain => in_shell;
+
+  reports:
+    ansible_installed::
+      "ansible_installed";
+}

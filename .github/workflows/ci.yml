@@ -34,3 +34,7 @@ jobs:
       run: cfengine lint --strict no ./
     - name: Check formatting with CFEngine CLI
       run: cfengine format --check
+    - name: Install pytest
+      run: pip install pytest
+    - name: Run tests
+      run: make check

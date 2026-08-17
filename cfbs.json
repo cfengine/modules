@@ -546,6 +546,24 @@
         "bundles windows_capability"
       ]
     },
+    "install-pipx": {
+      "description": "Optionally install pipx.",
+      "subdirectory": "software",
+      "steps": [
+        "copy install-pipx.cf services/cfbs/software/install-pipx.cf",
+        "policy_files services/cfbs/software/install-pipx.cf",
+        "bundles install_pipx"
+      ]
+    },
+    "install-ansible": {
+      "description": "Optionally install ansible.",
+      "subdirectory": "software",
+      "steps": [
+        "copy install-ansible.cf services/cfbs/software/install-ansible.cf",
+        "policy_files services/cfbs/software/install-ansible.cf",
+        "bundles install_ansible"
+      ]
+    },
     "windows-openssh-server": {
       "description": "Optionally install Windows OpenSSH Server.",
       "subdirectory": "software/windows",

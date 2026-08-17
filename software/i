@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -ex
+command -v ansible && sudo apk del ansible | tee log
+sudo apk add pipx
+if command -v pipx >/dev/null; then
+  if [ -x $(command -v pipx) ]; then
+    sudo pipx uninstall --global ansible || true
+    sudo pipx uninstall --global ansible-core || true
+  fi
+fi
+command -v pipx && sudo apk del pipx | tee -a log
+OPTS="--show-evaluated-classes --show-evaluated-vars"
+sudo cf-agent  -Kvf ./install-ansible.cf -Ddata:install_ansible -Ddata:ansible_minimal_install  --bundle install_ansible | tee -a log
+#sudo cf-agent -KIf ./linux-install-ansible.cf -Ddata:install_ansible -Ddata:ansible_full_install  --bundle linux_install_ansible | tee -a log
+command -v pipx || true
+command -v ansible || true
