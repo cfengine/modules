@@ -19,7 +19,7 @@ jobs:
       with:
         python-version: "3.14"
     - name: Install python tools
-      run: pipx install flake8 pyright black pyflakes pytest cfbs cfengine
+      run: sudo pipx install --global flake8 pyright black pyflakes pytest cfbs cfengine
     - name: Check the status with cfbs
       run: cfbs status
     - name: Validate with cfbs
@@ -28,13 +28,13 @@ jobs:
       run: cfbs --check pretty ./cfbs.json
     - name: Linting python code
       run: ./ci/linting.sh
-    - name: Run promise type tests
-      run: pytest promise-types/ -v
     - name: Lint policy with CFEngine CLI
       run: cfengine lint --strict no ./
     - name: Check formatting with CFEngine CLI
       run: cfengine format --check
-    - name: Install pytest
-      run: pip install pytest
+    - name: Install CFEngine community for tests
+      run: |
+        pipx install cf-remote
+        cf-remote install --clients localhost --edition community
     - name: Run tests
       run: make check

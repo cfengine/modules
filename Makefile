@@ -2,4 +2,4 @@
 
 check:
 #	pytest promise-types/ -v
-	bash tests/*.sh
+	bash tests/deploy/test.sh
