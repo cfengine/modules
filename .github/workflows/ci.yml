@@ -18,19 +18,9 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.14"
-    - name: Install python tools
-      run: pipx install flake8 pyright black pyflakes pytest cfbs cfengine
-    - name: Check the status with cfbs
-      run: cfbs status
-    - name: Validate with cfbs
-      run: cfbs validate
-    - name: Check the formatting
-      run: cfbs --check pretty ./cfbs.json
-    - name: Linting python code
-      run: ./ci/linting.sh
-    - name: Run promise type tests
-      run: pytest promise-types/ -v
-    - name: Lint policy with CFEngine CLI
-      run: cfengine lint --strict no ./
-    - name: Check formatting with CFEngine CLI
-      run: cfengine format --check
+    - name: Install CFEngine community for tests
+      run: |
+        pipx install cf-remote
+        cf-remote install --clients localhost --edition community
+    - name: Run make check for linting, formatting and tests
+      run: make check
