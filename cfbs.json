@@ -548,10 +548,10 @@
     },
     "install-ansible": {
       "description": "Optionally install ansible.",
-      "subdirectory": "software",
+      "subdirectory": "software/install-ansible",
       "steps": [
-        "copy install-ansible.cf services/cfbs/software/install-ansible.cf",
-        "policy_files services/cfbs/software/install-ansible.cf",
+        "copy install-ansible.cf services/cfbs/software/install-ansible/install-ansible.cf",
+        "policy_files services/cfbs/software/install-ansible/install-ansible.cf",
         "bundles install_ansible"
       ]
     },
