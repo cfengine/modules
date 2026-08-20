@@ -33,9 +33,12 @@ bundle agent main
         );
 
       "_sdir" string => "$(sys.statedir)";
-      "_cache_ttl" string => "3600";
 
-      # 1 hour
+      "_cache_ttl"
+        string => "3600",
+        comment => "3600 seconds is 1 hour";
+
+    linux._have_smartctl::
       # Enumerate drives - extract first field from each line of smartctl --scan
       "_scan_lines"
         slist => splitstring(
@@ -52,7 +55,6 @@ bundle agent main
       "_cache[${_drives}]"
         string => "$(_sdir)/inventory_smartctl_${_id[${_drives}]}.json";
 
-    linux._have_smartctl::
       # Rolled-up status: OK or DEGRADED (SMARTCTL_MISSING when smartctl absent)
       "smartctl_status"
         string => "DEGRADED",
