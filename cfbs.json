@@ -144,7 +144,7 @@
     },
     "delete-home-dotshosts": {
       "description": "Ensure that ~/.shosts files are not present, as they present a security risk.",
-      "subdirectory": "security/delete-home-dotshots",
+      "subdirectory": "security/delete-home-dotshosts",
       "steps": [
         "copy policy/main.cf services/cfbs/delete-home-dotshots/",
         "policy_files services/cfbs/delete-home-dotshots/",
@@ -497,10 +497,10 @@
       "description": "Allows you to specify a list of packages you want uninstalled on your hosts.",
       "subdirectory": "security/uninstall-packages",
       "steps": [
-        "copy uninstall-packages.cf services/cfbs/modules/uninstall-packages/uninstall-packages.cf",
+        "copy main.cf services/cfbs/modules/uninstall-packages/main.cf",
         "input uninstall-packages/input.json def.json",
         "bundles uninstall_packages:uninstall_packages",
-        "policy_files services/cfbs/modules/uninstall-packages/uninstall-packages.cf"
+        "policy_files services/cfbs/modules/uninstall-packages/main.cf"
       ],
       "input": [
         {
@@ -544,6 +544,15 @@
         "directory ./ services/cfbs/windows-capability/",
         "policy_files services/cfbs/windows-capability/",
         "bundles windows_capability"
+      ]
+    },
+    "install-ansible": {
+      "description": "Optionally install ansible.",
+      "subdirectory": "software",
+      "steps": [
+        "copy install-ansible.cf services/cfbs/software/install-ansible.cf",
+        "policy_files services/cfbs/software/install-ansible.cf",
+        "bundles install_ansible"
       ]
     },
     "windows-openssh-server": {

@@ -1,0 +1,58 @@
+# Steps here based on this guide: https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html
+#
+# host specific data supported, in the data bundle context
+#
+# data:install_ansible: class, if defined, install ansible
+# data:ansible_minimal_install: class, if defined, minimal install aka ansible-core
+# data:ansible_full_install: class, if defined, full install. This is the default if neither minimal or full classes are defined.
+bundle agent install_ansible
+{
+  methods:
+    linux.data:install_ansible::
+      "install_ansible_main";
+
+  reports:
+    windows::
+      "Use WSL to install Ansible on Windows. See https://blog.rolpdog.com/2020/03/why-no-ansible-controller-for-windows.html";
+
+    !linux.!windows::
+      "Installing Ansible on a non-Linux/non-Windows host is not supported";
+}
+
+bundle agent install_ansible_main
+{
+  classes:
+    !windows::
+      "ansible_installed"
+        expression => returnszero("command -v ansible >/dev/null", "useshell");
+
+  vars:
+    "install_ansible_command"
+      string => "${base_command}==${data:install_ansible.version}",
+      if => isvariable("data:install_ansible.version");
+
+    "install_ansible_command"
+      string => "${base_command}",
+      if => not(isvariable("data:install_ansible.version"));
+
+    data:ansible_minimal_install::
+      "base_command" string => "pipx install --global ansible-core";
+
+    data:ansible_full_install|(!data:ansible_full_install.!data:ansible_minimal_install)::
+      "base_command" string => "pipx install --global --include-deps ansible";
+
+  packages:
+    "pipx" classes => if_ok("pipx_installed");
+
+  commands:
+    pipx_installed.!ansible_installed::
+      "${install_ansible_command}"
+        contain => in_shell_umask(022),
+        comment => "The default umask of 077 would create /opt/pipx/venvs/ansible which is inaccessible to everyone but root, so use 022 instead.";
+}
+
+body contain in_shell_umask(umask)
+{
+  useshell => "true";
+  umask => "${umask}";
+}
