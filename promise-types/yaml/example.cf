@@ -1,0 +1,78 @@
+promise agent yaml
+{
+  path => "$(sys.workdir)/modules/promises/yaml_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent main
+{
+  vars:
+    "yaml_path" string => "/tmp/promise-type-yaml-example.yaml";
+
+    "content"
+      string => "server:
+  host: '0.0.0.0'
+  port: 8080
+  debug: true
+  allowed_networks:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+backends:
+  - name: api
+    url: http://api.internal:9000
+  - name: legacy
+    url: http://legacy.internal:8000
+";
+
+  files:
+    # Create the file with some content to edit
+    "$(yaml_path)"
+      create => "true",
+      content => "$(content)",
+      if => not(fileexists("$(yaml_path)"));
+
+  yaml:
+    # Keeps the single quotes around the value
+    "$(yaml_path)"
+      target => ".server.host",
+      state => "present",
+      value => "127.0.0.1";
+
+    # Written as a boolean, not the string "false"
+    "$(yaml_path)"
+      target => ".server.debug",
+      state => "present",
+      value => "false";
+
+    # Creates the missing 'tls:' parent
+    "$(yaml_path)"
+      target => ".server.tls.cert",
+      state => "present",
+      value => "/etc/ssl/app.pem";
+
+    # List items are matched by value
+    "$(yaml_path)"
+      target => ".server.allowed_networks[]",
+      state => "absent",
+      value => "172.16.0.0/12";
+
+    "$(yaml_path)"
+      target => ".server.allowed_networks[]",
+      state => "present",
+      value => "192.168.0.0/16";
+
+    "$(yaml_path)"
+      target => '.backends[] | select(.name == "api") | .url',
+      state => "present",
+      value => "http://api.internal:9100";
+
+    "$(yaml_path)"
+      target => '.backends[] | select(.name == "legacy")',
+      state => "absent";
+
+  reports:
+    "Resulting YAML ($(yaml_path)):
+$(with)"
+      with => readfile("$(yaml_path)", 0),
+      if => fileexists("$(yaml_path)");
+}

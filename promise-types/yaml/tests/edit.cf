@@ -1,0 +1,272 @@
+# Edit an existing file with present, absent, [] and select()
+#
+# The promises are applied twice: the first pass must repair the file, the
+# second must only keep promises, and the result must match 'expected'.
+body common control
+{
+  bundlesequence => { "init", "test", "check", "cleanup" };
+}
+
+promise agent yaml
+{
+  path => "$(sys.workdir)/modules/promises/yaml_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+body classes outcome(prefix)
+{
+  promise_kept => { "$(prefix)_kept" };
+  promise_repaired => { "$(prefix)_repaired" };
+  repair_failed => { "$(prefix)_failed" };
+  scope => "namespace";
+}
+
+body perms mode(m)
+{
+  mode => "$(m)";
+  rxdirs => "false";
+}
+
+body delete remove_file
+{
+  dirlinks => "delete";
+}
+
+bundle common g
+{
+  vars:
+    "file" string => "/tmp/yaml-promise-type-test-edit.yaml";
+
+    "start"
+      string => "# Managed by cfengine
+server:
+  host: '0.0.0.0'
+  port: 8080
+  tls: true
+  motd: 'It''s back at 9' # shown at login
+  allowed_networks:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+  trusted_proxies:
+backends:
+  - name: api
+    url: \"http://api.internal:9000\"
+    timeout: 5 # seconds
+  - name: legacy
+    url: http://legacy.internal:8000
+labels:
+  app.example.com/name: shop
+  \"app.example.com/owner\": \"ops \\\"core\\\" team\"";
+
+    "expected"
+      string => "# Managed by cfengine
+server:
+  host: '127.0.0.1'
+  port: 8080
+  tls: false
+  motd: 'It''s back at 10' # shown at login
+  allowed_networks:
+    - 10.0.0.0/8
+    - 192.168.0.0/16
+  trusted_proxies:
+    - 10.0.0.1
+  workers: 4
+  region: \"no\"
+  banner: \"Welcome: staff only\"
+  ports:
+    - \"22:22\"
+backends:
+  - name: api
+    url: \"http://api.internal:9100\"
+    timeout: 10 # seconds
+  - name: cache
+    url: http://cache.internal:6379
+labels:
+  app.example.com/name: shop
+  \"app.example.com/owner\": \"platform\"
+  app.example.com/version: 1.5.0
+";
+}
+
+bundle agent init
+{
+  files:
+    "$(g.file)"
+      create => "true",
+      content => "$(g.start)",
+      perms => mode("640");
+}
+
+bundle agent test
+{
+  methods:
+    "first pass" usebundle => apply("first");
+    "second pass" usebundle => apply("second");
+}
+
+bundle agent apply(pass)
+{
+  yaml:
+    # Single quotes are kept
+    "$(g.file)"
+      target => ".server.host",
+      state => "present",
+      value => "127.0.0.1",
+      classes => outcome("$(pass)");
+
+    # Written as a boolean, not the string "false"
+    "$(g.file)"
+      target => ".server.tls",
+      state => "present",
+      value => "false",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      target => ".server.allowed_networks[]",
+      state => "absent",
+      value => "172.16.0.0/12",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      target => ".server.allowed_networks[]",
+      state => "present",
+      value => "192.168.0.0/16",
+      classes => outcome("$(pass)");
+
+    # 'trusted_proxies:' has no value yet, the list is created under it
+    "$(g.file)"
+      target => ".server.trusted_proxies[]",
+      state => "present",
+      value => "10.0.0.1",
+      classes => outcome("$(pass)");
+
+    # New key goes after the last (nested) entry
+    "$(g.file)"
+      target => ".server.workers",
+      state => "present",
+      value => "4",
+      classes => outcome("$(pass)");
+
+    # Values that YAML would read as something else get quoted: "no" as a
+    # boolean, "22:22" as a number, and ": " as a nested mapping
+    "$(g.file)"
+      target => ".server.region",
+      state => "present",
+      value => "no",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      target => ".server.banner",
+      state => "present",
+      value => "Welcome: staff only",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      target => ".server.ports[]",
+      state => "present",
+      value => "22:22",
+      classes => outcome("$(pass)");
+
+    # Single quotes are kept, with ' written as ''
+    "$(g.file)"
+      target => ".server.motd",
+      state => "present",
+      value => "It's back at 10",
+      classes => outcome("$(pass)");
+
+    # The start content has no final newline, the new key must still go on
+    # its own line
+    "$(g.file)"
+      target => '.labels["app.example.com/version"]',
+      state => "present",
+      value => "1.5.0",
+      classes => outcome("$(pass)");
+
+    # A quoted key in the file, with a quoted value containing \"
+    "$(g.file)"
+      target => '.labels["app.example.com/owner"]',
+      state => "present",
+      value => "platform",
+      classes => outcome("$(pass)");
+
+    # Double quotes are kept
+    "$(g.file)"
+      target => '.backends[] | select(.name == "api") | .url',
+      state => "present",
+      value => "http://api.internal:9100",
+      classes => outcome("$(pass)");
+
+    # Trailing comment is kept
+    "$(g.file)"
+      target => '.backends[] | select(.name == "api") | .timeout',
+      state => "present",
+      value => "10",
+      classes => outcome("$(pass)");
+
+    # Adds '- name: cache' since no item matches, then sets a field on it
+    "$(g.file)"
+      target => '.backends[] | select(.name == "cache")',
+      state => "present",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      target => '.backends[] | select(.name == "cache") | .url',
+      state => "present",
+      value => "http://cache.internal:6379",
+      classes => outcome("$(pass)");
+
+    # Removes the whole item, found by name rather than position
+    "$(g.file)"
+      target => '.backends[] | select(.name == "legacy")',
+      state => "absent",
+      classes => outcome("$(pass)");
+}
+
+bundle agent check
+{
+  vars:
+    "actual"
+      string => readfile("$(g.file)", 0),
+      if => fileexists("$(g.file)");
+
+    "mode"
+      string => filestat("$(g.file)", "modeoct"),
+      if => fileexists("$(g.file)");
+
+  classes:
+    "content_ok" expression => strcmp("$(actual)", "$(g.expected)");
+    "mode_ok" expression => strcmp("$(mode)", "100640");
+    "first_ok" expression => "first_repaired.!first_failed";
+    "second_ok" expression => "second_kept.!(second_repaired|second_failed)";
+    "ok" and => { "content_ok", "mode_ok", "first_ok", "second_ok" };
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+
+    !ok::
+      "$(this.promise_filename) FAIL";
+
+    !content_ok::
+      "Expected:
+$(g.expected)";
+      "Actual:
+$(actual)";
+
+    !mode_ok::
+      "Expected mode 100640, got $(mode)";
+
+    !first_ok::
+      "First pass did not repair cleanly: $(with)"
+        with => join(", ", classesmatching("first_.*"));
+
+    !second_ok::
+      "Second pass was not a no-op: $(with)"
+        with => join(", ", classesmatching("second_.*"));
+}
+
+bundle agent cleanup
+{
+  files:
+    "$(g.file)" delete => remove_file;
+}

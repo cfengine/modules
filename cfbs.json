@@ -581,6 +581,17 @@
         "append enable.cf services/init.cf"
       ]
     },
+    "promise-type-yaml": {
+      "description": "Promise type to edit YAML files.",
+      "subdirectory": "promise-types/yaml",
+      "dependencies": ["library-for-promise-types-in-python"],
+      "steps": [
+        "copy yaml_promise_type.py modules/promises/",
+        "copy yaml_lite.py modules/promises/",
+        "copy jq_filter.py modules/promises/",
+        "append enable.cf services/init.cf"
+      ]
+    },
     "uninstall-packages": {
       "description": "Allows you to specify a list of packages you want uninstalled on your hosts.",
       "subdirectory": "security/uninstall-packages",

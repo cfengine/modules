@@ -1,0 +1,6 @@
+promise agent yaml
+# @brief Define the 'yaml' promise type for editing YAML files
+{
+  path => "$(sys.workdir)/modules/promises/yaml_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
