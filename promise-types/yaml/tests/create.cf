@@ -1,0 +1,168 @@
+# Create a config file from nothing
+#
+# The file and its directory don't exist: present creates them,
+# along with missing parent keys and sequences. Like other files CFEngine
+# creates, the file gets mode 0600 and directories 0700.
+# absent on something that isn't there is kept.
+#
+# The promises are applied twice: the first pass must repair the file, the
+# second must only keep promises, and the result must match 'expected'.
+body common control
+{
+  bundlesequence => { "init", "test", "check", "cleanup" };
+}
+
+promise agent yaml
+{
+  path => "$(sys.workdir)/modules/promises/yaml_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+body classes outcome(prefix)
+{
+  promise_kept => { "$(prefix)_kept" };
+  promise_repaired => { "$(prefix)_repaired" };
+  repair_failed => { "$(prefix)_failed" };
+  scope => "namespace";
+}
+
+body delete remove_file
+{
+  dirlinks => "delete";
+  rmdirs => "true";
+}
+
+bundle common g
+{
+  vars:
+    "dir" string => "/tmp/yaml-promise-type-test-create";
+    "file" string => "$(dir)/config.cfg";
+
+    "expected"
+      string => "server:
+  port: 8080
+  tls:
+    cert: /etc/ssl/app.pem
+log_level: info
+allowed_networks:
+  - 10.0.0.0/8
+  - 192.168.0.0/16
+";
+}
+
+bundle agent init
+{
+  files:
+    "$(g.file)" delete => remove_file;
+    "$(g.dir)" delete => remove_file;
+}
+
+bundle agent test
+{
+  methods:
+    "first pass" usebundle => apply("first");
+    "second pass" usebundle => apply("second");
+}
+
+bundle agent apply(pass)
+{
+  yaml:
+    # Creates the file and the 'server:' parent
+    "$(g.file)"
+      target => ".server.port",
+      state => "present",
+      value => "8080",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      target => ".server.tls.cert",
+      state => "present",
+      value => "/etc/ssl/app.pem",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      target => ".log_level",
+      state => "present",
+      value => "info",
+      classes => outcome("$(pass)");
+
+    # Creates the sequence
+    "$(g.file)"
+      target => ".allowed_networks[]",
+      state => "present",
+      value => "10.0.0.0/8",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      target => ".allowed_networks[]",
+      state => "present",
+      value => "192.168.0.0/16",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      target => ".debug",
+      state => "absent",
+      classes => outcome("$(pass)");
+}
+
+bundle agent check
+{
+  vars:
+    "actual"
+      string => readfile("$(g.file)", 0),
+      if => fileexists("$(g.file)");
+
+    "mode"
+      string => filestat("$(g.file)", "modeoct"),
+      if => fileexists("$(g.file)");
+
+    "dir_mode"
+      string => filestat("$(g.dir)", "modeoct"),
+      if => fileexists("$(g.dir)");
+
+  classes:
+    "content_ok" expression => strcmp("$(actual)", "$(g.expected)");
+    "mode_ok" expression => strcmp("$(mode)", "100600");
+    "dir_mode_ok" expression => strcmp("$(dir_mode)", "40700");
+    "first_ok" expression => "first_repaired.!first_failed";
+    "second_ok" expression => "second_kept.!(second_repaired|second_failed)";
+
+    "ok"
+      and => {
+        "content_ok", "mode_ok", "dir_mode_ok", "first_ok", "second_ok"
+      };
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+
+    !ok::
+      "$(this.promise_filename) FAIL";
+
+    !content_ok::
+      "Expected:
+$(g.expected)";
+      "Actual:
+$(actual)";
+
+    !mode_ok::
+      "Expected mode 100600, got $(mode)";
+
+    !dir_mode_ok::
+      "Expected directory mode 40700, got $(dir_mode)";
+
+    !first_ok::
+      "First pass did not repair cleanly: $(with)"
+        with => join(", ", classesmatching("first_.*"));
+
+    !second_ok::
+      "Second pass was not a no-op: $(with)"
+        with => join(", ", classesmatching("second_.*"));
+}
+
+bundle agent cleanup
+{
+  files:
+    "$(g.file)" delete => remove_file;
+    "$(g.dir)" delete => remove_file;
+}

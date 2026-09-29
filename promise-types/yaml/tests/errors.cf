@@ -1,0 +1,184 @@
+# Promises that must not change the file
+#
+# Invalid targets must fail, and promises that are already satisfied must
+# be kept. In both cases the file must be left untouched.
+body common control
+{
+  bundlesequence => { "init", "test", "check", "cleanup" };
+}
+
+promise agent yaml
+{
+  path => "$(sys.workdir)/modules/promises/yaml_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+body classes outcome(prefix)
+{
+  promise_kept => { "$(prefix)_kept" };
+  promise_repaired => { "$(prefix)_repaired" };
+  repair_failed => { "$(prefix)_failed" };
+  scope => "namespace";
+}
+
+body delete remove_file
+{
+  dirlinks => "delete";
+}
+
+bundle common g
+{
+  vars:
+    "file" string => "/tmp/yaml-promise-type-test-errors.yaml";
+    "missing" string => "/tmp/yaml-promise-type-test-missing.yaml";
+
+    "start"
+      string => "server:
+  host: '0.0.0.0'
+  port: 8080
+users:
+  - name: alice
+  - name: bob
+";
+
+    "must_fail"
+      slist => {
+        "through_scalar",
+        "missing_parent",
+        "present_on_mapping",
+        "value_on_sequence",
+        "index_out_of_range",
+      };
+
+    "must_keep"
+      slist => {
+        "same_value",
+        "same_quoted_value",
+        "absent_key",
+        "absent_no_match",
+        "absent_missing_file",
+        "set_existing_item",
+      };
+}
+
+bundle agent init
+{
+  files:
+    "$(g.file)"
+      create => "true",
+      content => "$(g.start)";
+}
+
+bundle agent test
+{
+  yaml:
+    # port is a plain value (8080), so it has no keys to look up
+    "$(g.file)"
+      target => ".server.port.number",
+      state => "present",
+      value => "1",
+      classes => outcome("through_scalar");
+
+    # Missing parents are only created for plain key paths
+    "$(g.file)"
+      target => '.backends[] | select(.name == "api") | .port',
+      state => "present",
+      value => "9000",
+      classes => outcome("missing_parent");
+
+    "$(g.file)"
+      target => ".server[]",
+      state => "present",
+      value => "x",
+      classes => outcome("present_on_mapping");
+
+    # Replacing a list with a scalar is refused, '.users[]' adds an item
+    "$(g.file)"
+      target => ".users",
+      state => "present",
+      value => "carol",
+      classes => outcome("value_on_sequence");
+
+    "$(g.file)"
+      target => ".users[5].name",
+      state => "present",
+      value => "carol",
+      classes => outcome("index_out_of_range");
+
+    "$(g.missing)"
+      target => ".a",
+      state => "absent",
+      classes => outcome("absent_missing_file");
+
+    "$(g.file)"
+      target => ".server.port",
+      state => "present",
+      value => "8080",
+      classes => outcome("same_value");
+
+    "$(g.file)"
+      target => ".server.host",
+      state => "present",
+      value => "0.0.0.0",
+      classes => outcome("same_quoted_value");
+
+    "$(g.file)"
+      target => ".server.tls",
+      state => "absent",
+      classes => outcome("absent_key");
+
+    "$(g.file)"
+      target => '.users[] | select(.name == "mallory")',
+      state => "absent",
+      classes => outcome("absent_no_match");
+
+    "$(g.file)"
+      target => ".users[0].name",
+      state => "present",
+      value => "alice",
+      classes => outcome("set_existing_item");
+}
+
+bundle agent check
+{
+  vars:
+    "actual"
+      string => readfile("$(g.file)", 0),
+      if => fileexists("$(g.file)");
+
+  classes:
+    "failed_$(g.must_fail)"
+      expression => "$(g.must_fail)_failed.!$(g.must_fail)_repaired";
+
+    "kept_$(g.must_keep)"
+      expression => "$(g.must_keep)_kept.!($(g.must_keep)_repaired|$(g.must_keep)_failed)";
+
+    "unchanged" expression => strcmp("$(actual)", "$(g.start)");
+    "not_created" expression => not(fileexists("$(g.missing)"));
+    "fail" expression => "!failed_$(g.must_fail)";
+    "fail" expression => "!kept_$(g.must_keep)";
+    "fail" expression => "!(unchanged.not_created)";
+
+  reports:
+    "$(g.must_fail): expected the promise to fail"
+      unless => "failed_$(g.must_fail)";
+
+    "$(g.must_keep): expected the promise to be kept"
+      unless => "kept_$(g.must_keep)";
+
+    "File was modified:
+$(actual)" unless => "unchanged";
+    "$(g.missing) was created" unless => "not_created";
+
+    !fail::
+      "$(this.promise_filename) Pass";
+
+    fail::
+      "$(this.promise_filename) FAIL";
+}
+
+bundle agent cleanup
+{
+  files:
+    "$(g.file)" delete => remove_file;
+}
