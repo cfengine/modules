@@ -36,16 +36,27 @@ bundle agent install_ansible_main
       if => not(isvariable("data:install_ansible.version"));
 
     data:ansible_minimal_install::
+      "package" string => "ansible-core";
       "base_command" string => "pipx install --global ansible-core";
 
     data:ansible_full_install|(!data:ansible_full_install.!data:ansible_minimal_install)::
+      "package" string => "ansible";
       "base_command" string => "pipx install --global --include-deps ansible";
 
   packages:
-    "pipx" classes => if_ok("pipx_installed");
+    # Use the distro packages on Red Hat, as recommended by Ansible
+    redhat::
+      "${package}"
+        version => "${data:install_ansible.version}",
+        if => isvariable("data:install_ansible.version");
+
+      "${package}" if => not(isvariable("data:install_ansible.version"));
+
+    !redhat::
+      "pipx" classes => if_ok("pipx_installed");
 
   commands:
-    pipx_installed.!ansible_installed::
+    !redhat.pipx_installed.!ansible_installed::
       "${install_ansible_command}"
         contain => in_shell_umask(022),
         comment => "The default umask of 077 would create /opt/pipx/venvs/ansible which is inaccessible to everyone but root, so use 022 instead.";
