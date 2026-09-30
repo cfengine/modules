@@ -13,3 +13,7 @@ Additionally it is possible to request a specific version other than the latest/
 - `data:install_ansible.version` - if this variable is defined then a specific version will be installed
 
 Note that the system in question must have a `pipx` package available through the default package manager as well as python installed which should come along as a dependency of `pipx`.
+
+On Red Hat based systems, Ansible is installed with `dnf` instead of `pipx`.
+The minimal install uses the `ansible-core` package from the default repositories.
+The full install uses the `ansible` package, which requires the EPEL repository to be enabled.
