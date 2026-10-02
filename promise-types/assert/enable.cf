@@ -1,0 +1,6 @@
+promise agent assert
+# @brief Define the 'assert' promise type for asserting facts in test policy
+{
+  path => "$(sys.workdir)/modules/promises/assert_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
