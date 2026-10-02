@@ -1,0 +1,96 @@
+promise agent assert
+{
+  path => "$(sys.workdir)/modules/promises/assert_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent main
+{
+  vars:
+    "fruits" slist => { "apple", "banana", "cherry" };
+    "counts" ilist => { "1", "2", "3" };
+    "prices" rlist => { "1.50", "2.000000", "3.75" };
+
+  files:
+    "/tmp/assert_vocab_fixture.txt"
+      create => "true",
+      content => "hello world";
+
+  assert:
+    # int
+    "int_equals_pass"
+      int => "5",
+      equals => "5";
+
+    "int_equals_fail"
+      int => "5",
+      equals => "6";
+
+    "int_greater_than_pass"
+      int => "5",
+      greater_than => "1";
+
+    "int_less_than_fail"
+      int => "5",
+      less_than => "1";
+
+    # real
+    "real_equals_pass"
+      real => "3.140000",
+      equals => "3.14";
+
+    # str
+    "str_equals_pass"
+      str => "hello",
+      equals => "hello";
+
+    "str_not_equals_fail"
+      str => "hello",
+      not_equals => "hello";
+
+    "str_contains_pass"
+      str => "hello world",
+      contains => "world";
+
+    # file
+    "file_exists_pass"
+      file => "/tmp/assert_vocab_fixture.txt",
+      exists => "true";
+
+    "file_contents_fail"
+      file => "/tmp/assert_vocab_fixture.txt",
+      contents => "wrong contents";
+
+    # dir
+    "dir_exists_pass"
+      dir => "/tmp",
+      exists => "true";
+
+    "dir_exists_fail"
+      dir => "/this/path/should/not/exist/hopefully",
+      exists => "true";
+
+    # command
+    "command_output_pass"
+      command => "echo hello",
+      output => "hello";
+
+    # slist
+    "slist_equals_pass"
+      slist => "@(fruits)",
+      equals => { "apple", "banana", "cherry" };
+
+    "slist_contains_fail"
+      slist => "@(fruits)",
+      contains => "durian";
+
+    # ilist (numeric-aware comparison)
+    "ilist_contains_pass"
+      ilist => "@(counts)",
+      contains => "2";
+
+    # rlist (numeric-aware: "2" should match "2.000000")
+    "rlist_contains_pass"
+      rlist => "@(prices)",
+      contains => "2";
+}
