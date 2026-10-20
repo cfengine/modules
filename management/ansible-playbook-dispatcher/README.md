@@ -8,6 +8,8 @@ There is no need to add a playbook directory as a separate module, and no need t
 
 Only files ending in `.yaml` or `.yml` are accepted.
 
+**Note:** Requires cfbs >= 5.8.0 (bundled with CFEngine 3.29 and newer).
+
 **Note:** The playbooks will be distributed and run locally with root-privilege (uid=0).
 
 **Note:** Ansible must be installed on the hosts.
